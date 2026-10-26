@@ -1,0 +1,4 @@
+.tinytex/
+.venv/
+media/
+__pycache__/
