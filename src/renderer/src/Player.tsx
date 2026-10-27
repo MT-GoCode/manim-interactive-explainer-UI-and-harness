@@ -53,7 +53,7 @@ export function Player({
     const prev = last.current
     const resume = prev?.slug === slug ? prev : null
     const start = () => {
-      v.currentTime = resume ? Math.min(resume.time, v.duration) : 0
+      if (resume) v.currentTime = Math.min(resume.time, v.duration) // a fresh clip already starts at 0
       if (!resume?.paused) void play(v)
     }
     v.addEventListener('loadedmetadata', start, { once: true })

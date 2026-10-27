@@ -60,8 +60,16 @@ const seekedAfter = (page: Page, key: string) =>
 async function onDivide(page: Page): Promise<void> {
   for (let i = 0; i < DIVIDE; i++) await page.keyboard.press('ArrowDown')
   await expect.poll(() => current(page)).toEqual({ i: DIVIDE, lit: 1 })
-  await page.waitForFunction(() => document.querySelector('video')!.readyState >= 2)
+  await settled(page)
+  await page.waitForFunction(() => !document.querySelector('video')!.paused) // a new cell plays its clip
 }
+
+// The player is done with its own loading and seeking, so a test's seek is the only one in flight.
+const settled = (page: Page) =>
+  page.waitForFunction(() => {
+    const v = document.querySelector('video')!
+    return v.readyState >= 2 && !v.seeking
+  })
 
 test('arrows and clicks light exactly one cell and play its clip', async ({ launch }, info) => {
   const app = await launch([fixture(info.outputDir)])
@@ -119,8 +127,7 @@ test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
   writeFileSync(lesson, src.slice(0, next) + '        self.wait(0.5)\n' + src.slice(next))
   execFileSync(join(ROOT, 'bin/explain-build'), [b])
   await expect.poll(async () => (await video(page)).src, { timeout: 30000 }).not.toBe(before.src)
-  await page.waitForFunction(() => document.querySelector('video')!.readyState >= 2)
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)))
+  await settled(page) // the new clip is loaded and the player's resume seek has landed
   expect(await shown(page)).toBe(k)
   expect((await video(page)).paused).toBe(true)
   expect(await page.evaluate(() => (globalThis as unknown as { errors: number }).errors)).toBe(0)
