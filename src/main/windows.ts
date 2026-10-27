@@ -176,7 +176,7 @@ function watchRepo(w: W, files: string[]): void {
 function createWindow(dir: string, slug: string | null, bounds?: Rectangle): void {
   const { lesson, repoFiles } = loadAndPrune(dir)
   const real = realpathSync(dir) // before the window exists: nothing is left behind if it throws
-  // 1280 wide: a 16:9 player 1260 px wide is 709 px tall, leaving ~250 px of transcript in a 1000 px window.
+  // 1280 wide: a 2:1 player 1280 px wide is 640 px tall, leaving ~340 px of transcript in a 1000 px window.
   const win = new BrowserWindow({
     width: 1280,
     height: 1000,

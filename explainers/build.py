@@ -66,7 +66,9 @@ def manim_config(bundle: Path) -> dict:
     would make lesson.py an opened input of pass 1."""
     from explainers.render import FPS, HEIGHT, WIDTH
     build = bundle / "build"
-    return {"pixel_width": WIDTH, "pixel_height": HEIGHT, "frame_rate": FPS, "seed": 0, "tex_dir": str(build / ".tex"),
+    # Manim keeps its 14.22-wide frame at any pixel size: the frame takes the pixels' shape, so a unit stays square
+    return {"pixel_width": WIDTH, "pixel_height": HEIGHT, "frame_width": 8.0 * WIDTH / HEIGHT, "frame_rate": FPS,
+            "seed": 0, "tex_dir": str(build / ".tex"),
             "text_dir": str(build / ".text"), "disable_caching": True, "max_files_cached": -1, "verbosity": "ERROR",
             "progress_bar": "none"}
 

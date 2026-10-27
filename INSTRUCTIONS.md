@@ -40,3 +40,17 @@ Read this before making or editing a lesson.
     hash function, the keypair, the bytecode) is the lesson, not a footnote. Analogies ride alongside the mechanism, never
     replace it. If one step is genuinely out of scope (e.g. elliptic-curve math), mark that boundary explicitly and say a
     separate lesson covers it — do not fake it or skip it silently.
+12. **Few things at once (cognitive load).** Every element on screen costs the viewer attention. Show only what the
+    current step uses, and fade out what is finished. Change one thing at a time, so the eye always knows where to
+    look: at what just appeared or moved.
+13. **Use the whole stage.** The frame is wide: 2:1, 16 × 8 units. Put things side by side on one line before
+    stacking them. Prefer a few big, well-spaced elements to many small ones.
+14. **A row of labels is one line.** Labels over a row of cells sit on one line, each centred over its cell. Never
+    stagger them up and down to dodge an overlap: shorten them, widen the cells, or show fewer.
+15. **Quiet visuals.** No decoration: no borders, shadows, gradients or icons that carry no information. One accent
+    colour means "look here", one means "wrong", and a colour means the same thing in every cell.
+16. **Align and space evenly.** Things that belong together share a row or a column edge, with equal gaps, so the
+    picture reads as a grid.
+17. **Words go in the transcript.** On screen: labels, numbers and formulas only. Sentences belong in cells.md.
+18. **Things stay put.** An object that stays on screen keeps its place from cell to cell. Move it only when the
+    movement is the point.

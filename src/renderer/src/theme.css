@@ -28,7 +28,7 @@ body {
 .player .noclip {
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1; /* the clips' shape (explainers/render.py) */
 }
 .player .failed {
   color: #f48771;

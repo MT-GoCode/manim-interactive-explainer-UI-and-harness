@@ -15,7 +15,7 @@ from pathlib import Path
 ENCODER = {"threads": "1", "g": "6", "crf": "18", "preset": "veryfast"}  # g 6: worst seek 9.7 ms (DECISIONS)
 # What Manim's "auto" picks for an opaque mp4, pinned: a manim.cfg (cwd or user) must not change the clips' bytes.
 OUTPUT = {"format": "mp4", "transparent": False, "video_codec": "libx264", "pixel_format": "yuv420p"}
-FPS, WIDTH, HEIGHT = 30, 1920, 1080
+FPS, WIDTH, HEIGHT = 30, 2160, 1080  # 2:1: the app shows the player full width over three quarters of the window
 WORKER_CORES, WORKER_RAM = 1.1, 0.7 * 2**30  # measured peaks of one worker (DECISIONS)
 SEED = 0  # every process draws the same random numbers, so chunks and pass 1 agree
 

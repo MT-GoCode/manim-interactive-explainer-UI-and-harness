@@ -8,7 +8,7 @@ from explainers import Lesson
 
 class Geometry(Lesson):
     """One cell per case; each starts from an empty screen. Dots, squares and straight strokes give hand-checkable
-    numbers (half a pixel s = 14.22 / 1920 / 2 = 0.0037)."""
+    numbers (half a pixel s = 16 / 2160 / 2 = 0.0037)."""
 
     def show(self, slug, *mobs):
         self.cell(slug)
@@ -25,12 +25,12 @@ class Geometry(Lesson):
         self.show("text-on-an-arrow", Arrow(LEFT * 3, RIGHT * 3, buff=0), Text("crosses", font_size=32))
         self.show("dot-on-an-arrow", Arrow(LEFT * 3, RIGHT * 3, buff=0), Dot(UP * 0.03))
         self.show("hidden-in-a-group", VGroup(Dot(ORIGIN), Dot(RIGHT * 0.1)))
-        # squares of side 1: an edge at 7.5 or 4.5 against the frame's 7.11 and 4
-        self.show("off-frame-right", Square(1).shift(RIGHT * 7))
-        self.show("off-frame-left", Square(1).shift(LEFT * 7))
+        # squares of side 1: an edge at 8.5 or 4.5 against the frame's 8 and 4
+        self.show("off-frame-right", Square(1).shift(RIGHT * 8))
+        self.show("off-frame-left", Square(1).shift(LEFT * 8))
         self.show("off-frame-top", Square(1).shift(UP * 4))
         self.show("off-frame-fill", Square(1, stroke_width=0, fill_opacity=1).shift(DOWN * 4))
-        self.show("off-frame-image", ImageMobject(np.full((8, 8, 4), 200, np.uint8)).set(height=1).shift(RIGHT * 7))
+        self.show("off-frame-image", ImageMobject(np.full((8, 8, 4), 200, np.uint8)).set(height=1).shift(RIGHT * 8))
         self.show("under-half-a-pixel-past-the-edge", Square(1).move_to([config.frame_width / 2 - 0.5 + 0.003, 0, 0]))
         self.show("small-text", Text("tiny", font_size=28))
         self.show("small-latex", MathTex("x", font_size=36), Matrix([[1, 2], [3, 4]]).scale(0.5).shift(DOWN * 2))
