@@ -108,7 +108,7 @@ def fingerprints(drawn: list[list[str]], inputs: dict) -> list[str]:
     from importlib.metadata import version
     after = json.dumps({"inputs": inputs,
                         "code": {n: sha256((PICTURE_CODE / n).read_bytes()) for n in ("fingerprint.py", "render.py")},
-                        "versions": {d: version(d) for d in ("manim", "pycairo", "av", "pillow")}
+                        "versions": {d: version(d) for d in ("manim", "numpy", "pycairo", "av", "pillow")}
                         | {"cairo": cairo.cairo_version_string()}}, sort_keys=True)
     return [sha256(json.dumps([after, d]).encode()) for d in drawn]
 
@@ -192,10 +192,13 @@ def previous_index(bundle: Path) -> dict:
 
 
 def reusable(bundle: Path, fingerprints: list[str], previous: dict) -> dict[int, dict]:
-    """{cell: the previous build's cell} where the fingerprints are equal and its clip is still on disk. A previous
-    cell without a fingerprint is never reusable."""
+    """{cell: the previous build's cell} where the fingerprints are equal and its clip on disk still has the bytes
+    that build recorded. A previous cell without a fingerprint is never reusable."""
+    from explainers.render import frames_sha
     old = {c["fingerprint"]: c for c in previous["cells"] if "fingerprint" in c}
-    return {n: old[f] for n, f in enumerate(fingerprints) if f in old and (bundle / "build" / old[f]["clip"]).is_file()}
+    clip = lambda c: bundle / "build" / c["clip"]
+    return {n: old[f] for n, f in enumerate(fingerprints)
+            if f in old and clip(old[f]).is_file() and frames_sha(clip(old[f])) == old[f]["frames_sha"]}
 
 
 def commit(bundle: Path, rec: dict, parts: dict[int, Path], reused: dict[int, dict], previous: dict) -> Path:
@@ -248,6 +251,7 @@ def build(bundle: Path, k: int | None = None) -> tuple[dict, Path]:
         previous = previous_index(bundle)
         reused = reusable(bundle, rec["fingerprints"], previous)
         todo = to_render(set(reused), [c.cuttable for c in rec["cells"]])
+        rec["pulled_in"] = sum(n in reused for n in todo)
         reused = {n: c for n, c in reused.items() if n not in todo}
         k = k or width(os.cpu_count(), _ram(), len(todo))
         parts, rec["chunks"] = render(bundle, rec["lock"].fileno(), rec["cells"], todo, k) if todo else ({}, [])
@@ -266,13 +270,15 @@ def _ram() -> int:
 
 
 def render_line(rec: dict) -> str:
-    """e.g. "render: 3 cells (4–5, 9) in 2 chunks · 27 reused"; cells numbered from 1."""
+    """e.g. "render: 3 cells (4–5, 9) in 2 chunks · 27 reused", or "render: 10 cells (1–10; 9 pulled in by a live
+    updater) in 1 chunk · 20 reused"; cells numbered from 1."""
     from explainers.render import runs
-    todo, k = rec["rendered"], len(rec["chunks"])
+    todo, k, pulled = rec["rendered"], len(rec["chunks"]), rec["pulled_in"]
     reused = f" · {len(rec['cells']) - len(todo)} reused"
     if not todo:
         return "render: 0 cells" + reused
     spans = ", ".join(f"{r[0] + 1}–{r[-1] + 1}" if len(r) > 1 else f"{r[0] + 1}" for r in runs(todo))
+    spans += f"; {pulled} pulled in by a live updater" * (pulled > 0)
     return f"render: {len(todo)} cell{'s' * (len(todo) != 1)} ({spans}) in {k} chunk{'s' * (k != 1)}" + reused
 
 

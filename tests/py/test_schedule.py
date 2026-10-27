@@ -1,5 +1,5 @@
 """Width from measured per-worker peaks, and how cells are cut into chunks (golden, literal inputs)."""
-from explainers.render import chunks, width
+from explainers.render import chunks, to_render, width
 
 GiB = 2**30
 
@@ -27,3 +27,12 @@ def test_chunks_golden():
 def test_chunks_never_start_where_a_time_based_updater_is_live():
     assert chunks([1, 1, 1, 1], 2, [True, True, False, True]) == [[0], [1, 2, 3]]  # nearest allowed cut
     assert chunks([1, 1, 1, 1], 4, [True, False, False, False]) == [[0, 1, 2, 3]]  # nowhere to cut: one chunk
+
+
+def test_to_render_reaches_back_to_the_last_cell_a_chunk_may_start_at():
+    cuttable = [True, False, False, True, False]
+    assert to_render({0, 1, 2, 3, 4}, cuttable) == []
+    assert to_render({0, 1, 3, 4}, cuttable) == [0, 1, 2]
+    assert to_render({0, 1, 2, 3}, cuttable) == [3, 4]
+    assert to_render({0, 2, 3, 4}, cuttable) == [0, 1]
+    assert to_render(set(), cuttable) == [0, 1, 2, 3, 4]

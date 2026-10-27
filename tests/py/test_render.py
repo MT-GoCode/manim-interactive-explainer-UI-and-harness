@@ -127,3 +127,13 @@ def test_a_cell_with_no_animation_is_an_error(bundle):
     md.write_text(md.read_text().replace("## sum\n", "## empty\nNothing.\n\n## sum\n"))
     r = explain_build(b)
     assert r.returncode == 1 and r.stderr.strip() == 'error: cell "exp" has no animation (lesson.py:19)'
+
+
+def test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips(built, bundle, tmp_path):
+    _, index = ok(built)
+    (tmp_path / "manim.cfg").write_text("[video_encoder]\npixel_format = yuv444p\n")
+    b = bundle()
+    r = explain_build(b, cwd=tmp_path)
+    assert r.returncode == 0, r.stderr
+    assert [c["frames_sha"] for c in json.loads((b / "build" / "index.json").read_text())["cells"]] == \
+           [c["frames_sha"] for c in index["cells"]]

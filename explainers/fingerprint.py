@@ -21,12 +21,19 @@ class _Frame:
 
 
 class _Context:
-    """A cairo.Context that records each call. Gradients are recorded by their geometry and colour stops."""
+    """A cairo.Context that records each drawing call this Manim makes. Gradients are recorded by their geometry and
+    colour stops. Any other attribute raises: a query (get_matrix, fill_extents) answered with None would draw wrong."""
+    DRAWING = frozenset({"new_path", "new_sub_path", "move_to", "curve_to", "close_path", "set_source_rgba",
+                         "set_source", "set_line_width", "set_line_join", "set_line_cap", "fill_preserve",
+                         "stroke_preserve"})
 
     def __init__(self, ops: list):
         self._ops = ops
 
     def __getattr__(self, name):
+        if name not in self.DRAWING:
+            raise AttributeError(f"pass 1 does not record cairo.Context.{name}")
+
         def record(*args):
             self._ops.append((name, *(("gradient", a.get_linear_points(), a.get_color_stops_rgba())
                                       if isinstance(a, cairo.LinearGradient) else float(a) for a in args)))
@@ -52,7 +59,7 @@ class Recorder:
                           for v in vmobjects]
             return background_colored(vmobjects, pixel_array)
 
-        cam.get_cairo_context = lambda pixel_array: _Context(self._ops)
+        cam.get_cairo_context = self._context
         cam.display_point_cloud = self._points
         cam.display_image_mobject = self._image
         cam.display_multiple_background_colored_vmobjects = background_colored_vmobjects
@@ -68,6 +75,15 @@ class Recorder:
         if hit is None:
             hit = self._backgrounds[id(a)] = (a, _sha(repr((a.shape, a.dtype.str)).encode(), a.tobytes()))
         return hit[1]
+
+    def _context(self, pixel_array) -> _Context:
+        """Paths are recorded in scene units: the world-to-pixel matrix Camera.get_cairo_context sets is part of what
+        is drawn (the 3D camera's orientation is already in the projected points)."""
+        c = self._cam
+        sx, sy = c.pixel_width / c.frame_width, c.pixel_height / c.frame_height
+        self._ops.append(("matrix", *map(float, (sx, -sy, c.pixel_width / 2 - c.frame_center[0] * sx,
+                                                 c.pixel_height / 2 + c.frame_center[1] * sy))))
+        return _Context(self._ops)
 
     def _points(self, pmobject, points, rgbas, thickness, pixel_array):
         coords = self._cam.points_to_pixel_coords(pmobject, points)

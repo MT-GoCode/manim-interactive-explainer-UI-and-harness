@@ -46,11 +46,11 @@ copy keeps original line%explainers/lesson.py%s/        for x in c.get_family\(\
 run time from the clock%explainers/lesson.py%s/        super\(\).play\(\*args, \*\*kwargs\)\n        self._cells\[-1\].run_times.append\(self.duration\)/        t0 = self.renderer.time\n        super().play(*args, **kwargs)\n        self._cells[-1].run_times.append(self.renderer.time - t0)/%tests/py/test_pass1.py::test_cells_and_exact_run_times
 outermost lesson frame%explainers/lesson.py%s/while f is not None and f.f_code.co_filename != source:\n        f = f.f_back\n    return f.f_lineno if f is not None else None/hit = None\n    while f is not None:\n        hit = f if f.f_code.co_filename == source else hit\n        f = f.f_back\n    return hit.f_lineno if hit is not None else None/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
 partials pruned past 100%explainers/build.py%s/"max_files_cached": -1,/"max_files_cached": 100,/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
-chunk renders one animation too many%explainers/render.py%s/first, last = starts\[g\[0\]\], starts\[g\[-1\] \+ 1\] - 1/first, last = starts[g[0]], starts[g[-1] + 1]/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
+chunk renders one animation too many%explainers/render.py%s/starts\[r\[-1\] \+ 1\] - 1\) for r in runs/starts[r[-1] + 1]) for r in runs/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 join drops a cell's first partial%explainers/build.py%s/join\(\[parts\[i\] for i in range\(c.first_anim, /join([parts[i] for i in range(c.first_anim + 1, /%tests/py/test_render.py::test_clips_equal_a_one_pass_render_cut_at_cells
 previous build's clips deleted%explainers/build.py%s/keep = \{c\["clip"\] for c in cells \+ previous\["cells"\]\}/keep = {c["clip"] for c in cells}/%tests/py/test_render.py::test_an_edit_inside_one_cell_changes_only_that_cells_clip_and_old_clips_last_one_rebuild
 width ignores cores%explainers/render.py%s/return max\(1, min\(floor\(0.5 \* cores \/ WORKER_CORES\), /return max(1, min(/%tests/py/test_schedule.py::test_width_is_bound_by_cpu_ram_and_cells
-seed not fixed%explainers/build.py%s/return \{"seed": 0, /return {/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
+seed not fixed%explainers/build.py%s/"seed": 0, //%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 encoder threads not pinned%explainers/render.py%s/ENCODER = \{"threads": "1", /ENCODER = {"threads": "0", /%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
 keyframe interval changed%explainers/render.py%s/"g": "6"/"g": "12"/%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
 stale media not cleared%explainers/render.py%s/    shutil.rmtree\(media, ignore_errors=True\)\n    groups/    groups/%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
@@ -165,6 +165,33 @@ span from rendered text%src/renderer/src/selection.ts%s/const span: \[number, nu
 unbuilt cells' prose not judged%src/main/bundle.ts%s/if \(sectionSha\(cell\) !== c.fingerprint.section_sha\) return false/if (cell.clip \&\& sectionSha(cell) !== c.fingerprint.section_sha) return false/%unit:bundle.spec.ts:an unbuilt bundle keeps comments whose prose is unchanged and drops those whose prose changed
 a failed prune escapes%src/main/windows.ts%s/  \} catch \(e\) \{\n    \/\/ the lesson still shows the pruned list/  } catch (e) {\n    throw e\n    \/\/ the lesson still shows the pruned list/%e2e:comments.spec.ts:a stale comment that cannot be pruned says so
 box closes before the answer%src/renderer/src/Comments.tsx%s/      if \(r.ok\) close\(\)\n      else setRefused\(r.message\)/      close()/%e2e:comments.spec.ts:a refused comment keeps its text in the box
+colour not recorded%explainers/fingerprint.py%s/        def record\(\*args\):\n/        def record(*args):\n            if name == "set_source_rgba": return\n/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[fill]
+line width not recorded%explainers/fingerprint.py%s/        def record\(\*args\):\n/        def record(*args):\n            if name == "set_line_width": return\n/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[stroke]
+drawing order lost%explainers/fingerprint.py%s/repr\(self._ops\)/repr(sorted(self._ops, key=repr))/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[order]
+gradient stops ignored%explainers/fingerprint.py%s/a.get_color_stops_rgba\(\)/()/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[gradient]
+static frame not folded in%explainers/fingerprint.py%s/self._canvas = frame.digest/self._canvas = b""/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[static]
+image pixels ignored%explainers/fingerprint.py%s/pixels.tobytes\(\), //%tests/py/test_frames.py::test_a_different_picture_records_different_frames[image]
+point colours ignored%explainers/fingerprint.py%s/np.asarray\(rgbas, float\).tobytes\(\)/b""/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[points]
+frame repeats ignored%explainers/fingerprint.py%s/\(frame.digest, repeat\)/(frame.digest, 1)/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[hold]
+animation boundaries lost%explainers/lesson.py%s/        if self.RECORDING:\n            self._cells\[-1\].drawn.append\(self._recorder.play_digest\(\)\)\n//; s/        c.end = self._end_state\(\)/        c.drawn.append(self._recorder.play_digest())\n        c.end = self._end_state()/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[halves]
+background ignored%explainers/fingerprint.py%s/self._canvas = self._array\(self._cam.background\)/self._canvas = b""/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[background]
+background image ignored%explainers/fingerprint.py%s/self._ops \+= \[\("background-image"/_ = [("background-image"/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[backimage]
+pass 1 not at the render's rate%explainers/build.py%s/"frame_rate": FPS, //%tests/py/test_frames.py::test_the_same_picture_records_the_same_frames[rate]
+world-to-pixel matrix not recorded%explainers/fingerprint.py%s/self._ops.append\(\("matrix", /(lambda *_: None)(("matrix", /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[centre]
+world-to-pixel scale not recorded%explainers/fingerprint.py%s/\*map\(float, \(sx, -sy, /*map(float, (0.0, 0.0, /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[width]
+recording context answers any query%explainers/fingerprint.py%s/if name not in self.DRAWING:/if False:/%tests/py/test_frames.py::test_the_recording_context_refuses_what_it_cannot_answer
+numpy version not fingerprinted%explainers/build.py%s/"manim", "numpy", /"manim", /%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
+encoder code not fingerprinted%explainers/build.py%s/ *"code": \{n: sha256\(\(PICTURE_CODE \/ n\).read_bytes\(\)\) for n in \("fingerprint.py", "render.py"\)\},\n//%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
+inputs not fingerprinted%explainers/build.py%s/after = json.dumps\(\{"inputs": inputs,/after = json.dumps({/%tests/py/test_incremental.py::test_an_edit_to_a_helper_module_renders_every_cell
+one fingerprint for the whole lesson%explainers/build.py%s/json.dumps\(\[after, d\]\)/json.dumps([after, drawn])/%tests/py/test_incremental.py::test_an_edit_inside_one_cell_renders_that_cell
+only the first changed cell rendered%explainers/render.py%s/    todo = set\(range\(len\(cuttable\)\)\) - reusable\n/    todo = set(sorted(set(range(len(cuttable))) - reusable)[:1])\n/%tests/py/test_incremental.py::test_an_edit_whose_effect_persists_renders_every_cell_it_reaches
+previous build ignored%explainers/build.py%s/json.loads\(path.read_text\(\)\) if path.exists\(\) else/{"cells": []} if True else/%tests/py/test_incremental.py::test_no_change_renders_nothing
+reused clip not checked%explainers/build.py%s/if f in old and clip\(old\[f\]\).is_file\(\) and frames_sha\(clip\(old\[f\]\)\) == old\[f\]\["frames_sha"\]\}/if f in old}/%tests/py/test_incremental.py::test_a_missing_or_altered_clip_is_rendered_again
+reused clip checked by existence only%explainers/build.py%s/ and frames_sha\(clip\(old\[f\]\)\) == old\[f\]\["frames_sha"\]\}/}/%tests/py/test_incremental.py::test_a_missing_or_altered_clip_is_rendered_again
+no reach back to a cuttable cell%explainers/render.py%s/            todo.add\(n\)/            pass/%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
+reach back stops one cell early%explainers/render.py%s/while n > 0 and not cuttable\[n\]:/while n > 0 and not cuttable[n - 1]:/%tests/py/test_schedule.py::test_to_render_reaches_back_to_the_last_cell_a_chunk_may_start_at
+pulled-in cells not reported%explainers/build.py%s/    spans \+= f"; \{pulled\} pulled in by a live updater" \* \(pulled > 0\)\n//%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
+output format not pinned%explainers/render.py%s/"video_encoder_options": ENCODER, \*\*OUTPUT\}/"video_encoder_options": ENCODER}/%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
 EOF
 )
 
