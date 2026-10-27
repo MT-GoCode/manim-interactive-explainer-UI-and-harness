@@ -7,8 +7,7 @@ description: How to make a visual lesson (explainer) and Minh's binding rules fo
 
 A lesson is a folder `~/Documents/explainers/<slug>.explainer/`: `cells.md` (the transcript), `lesson.py` (one
 continuous Manim scene), and any `helpers.py` / data files they use. You write only those. Never write `build/`,
-`comments.json` or `ping`; the build and the app own them. Run on a Mac where `~/code/explainers/setup.sh` has run
-(`which explain-build fetch-comments` prints both); never build on ox-dev.
+`comments.json` or `ping`; the build and the app own them.
 
 1. **Numbers come from code.** If the lesson needs numbers (a matrix, a hash, a probability), write a script that
    computes them: a `helpers.py` or a data file in the bundle, imported by `lesson.py` (`from helpers import ...`).
