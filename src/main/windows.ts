@@ -10,7 +10,7 @@ import {
 import { existsSync, realpathSync, watch, writeFileSync, type FSWatcher } from 'fs'
 import { homedir } from 'os'
 import { basename, dirname, join, resolve } from 'path'
-import { CH, type Command } from '../shared/ipc'
+import { CH, type Command, type Commented } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
 import { addComment, load, LoadError, resolveComment, saveSection, writeComments } from './bundle'
 import { readSession, writeSession, type Entry } from './session'
@@ -83,7 +83,16 @@ ipcMain.on(CH.openLink, (_e, slug: string, cell: string) => {
 // from the file here (so a bundle edited while the app was closed is pruned when it opens).
 function loadAndPrune(dir: string): ReturnType<typeof load> {
   const r = load(dir)
-  if (r.comments.dropped) writeComments(dir, r.comments.kept)
+  if (!r.comments.dropped) return r
+  try {
+    writeComments(dir, r.comments.kept)
+  } catch (e) {
+    // the lesson still shows the pruned list; the file stays as it is until a reload can write it
+    r.lesson.alerts.push({
+      t: 'invalid',
+      message: `comments.json could not be pruned: ${(e as Error).message}`
+    })
+  }
   return r
 }
 
@@ -93,10 +102,19 @@ const writing = (label: string, f: (w: W) => void) => (e: Electron.IpcMainEvent)
   guarded(label, () => f(w))
   reload(w)
 }
-ipcMain.on(
+// A comment answers, so a refused one (the cell changed meanwhile, or a write failed) keeps its text in the box.
+ipcMain.handle(
   CH.comment,
-  (e, cell: string, base: string, span: [number, number] | null, text: string) =>
-    writing('Cannot comment', (w) => addComment(w.dir, cell, base, span, text))(e)
+  (e, cell: string, base: string, span: [number, number] | null, text: string): Commented => {
+    const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
+    try {
+      addComment(w.dir, cell, base, span, text)
+    } catch (err) {
+      return { ok: false, message: (err as Error).message }
+    }
+    reload(w)
+    return { ok: true }
+  }
 )
 ipcMain.on(CH.resolve, (e, id: string) =>
   writing('Cannot resolve the comment', (w) => resolveComment(w.dir, id))(e)

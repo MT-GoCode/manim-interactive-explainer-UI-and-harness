@@ -4,12 +4,14 @@ import type { Draft } from './selection'
 
 export function CommentBox({ draft, close }: { draft: Draft; close: () => void }) {
   const [text, setText] = useState('')
+  const [refused, setRefused] = useState<string | null>(null)
   const box = useRef<HTMLTextAreaElement>(null)
   useEffect(() => box.current!.focus(), [])
   const send = () => {
     if (!text.trim()) return
-    window.api.comment(draft.cell, draft.base, draft.span, text)
-    close()
+    window.api
+      .comment(draft.cell, draft.base, draft.span, text)
+      .then((r) => (r.ok ? close() : setRefused(r.message)))
   }
   return (
     <div className="comment-box">
@@ -25,6 +27,7 @@ export function CommentBox({ draft, close }: { draft: Draft; close: () => void }
           e.preventDefault()
         }}
       />
+      {refused && <div className="refused">{refused}</div>}
       <button onClick={send} disabled={!text.trim()}>
         Comment
       </button>

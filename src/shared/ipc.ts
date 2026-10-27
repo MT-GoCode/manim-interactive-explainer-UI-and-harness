@@ -25,6 +25,8 @@ export type Saved =
   | { t: 'gone' } // the cell is no longer in cells.md
   | { t: 'invalid'; message: string } // cells.md is unreadable, or the text would change the cells
 
+export type Commented = { ok: true } | { ok: false; message: string }
+
 // renderer → main; the only surface the renderer sees.
 export interface Api {
   init(): Promise<{ lesson: Lesson; slug: string | null }>
@@ -32,7 +34,12 @@ export interface Api {
   save(slug: string, base: string, text: string): Promise<Saved>
   openLink(slug: string, cell: string): void
   // base: the prose the span was measured on (main refuses if the cell changed since)
-  comment(cell: string, base: string, span: [number, number] | null, text: string): void
+  comment(
+    cell: string,
+    base: string,
+    span: [number, number] | null,
+    text: string
+  ): Promise<Commented>
   resolve(id: string): void
   ping(): void
   onCommand(fn: (c: Command) => void): void

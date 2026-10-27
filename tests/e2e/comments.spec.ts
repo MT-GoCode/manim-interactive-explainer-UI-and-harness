@@ -1,6 +1,6 @@
 import { spawn, execFileSync } from 'child_process'
 import { createHash } from 'crypto'
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { expect, firstLesson, fixture, ROOT, test } from './app'
@@ -38,23 +38,73 @@ async function commentCell(page: Page, i: number, text: string) {
 
 test('a highlight comment stores the exact span', async ({ launch }, info) => {
   const { b, page } = await open(launch, info.outputDir)
-  // select "them all" in cell 3's first text: "Add them all: "
+  // "tokens" in cell 1's text after its ref ("… the {n_tokens} tokens a score."): there the rendered offset (after
+  // "6") and the source offset (after "{n_tokens}") differ, so only bound() gives the source span
   await page.evaluate(() => {
-    const t = document.querySelectorAll('.cell')[2].querySelector('[data-x]')!.firstChild!
+    const t = document.querySelectorAll('.cell')[0].querySelectorAll('[data-x]')[1].firstChild!
     const r = document.createRange()
-    r.setStart(t, 4)
-    r.setEnd(t, 12)
+    r.setStart(t, 1)
+    r.setEnd(t, 7)
     document.getSelection()!.removeAllRanges()
     document.getSelection()!.addRange(r)
   })
   await page.locator('.comment-sel').click({ force: true })
-  await send(page, 'Why all of them?')
-  const p = prose(b, 'sum')
-  const at = p.indexOf('them all')
+  await send(page, 'How many?')
+  const at = prose(b, 'scores').indexOf('tokens a score')
   await expect
     .poll(() => stored(b))
-    .toMatchObject([{ cell: 'sum', span: [at, at + 'them all'.length] }])
-  await expect(page.locator('.cell').nth(SUM).locator('.card .quote')).toHaveText('“them all”')
+    .toMatchObject([{ cell: 'scores', span: [at, at + 'tokens'.length] }])
+  await expect(page.locator('.cell').nth(0).locator('.card .quote')).toHaveText('“tokens”')
+})
+
+test('a refused comment keeps its text in the box', async ({ launch }, info) => {
+  const { b, page } = await open(launch, info.outputDir)
+  await page.locator('.cell').nth(SUM).locator('.add-comment').click({ force: true })
+  await page.locator('.comment-box textarea').fill('Keep this text')
+  edit(join(b, 'cells.md'), (s) => s.replace('Add them all', 'Add every one')) // the cell changes meanwhile
+  await expect.poll(() => page.locator('.cell').nth(SUM).innerText()).toContain('Add every one')
+  await page.locator('.comment-box button', { hasText: 'Comment' }).click({ force: true })
+  await expect(page.locator('.comment-box .refused')).toHaveText(
+    'This cell changed while you were commenting; select again'
+  )
+  await expect(page.locator('.comment-box textarea')).toHaveValue('Keep this text')
+  expect(stored(b)).toEqual([])
+})
+
+test('a stale comment that cannot be pruned says so', async ({ launch }, info) => {
+  const b = fixture(info.outputDir)
+  const index = JSON.parse(readFileSync(join(b, 'build', 'index.json'), 'utf8'))
+  const frames = index.cells.find((c: { slug: string }) => c.slug === 'sum').frames_sha
+  const sha = createHash('sha256').update(prose(b, 'sum')).digest('hex')
+  writeFileSync(
+    join(b, 'comments.json'),
+    JSON.stringify({
+      format: 'explainer-comments',
+      version: 1,
+      comments: [
+        {
+          id: 'aaaaaaa1',
+          cell: 'sum',
+          span: null,
+          text: 'x',
+          created: '2026-10-27T00:00:00.000Z',
+          fingerprint: { section_sha: sha, frames_sha: frames }
+        }
+      ]
+    })
+  )
+  edit(join(b, 'cells.md'), (s) => s.replace('Add them all', 'Add every one'))
+  const before = readFileSync(join(b, 'comments.json'), 'utf8')
+  chmodSync(b, 0o555) // the write-back cannot make its temporary file
+  try {
+    const app = await launch([b], undefined, { stubErrorBox: true })
+    const page = await firstLesson(app)
+    await expect(page.locator('.banner')).toContainText('comments.json could not be pruned')
+    await expect(page.locator('.card')).toHaveCount(0) // the pruned list is what shows
+  } finally {
+    chmodSync(b, 0o755)
+  }
+  expect(readFileSync(join(b, 'comments.json'), 'utf8')).toBe(before)
 })
 
 test('editing its cell drops it and keeps others', async ({ launch }, info) => {

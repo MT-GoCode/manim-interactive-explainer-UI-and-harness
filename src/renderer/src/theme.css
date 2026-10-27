@@ -215,3 +215,6 @@ body {
   background: #3c3c3c;
   color: #aaa;
 }
+.comment-box .refused {
+  color: #f48771;
+}

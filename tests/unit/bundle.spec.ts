@@ -289,14 +289,15 @@ test('a renamed heading keeps its comments as orphans', async ({}, info) => {
   ])
 })
 
-test('an unbuilt bundle keeps its comments', async ({}, info) => {
+test('an unbuilt bundle keeps comments whose prose is unchanged and drops those whose prose changed', async ({}, info) => {
   const b = fixture(info.outputDir)
-  writeStored(b, [comment(b, 'aaaaaaa1', 'sum', [0, 3])])
+  writeStored(b, [comment(b, 'aaaaaaa1', 'sum', [0, 3]), comment(b, 'aaaaaaa2', 'probs', [0, 3])])
   rmSync(index(b))
+  edit(join(b, 'cells.md'), (s) => s.replace('Add them all', 'Add every one'))
   const { comments, lesson } = load(b)
-  expect(comments.dropped).toBe(0)
+  expect(comments.kept.map((c) => c.id)).toEqual(['aaaaaaa2'])
   expect(lesson.comments).toEqual([
-    { id: 'aaaaaaa1', cell: 'sum', text: 'about sum', on: 'span', span: [0, 3], quote: 'Add' }
+    { id: 'aaaaaaa2', cell: 'probs', text: 'about probs', on: 'span', span: [0, 3], quote: 'Now' }
   ])
 })
 

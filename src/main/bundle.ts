@@ -212,8 +212,9 @@ export function load(dir: string): {
 }
 
 // What a comment is pinned to: the cell's prose and its picture. Only a built cell has one.
+const sectionSha = (cell: Cell) => createHash('sha256').update(cell.md).digest('hex')
 const fingerprint = (cell: Cell) => ({
-  section_sha: createHash('sha256').update(cell.md).digest('hex'),
+  section_sha: sectionSha(cell),
   frames_sha: cell.clip!.frames_sha
 })
 
@@ -226,14 +227,14 @@ function readComments(dir: string): Stored[] {
 }
 
 // The one place staleness is decided: a comment whose cell's prose or picture changed is dropped. A comment on a
-// cell that is gone is kept (an orphan, Minh's to resolve); one on a cell with no clip cannot be judged, so it stays.
+// cell that is gone is kept (an orphan, Minh's to resolve); on a cell with no clip only the prose can be judged.
 export function prune(cells: Cell[], stored: Stored[]): { kept: Stored[]; dropped: number } {
   const bySlug = new Map(cells.map((c) => [c.slug, c]))
   const kept = stored.filter((c) => {
     const cell = bySlug.get(c.cell)
-    if (!cell || !cell.clip) return true
-    const f = fingerprint(cell)
-    return f.section_sha === c.fingerprint.section_sha && f.frames_sha === c.fingerprint.frames_sha
+    if (!cell) return true // an orphan
+    if (sectionSha(cell) !== c.fingerprint.section_sha) return false
+    return !cell.clip || cell.clip.frames_sha === c.fingerprint.frames_sha // no clip: the picture cannot be judged
   })
   return { kept, dropped: stored.length - kept.length }
 }

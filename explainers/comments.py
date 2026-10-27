@@ -81,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
         wait_for_ping(bundle)
     print("\n".join(lines(bundle)) or "no comments")
     if wait:
-        (bundle / "ping").unlink()
+        (bundle / "ping").unlink(missing_ok=True)  # consumed either way (another waiter, or Minh)
     return 0
 
 
