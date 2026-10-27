@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "explainer/comments",
+  "title": "comments.json — written only by the app; read by fetch-comments",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "comments"],
+  "properties": {
+    "format": { "const": "explainer-comments" },
+    "version": { "const": 1 },
+    "comments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "cell", "span", "text", "created", "fingerprint"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[0-9a-f]{8}$" },
+          "cell": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+          "span": {
+            "description": "[start, end) in UTF-16 code units within the cell's section, or null for the whole cell",
+            "oneOf": [
+              { "type": "null" },
+              { "type": "array", "prefixItems": [{ "type": "integer", "minimum": 0 }, { "type": "integer", "minimum": 1 }], "items": false, "minItems": 2 }
+            ]
+          },
+          "text": { "type": "string", "minLength": 1 },
+          "created": { "type": "string", "format": "date-time" },
+          "fingerprint": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["section_sha", "frames_sha"],
+            "properties": {
+              "section_sha": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "frames_sha": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

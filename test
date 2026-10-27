@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# The one entry point: every test category, results in test-results/<category>/, counts in test-results/summary.txt.
+#   ./test            everything        ./test py -k grammar     one category, extra args passed through
+set -uo pipefail
+cd "$(dirname "$0")"
+# Lowest priority and macOS background QoS, so the person using this machine never waits on the tests.
+[ -z "${EXPLAINERS_NICE:-}" ] && EXPLAINERS_NICE=1 exec nice -n 19 taskpolicy -b "$0" "$@"
+rm -rf test-results && mkdir -p test-results
+want=${1:-all}; [ $# -gt 0 ] && shift
+status=0
+summary() { echo "$1" >> test-results/summary.txt; }
+summary "commit $(git rev-parse --short HEAD)$([ -z "$(git status --porcelain -- . ':!JOURNEY-explainers')" ] || echo '+dirty')"
+if [ "$want" = all ] || [ "$want" = py ]; then
+  uv run -q pytest tests/py -n "${JOBS:-2}" --dist loadgroup -q --junitxml=test-results/py/junit.xml "$@"; rc=$?
+  summary "py $(python3 -c "import xml.etree.ElementTree as E;s=E.parse('test-results/py/junit.xml').getroot().find('testsuite');print(f\"tests={s.get('tests')} failures={s.get('failures')} errors={s.get('errors')} skipped={s.get('skipped')}\")")"
+  [ $rc -eq 0 ] || status=1
+fi
+if [ "$want" = all ] || [ "$want" = perf ]; then  # alone and last: it measures the machine
+  uv run -q pytest tests/perf -q -s --junitxml=test-results/perf/junit.xml "$@"; rc=$?
+  summary "perf $(python3 -c "import xml.etree.ElementTree as E;s=E.parse('test-results/perf/junit.xml').getroot().find('testsuite');print(f\"tests={s.get('tests')} failures={s.get('failures')} errors={s.get('errors')}\")")"
+  [ $rc -eq 0 ] || status=1
+fi
+cat test-results/summary.txt
+exit $status
