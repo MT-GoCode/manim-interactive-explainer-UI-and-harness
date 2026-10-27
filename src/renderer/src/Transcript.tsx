@@ -38,6 +38,7 @@ const Cell = memo(function Cell(props: {
       onClick={(e) => {
         const link = (e.target as Element).closest('[data-link]')
         if (!link) return select(n - 1)
+        if (e.detail > 1) return // the second click of a double-click: already opened
         const [lesson, cell] = link.getAttribute('data-link')!.split('#')
         window.api.openLink(lesson, cell)
       }}

@@ -57,7 +57,9 @@ test('a link to another bundle opens it at its cell', async ({ launch }, info) =
   expect(await titles(app)).toEqual(['other', 'softmax'])
 })
 
+// Error boxes are recorded by a script preloaded with `electron -r`, which a packaged app does not accept.
 test('a link to a missing cell says so', async ({ launch }, info) => {
+  test.skip(!!process.env.EX_EXECUTABLE, 'needs electron -r (the dev app)')
   const lessons = other(info.outputDir)
   const b = fixture(join(info.outputDir, 'home'))
   setLink(b, '[[other#nope]]')

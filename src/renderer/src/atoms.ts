@@ -16,8 +16,9 @@ const span = (properties: Properties, children: ElementContent[]): Text => ({
 })
 
 // Value references become their built values (unknown ones stay literal, in red), and [[slug#cell]] links become
-// clickable `slug#cell` (data-link carries the target), each an atom that copies as its source. A text node whose value is its source slice splits into exact pieces around them; any other (escapes,
-// entities) becomes one atom, since its characters do not map one to one onto the source.
+// clickable `slug#cell` (data-link carries the target), each an atom that copies as its source. A text node whose
+// value is its source slice splits into exact pieces around them; any other (escapes, entities) becomes one atom,
+// since its characters do not map one to one onto the source.
 export const atoms = (values: Record<string, string>) => () => (tree: Root, file: VFile) => {
   const source = String(file)
   const byNode = new Map<Text, Hit[]>()
