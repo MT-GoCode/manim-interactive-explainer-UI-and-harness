@@ -133,6 +133,7 @@ const errors = (page: Page) =>
   page.evaluate(() => (globalThis as unknown as { errors: number }).errors)
 
 test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
+  test.slow() // it runs a real build, which under the full suite's load can take tens of seconds
   const b = fixture(info.outputDir)
   const app = await launch([b])
   const page = await firstLesson(app)
@@ -146,6 +147,7 @@ test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
 })
 
 test('a rebuild while playing keeps playing from where it was', async ({ launch }, info) => {
+  test.slow() // it runs a real build, which under the full suite's load can take tens of seconds
   const b = fixture(info.outputDir)
   const app = await launch([b])
   const page = await firstLesson(app)
