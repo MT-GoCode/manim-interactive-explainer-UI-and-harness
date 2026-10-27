@@ -70,7 +70,7 @@ Case 23.
 ## transient-gone
 Case 24.
 
-## label-beside-an-arrow
+## label-beside-a-line
 Case 25.
 
 ## matmul-with-cursors

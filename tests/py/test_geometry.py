@@ -35,14 +35,14 @@ GEOMETRY = {
     "punctuation-at-the-minimum": [],
     "text-on-a-plane": [],
     "transient-gone": [],
-    "label-beside-an-arrow": [],
+    "label-beside-a-line": [],
     "matmul-with-cursors": [],
     "plane-with-vectors-and-points": [],
     "arrow-label-number-in-a-box-highlight": [],
     "brace-underline-root": [],
     "point-on-a-curve": [],
     "graph-edge-with-nodes": [],
-    "number-line-under-text": ["lesson.py:92 · NumberLine at (-0.14, -0.22) × Text at (1.00, -0.30) (lesson.py:93) · "
+    "number-line-under-text": ["lesson.py:93 · NumberLine at (-0.14, -0.22) × Text at (1.00, -0.30) (lesson.py:94) · "
                                "move NumberLine by (+0.00, +0.30)"],
     "number-line-moved-as-told": [],  # exactly the move printed for number-line-under-text
 }
@@ -53,10 +53,15 @@ GEOMETRY3D = {
 }
 
 
-def failed_build(tmp_path_factory, name):
+def build(tmp_path_factory, name):
     b = tmp_path_factory.mktemp("geo") / name
     shutil.copytree(FIXTURES / name, b)
-    r = explain_build(b)
+    return b, explain_build(b)
+
+
+def messages(built) -> dict[str, list[str]]:
+    """The failed build's messages by cell; asserted here, in each test, so a build that wrongly passes fails it."""
+    b, r = built
     assert r.returncode == 1, r.stdout + r.stderr
     assert not (b / "build" / "index.json").exists() and not (b / "build" / ".media").exists()  # nothing rendered
     by_cell = {}
@@ -68,24 +73,26 @@ def failed_build(tmp_path_factory, name):
 
 @pytest.fixture(scope="module")
 def geometry(tmp_path_factory):
-    return failed_build(tmp_path_factory, "geometry.explainer")
+    return build(tmp_path_factory, "geometry.explainer")
 
 
 @pytest.fixture(scope="module")
 def geometry3d(tmp_path_factory):
-    return failed_build(tmp_path_factory, "geometry3d.explainer")
+    return build(tmp_path_factory, "geometry3d.explainer")
 
 
 @pytest.mark.parametrize("cell", GEOMETRY)
 def test_cell_end_geometry(geometry, cell):
-    assert set(geometry) <= set(GEOMETRY)
-    assert geometry.get(cell, []) == GEOMETRY[cell]
+    found = messages(geometry)
+    assert set(found) <= set(GEOMETRY)
+    assert found.get(cell, []) == GEOMETRY[cell]
 
 
 @pytest.mark.parametrize("cell", GEOMETRY3D)
 def test_cell_end_geometry_is_checked_where_the_3d_camera_draws(geometry3d, cell):
-    assert set(geometry3d) <= set(GEOMETRY3D)
-    assert geometry3d.get(cell, []) == GEOMETRY3D[cell]
+    found = messages(geometry3d)
+    assert set(found) <= set(GEOMETRY3D)
+    assert found.get(cell, []) == GEOMETRY3D[cell]
 
 
 @pytest.mark.parametrize("move", ["theta=30 * DEGREES", "phi=30 * DEGREES", "gamma=10 * DEGREES", "zoom=1.5",

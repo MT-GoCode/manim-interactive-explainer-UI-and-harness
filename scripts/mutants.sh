@@ -68,7 +68,7 @@ attach to a group ignored%explainers/lesson.py%s/visit\(s, born, groups \+ \[id\
 attach to a part ignored%explainers/lesson.py%s/groups \+ \[id\(x\) for x in m.get_family\(\)\]/groups + [id(m)]/%tests/py/test_geometry.py::test_cell_end_geometry[attached-to-a-part]
 parent path skipped%explainers/lesson.py%s/elif isinstance\(m, VMobject\) and len\(m.points\):/elif isinstance(m, VMobject) and len(m.points) and not m.submobjects:/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-an-arrow]
 glyph on stroke skipped%explainers/geometry.py%s/ or _segment_hits\(g, p, d, s\)//%tests/py/test_geometry.py::test_cell_end_geometry[text-on-an-arrow]
-parallel segment always inside%explainers/geometry.py%s/np.where\(inside, -np.inf, np.inf\)/np.where(inside, -np.inf, -np.inf)/%tests/py/test_geometry.py::test_cell_end_geometry[label-beside-an-arrow]
+parallel segment always inside%explainers/geometry.py%s/np.where\(inside, -np.inf, np.inf\)/np.where(inside, -np.inf, -np.inf)/%tests/py/test_geometry.py::test_cell_end_geometry[label-beside-a-line]
 dot not a marker%explainers/lesson.py%s/elif isinstance\(m, Dot\):/elif False:/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-dot]
 dot meets strokes%explainers/lesson.py%s/        if glyph:\n/        if glyph or isinstance(m, Dot):\n/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-an-arrow]
 overlap without slack%explainers/geometry.py%s/_box_hits\(np.concatenate\(\[g, m\]\), solid, s\)/_box_hits(np.concatenate([g, m]), solid, 0)/%tests/py/test_geometry.py::test_cell_end_geometry[dots-touch-by-under-half-a-pixel]

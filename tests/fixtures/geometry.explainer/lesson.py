@@ -46,7 +46,8 @@ class Geometry(Lesson):
         pair = VGroup(Line(LEFT * 3, RIGHT * 3), Square(0.5).shift(DOWN * 2))
         self.show("attached-to-a-group", pair, self.attach(Text("on it", font_size=32), pair))
         grid = Matrix([[1, 2], [3, 4]])
-        self.show("attached-to-a-part", grid, self.attach(Circle(0.3), grid.get_entries()[3]).move_to(grid.get_entries()[3]))
+        self.show("attached-to-a-part", grid,
+                  self.attach(Text("4", font_size=32), grid.get_entries()[3]).move_to(grid.get_entries()[3]))
         shaft = Arrow(LEFT * 3, RIGHT * 3, buff=0)
         label = self.attach(Text("a", font_size=32), shaft)
         self.show("attached-and-copied", shaft, label, label.copy().shift(RIGHT * 1.5))
@@ -58,8 +59,8 @@ class Geometry(Lesson):
         cursor = self.transient(Circle())
         self.play(FadeIn(cursor), run_time=0.1)
         self.play(FadeOut(cursor), run_time=0.1)
-        above = Arrow(LEFT * 3, RIGHT * 3, buff=0)
-        self.show("label-beside-an-arrow", above, Text("above", font_size=32).next_to(above, UP))
+        above = Line(LEFT * 3, RIGHT * 3)  # exactly horizontal: its chords' y-direction is 0, not float noise
+        self.show("label-beside-a-line", above, Text("above", font_size=32).next_to(above, UP))
 
         # Realistic scenes (the rule's probe, at the minimum sizes) and staples: no message.
         X = Matrix([[1, 2, 3, 4], [5, 6, 7, 8], [9, 1, 2, 3]]).scale(0.85).to_edge(LEFT, buff=0.8).shift(DOWN)
