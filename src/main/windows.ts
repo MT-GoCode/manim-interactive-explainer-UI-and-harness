@@ -68,6 +68,7 @@ const relevant = (rel: string | null): boolean =>
   !!rel && (!rel.startsWith('build/') || rel === 'build/index.json')
 
 function reload(w: W): void {
+  if (!wins.has(w.win.id)) return // a watch event queued before its window closed
   try {
     const { lesson, repoFiles } = load(w.dir)
     w.lesson = lesson
