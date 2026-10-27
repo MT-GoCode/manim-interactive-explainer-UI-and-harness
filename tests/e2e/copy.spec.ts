@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { Page } from '@playwright/test'
-import { click, expect, firstLesson, fixture, test, winId } from './app'
+import { expect, firstLesson, fixture, test } from './app'
 
 // Cell "divide" is rewritten to hold every kind of piece; expectations are slices of the file read back from disk.
 const DIVIDE = 3
@@ -128,24 +128,4 @@ test('a triple-clicked paragraph is its source', async ({ launch }, info) => {
   // cell 3's last (only) paragraph, ending where a triple click ends: the next cell's first block
   const got = await copied(page, { cell: 2, block: '.md p' }, { cell: DIVIDE, block: '.md p' })
   expect(got).toBe(between(file, 'Add them all', 0, '## divide', 0))
-})
-
-test('⌘C through the menu puts the source on the clipboard', async ({ launch }, info) => {
-  const { app, page } = await open(launch, info.outputDir)
-  const saved = await app.evaluate(({ clipboard }) => clipboard.readText())
-  try {
-    await page.evaluate(() => {
-      const el = document.querySelectorAll('.cell')[3].querySelector('code')!
-      const code = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!
-      const r = document.createRange()
-      r.setStart(code, 1)
-      r.setEnd(code, 2)
-      document.getSelection()!.removeAllRanges()
-      document.getSelection()!.addRange(r)
-    })
-    await click(app, 'copy', await winId(app, page))
-    await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toBe('`code`')
-  } finally {
-    await app.evaluate(({ clipboard }, s) => clipboard.writeText(s), saved)
-  }
 })

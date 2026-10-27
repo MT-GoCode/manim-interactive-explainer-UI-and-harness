@@ -119,6 +119,26 @@ find counts hidden MathML%src/renderer/src/Find.tsx%s/n.parentElement!.closest\(
 clip not seekable%src/main/index.ts%s/const r = byteRange\(req.headers.get\('range'\), size\)/const r = null/; s/        'Accept-Ranges': 'bytes',\n//; s/      headers\['Content-Length'\] = String\(end - start \+ 1\)\n//%e2e:player.spec.ts:seek and step land on frames k and k+1
 range parsed wrong%src/main/bundle.ts%s/start: Math.max\(0, size - n\)/start: n/%unit:bundle.spec.ts:byteRange answers what a video asks for
 open-file ignored%src/main/windows.ts%s/  if \(app.isReady\(\)\) openPath\(p\)/  if (app.isReady()) void p/%e2e:open.spec.ts:a bundle handed over by Finder (open-file) opens in its own window
+other cells not preserved%src/main/bundle.ts%s/ \+ body \+ text0.slice\(s.end\)/ + body/%e2e:edit.spec.ts:editing cell 3 while cell 5 changes keeps both
+conflict not detected%src/main/bundle.ts%s/if \(md !== base\) return/if (false) return/%e2e:edit.spec.ts:editing cell 3 while cell 3 changes shows the conflict and writes nothing
+invalid text written%src/main/bundle.ts%s/if \(after.errors.length \|\| slugs\(after\) !== slugs\(found\)\)/if (false)/%unit:bundle.spec.ts:saveSection refuses text that changes the cells
+Keep mine uses the old base%src/renderer/src/App.tsx%s/if \(p\?.t === 'conflict'\) save\(p.disk\)/if (p?.t === 'conflict') save()/%e2e:edit.spec.ts:Keep mine saves over the disk version
+a reload ends the edit%src/renderer/src/App.tsx%s/          return setS\(\(old\) => \{/          setEditingState(null)\n          return setS((old) => {/%e2e:edit.spec.ts:a reload while editing keeps the buffer
+buffer lost when the heading vanishes%src/renderer/src/App.tsx%s/\{gone && editor /{false && editor /%e2e:edit.spec.ts:a heading renamed while editing keeps the buffer and says the cell is gone
+leaving does not save%src/renderer/src/Editor.tsx%s/if \(!e.currentTarget.contains\(e.relatedTarget as Node \| null\) && document.hasFocus\(\)\)/if (false)/%e2e:edit.spec.ts:moving to another cell saves
+Esc saves%src/renderer/src/Editor.tsx%s/\{ key: 'Escape', run: \(\) => \(onCancel\(\), true\) \}/{ key: 'Escape', run: () => (onSave(), true) }/%e2e:edit.spec.ts:Esc discards the edit
+keys handled inside the editor%src/renderer/src/App.tsx%s/      if \(\(e.target as Element\).closest\?.\('.cm-editor'\)\) return \/\/ typing in a cell\n//%e2e:edit.spec.ts:keys typed in the editor stay in the editor
+paste role missing%src/main/index.ts%s/            \{ id: 'paste', role: 'paste' \},\n//%e2e:clipboard.spec.ts:paste works in the editor
+unresolved ref not red%src/renderer/src/atoms.ts%s/known\(h\) \? 'ref' : 'unresolved'/'ref'/%e2e:edit.spec.ts:an unknown ref is red
+rendered text copied%src/renderer/src/copy.ts%s/(export function copySource\(e: ClipboardEvent, cells: Cell\[\]\): void \{)/$1\n  if (cells) return/%e2e:copy.spec.ts:copy across a formula, a bold word and a code span is the exact source
+no widening%src/renderer/src/copy.ts%s/const atom = atomOf\(el, md\)/const atom = null/%e2e:copy.spec.ts:a selection inside a formula is the whole formula
+display math unwrapped%src/renderer/src/stamp.ts%s/else if \(display && c.position\) parent/else if (false) parent/%e2e:copy.spec.ts:a selection inside a formula is the whole formula
+fence not an atom%src/renderer/src/stamp.ts%s/else if \(c.tagName === 'pre' && c.position\)/else if (false)/%e2e:copy.spec.ts:a selection inside a fenced code block is the whole block
+inexact treated as exact%src/renderer/src/stamp.ts%s/c.value === md.slice\(r.dataS, r.dataE\) \? \{ dataX: '' \} : \{\}/{ dataX: '' }/%e2e:copy.spec.ts:a selection inside an escaped run is its whole source
+ref not an atom%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, className/{ dataS: g.hit.start, dataE: g.hit.end, className/%e2e:copy.spec.ts:a selection inside a ref is the whole ref
+atom unstamped%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, className/{ dataAtom: '', className/%unit:grammar.spec.ts:atoms carry their source range
+cross-cell join without heads%src/renderer/src/copy.ts%s/return out \+ cells\[b.cell\].head \+ '\\n' \+ /return out + /%e2e:copy.spec.ts:copy across cells is the file between the two points
+container points not normalized%src/renderer/src/copy.ts%s/return l \? \{ cell: ci, off: num\(l, 'e'\) \} : prev\(\)/return l ? { cell: ci, off: num(l, 'e') } : null/%e2e:copy.spec.ts:a triple-clicked paragraph is its source
 EOF
 )
 

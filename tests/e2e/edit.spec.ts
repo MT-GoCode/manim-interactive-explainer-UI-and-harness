@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { ElectronApplication, Page } from '@playwright/test'
-import { click, current, expect, firstLesson, fixture, test, winId } from './app'
+import { current, expect, firstLesson, fixture, test } from './app'
 
 const SUM = 2 // cell "sum": "Add them all: $\sum_j e^{z_j}$."
 const cellsMd = (b: string) => readFileSync(join(b, 'cells.md'), 'utf8')
@@ -112,19 +112,6 @@ test('keys typed in the editor stay in the editor', async ({ launch }, info) => 
   expect(
     await page.evaluate(() => document.querySelector('video')!.currentTime)
   ).toBeGreaterThanOrEqual(t)
-})
-
-test('paste works in the editor', async ({ launch }, info) => {
-  const { app, page } = await open(launch, info.outputDir)
-  const saved = await app.evaluate(({ clipboard }) => clipboard.readText())
-  try {
-    await app.evaluate(({ clipboard }) => clipboard.writeText('PASTED'))
-    await rewrite(page, SUM, '')
-    await click(app, 'paste', await winId(app, page)) // the Edit menu's item, as ⌘V triggers it
-    await expect(editor(page)).toHaveText('PASTED')
-  } finally {
-    await app.evaluate(({ clipboard }, s) => clipboard.writeText(s), saved)
-  }
 })
 
 test('an unknown ref is red', async ({ launch }, info) => {
