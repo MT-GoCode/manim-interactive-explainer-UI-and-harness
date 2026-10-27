@@ -50,9 +50,9 @@ export function Find(props: {
   }
   // Matches are ranges into the rendered prose, so they are read from the DOM after React commits it (a reload
   // re-renders the prose and the old ranges are gone): the DOM is the outside system this effect syncs from.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     const found = search(q)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMatches(found)
     if (jump.current && found.length) show(found[0])
     jump.current = false
