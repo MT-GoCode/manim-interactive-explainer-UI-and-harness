@@ -40,6 +40,11 @@ def test_a_different_picture_records_different_frames(frames, case):
     assert frames[f"{case}-a"] != frames[f"{case}-b"]
 
 
+def test_each_animation_records_its_own_digest(frames):
+    # the same frames as one animation vs two: the split itself is recorded, since each partial file is encoded apart
+    assert (len(frames["halves-a"]), len(frames["halves-b"])) == (1, 2)
+
+
 @pytest.mark.parametrize("setting", ["self.camera.frame_center = np.array([0.25, 0.0, 0.0])",
                                      "self.camera.frame_width = 15.0"], ids=["centre", "width"])
 def test_where_the_camera_looks_is_in_every_frame(frames, bundle, setting):

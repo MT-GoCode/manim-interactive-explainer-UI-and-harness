@@ -181,9 +181,9 @@ test('a clip that cannot load says so', async ({ launch }, info) => {
 test('in a wide window the player stays in view as the cells move', async ({ launch }, info) => {
   const app = await launch([fixture(info.outputDir)])
   const page = await firstLesson(app)
-  // 2:1 at this width is taller than the window minus the transcript's scroll room
+  // 2:1 at this width (640 px) plus the transcript's scroll room (40vh) is far taller than this window
   await app.evaluate(({ BrowserWindow }) =>
-    BrowserWindow.getAllWindows()[0].setContentSize(1280, 968)
+    BrowserWindow.getAllWindows()[0].setContentSize(1280, 760)
   )
   for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowDown')
   await expect.poll(() => current(page)).toEqual({ i: 5, lit: 1 })

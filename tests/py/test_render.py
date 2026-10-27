@@ -115,7 +115,8 @@ def test_killed_build_keeps_the_previous_build_and_leaves_no_worker(bundle):
     assert not subprocess.run(["pgrep", "-f", f"explainers.render {b}"], capture_output=True).stdout
     assert (b / "build" / "index.json").read_text() == before
     assert all(c.exists() for c in clips)
-    src.write_text(original)
+    # a rebuild that renders the killed cell again, over whatever the killed build left in build/
+    src.write_text(original.replace("run_time=1.25", "run_time=1.5"))
     assert explain_build(b).returncode == 0
 
 
