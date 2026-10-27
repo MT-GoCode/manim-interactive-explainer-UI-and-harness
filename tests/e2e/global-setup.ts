@@ -3,7 +3,7 @@ import { cpSync, mkdirSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { BUILT, FRAMES, ROOT } from './app'
 
-// The fixture lesson is built once, for real, and its "probs" clip decoded for frame-exact player checks.
+// The fixture lesson is built once, for real, and its "divide" clip decoded for frame-exact player checks.
 export default function globalSetup(): void {
   rmSync(BUILT, { recursive: true, force: true })
   mkdirSync(join(BUILT, '..'), { recursive: true })
@@ -20,7 +20,7 @@ export default function globalSetup(): void {
     'python',
     join(__dirname, 'frames.py'),
     BUILT,
-    'probs'
+    'divide'
   ])
   writeFileSync(FRAMES, out)
 }
