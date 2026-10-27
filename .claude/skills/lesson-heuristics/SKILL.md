@@ -3,7 +3,9 @@ name: lesson-heuristics
 description: Minh's binding rules for every visual lesson (explainer). Read before writing, editing or reviewing any lesson, cell, scene or transcript. The list only grows.
 ---
 
-# Minh's lesson heuristics (binding for every lesson built on stream/)
+# 
+
+# Minh's lesson heuristics (binding for every lesson)
 
 1. **Low to high level, always.** Go straight to the meat: the actual math and transforms, in execution order. Never open
    with a high-level overview ("the block has attention and an FFN"). Name a mechanism only after it has been computed
@@ -21,7 +23,6 @@ description: Minh's binding rules for every visual lesson (explainer). Read befo
 7. **Geometry must be big.** A plane takes the full stage, is zoomed to its data, and shows the two coordinates in which
    the picture is legible. Labels never sit on top of each other.
 8. Transcript: ASD-STE100 style, one continuous stream, current paragraph lit, ↓ / ↑ to move.
-8b. (advisory) run `tools/overlap.py <bite>` after inserting or reordering beats — a 2nd-in-chapter beat that draws a fresh scene needs its own clear(), or it piles onto the previous beat. The check over-flags intentional compositions, so confirm by screenshot.
 9. **Matrix products animate cell by cell, always.** One cursor slides along row i of the left factor, one slides down
    column j of the right factor, and cell (i, j) of the result appears; j moves first, then i. Batched products do the
    same per batch. Products that share a left factor run their cursors together.

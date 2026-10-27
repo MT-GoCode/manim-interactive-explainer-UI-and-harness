@@ -90,7 +90,7 @@ def test_killed_build_keeps_the_previous_build_and_leaves_no_worker(bundle):
     before = (b / "build" / "index.json").read_text()
     clips = sorted((b / "build" / "clips").iterdir())
     src = b / "lesson.py"
-    src.write_text(src.read_text().replace("run_time=1.25", "run_time=2.5"))
+    src.write_text(src.read_text().replace("run_time=1.25", "run_time=20"))  # long enough that the kill lands mid-render
     p = subprocess.Popen([str(REPO / "bin" / "explain-build"), str(b)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          start_new_session=True)
     deadline = time.time() + 60
