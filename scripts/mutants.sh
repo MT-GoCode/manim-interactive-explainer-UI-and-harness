@@ -22,7 +22,7 @@ closing hashes accepted%tools/cells.mjs%s/\[ \\t\]\*\$\/.exec/[ \\t#]*\$\/.exec/
 section end off by one%tools/cells.mjs%s/heads\[i \+ 1\].start : text.length/heads[i + 1].start - 1 : text.length/%tests/py/test_grammar.py::test_reader_matches_golden[basic]
 section starts at the #, not the line%tools/cells.mjs%s/start: lineStart\(n.position.start.offset\)/start: n.position.start.offset/%tests/py/test_grammar.py::test_reader_matches_golden[indented-heading-is-a-heading]
 CR endings accepted%tools/cells.mjs%s/if \(text.includes\('\\r'\)\)/if (false)/%tests/py/test_grammar.py::test_reader_matches_golden[crlf-is-error]
-preamble accepted%tools/cells.mjs%s/if \(pre.trim\(\)\) errors.push/if (false) errors.push/%tests/py/test_grammar.py::test_reader_matches_golden[preamble-is-error]
+preamble accepted%tools/cells.mjs%s/if \(pre.trim\(\)\)\n    errors.push/if (false)\n    errors.push/%tests/py/test_grammar.py::test_reader_matches_golden[preamble-is-error]
 order not checked%explainers/build.py%s/if not errs and heads != calls:/if False:/%tests/py/test_pairing.py::test_reordered
 duplicates not reported%explainers/build.py%s/if s\[\"slug\"\] in seen:/if False:/%tests/py/test_pairing.py::test_duplicates_come_first
 unknown ref not reported%explainers/build.py%s/if name not in namespace:\n            errs.append\(f\"unknown ref \{\{\{r\['key'\]\}\}\} \(cells.md:\{r\['line'\]\}\)\"\)\n            continue\n//%tests/py/test_cli.py::test_unknown_ref_counts_but_a_ref_in_code_does_not
@@ -92,6 +92,24 @@ frame centre subtracted once%explainers/lesson.py%s/ - self.camera.frame_center\
 camera move ignored%explainers/lesson.py%s/if self._camera_state\(\) != self._camera:/if False:/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[theta=30 * DEGREES]
 zoom not in the camera state%explainers/lesson.py%s/float\(c.get_zoom\(\)\), //%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[zoom=1.5]
 frame centre not in the camera state%explainers/lesson.py%s/, \*map\(float, c.frame_center\)\]/]/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[frame_center=[1, 0, 0]]
+frame step wrong%src/renderer/src/Player.tsx%s/Math.round\(t \* fps - 0.5\)/Math.round(t * fps)/%e2e:player.spec.ts:seek and step land on frames k and k+1
+r without rewind%src/renderer/src/Player.tsx%s/      v.currentTime = 0\n      void v.play\(\)/      void v.play()/%e2e:player.spec.ts:r mid-clip rewinds and plays
+rebuild resets the time%src/renderer/src/Player.tsx%s/const resume = prev\?.slug === slug \? prev : null/const resume = null/%e2e:player.spec.ts:a rebuild while paused keeps the frame
+watch off%src/main/windows.ts%s/!!rel && \(!rel.startsWith\('build\/'\) \|\| rel === 'build\/index.json'\)/false/%e2e:alerts.spec.ts:editing lesson.py raises the alert and restoring clears it
+bundle inputs not checked%src/main/bundle.ts%s/\.filter\(\(\[rel, h\]\) => sha\(join\(dir, rel\)\) !== h\)/.filter(() => false)/%unit:bundle.spec.ts:an edited bundle input is stale
+repo inputs not checked%src/main/bundle.ts%s/\.filter\(\(\[rel, h\]\) => sha\(join\(build.repo_root, rel\)\) !== h\)/.filter(() => false)/%unit:bundle.spec.ts:an edited repo input is stale
+slug order not checked%src/main/bundle.ts%s/if \(prose.join\('\\n'\) !== built.join\('\\n'\)\)/if (false)/%unit:bundle.spec.ts:swapped headings raise the order alert
+schema not validated%src/main/bundle.ts%s/if \(index !== null && !validate\(index\)\)/if (false)/%unit:bundle.spec.ts:an index without fps is a load error
+empty cells.md accepted%src/main/bundle.ts%s/if \(!read.sections.length\) throw/if (false) throw/%unit:bundle.spec.ts:an empty cells.md is a load error
+clip served outside the bundle%src/main/bundle.ts%s/p.endsWith\('.mp4'\) && dirs.some/p.endsWith('.mp4') || dirs.some/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
+clip url not percent-safe%src/main/bundle.ts%s/u.pathname = pathToFileURL\(abs\).pathname/u.pathname = abs/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
+refs spliced at source offsets%tools/grammar.mjs%s/const vstart = nth\(node.value, lit, ordinal\)/const vstart = m.index/%unit:grammar.spec.ts:refsIn value offsets survive escapes, entities and quotes
+position not reported%src/renderer/src/App.tsx%s/if \(slug\) window.api.at\(slug\)/if (slug) void 0/%e2e:open.spec.ts:relaunch restores window, bounds and cell
+session not written at quit%src/main/windows.ts%s/app.on\('before-quit', \(\) => \{\n  saveSession\(\)\n/app.on('before-quit', () => {\n/%e2e:open.spec.ts:relaunch restores window, bounds and cell
+reload loses the slug%src/renderer/src/App.tsx%s/cur: i >= 0 \? i : Math.min/cur: false ? i : Math.min/%e2e:alerts.spec.ts:swapped headings keep the current cell
+go to off by one%src/renderer/src/GoTo.tsx%s/setCur\(k - 1\)/setCur(k)/%e2e:find.spec.ts:go to cell
+find does not move the current cell%src/renderer/src/Find.tsx%s/      setCur\(m.cell\)\n//%e2e:find.spec.ts:find steps across cells
+find counts hidden MathML%src/renderer/src/Find.tsx%s/n.parentElement!.closest\('.katex-mathml'\)/false/%e2e:find.spec.ts:find skips formula annotations
 EOF
 )
 
@@ -118,10 +136,21 @@ clone() {
   rm -rf "$1/.venv" "$1/node_modules" "$1/.tinytex" "$1/test-results"
   ln -s "$root/node_modules" "$1/node_modules"; ln -s "$root/.tinytex" "$1/.tinytex"
 }
-suite() {  # dir [test ids...]: run pytest in the clone on its own code
+suite() {  # dir [test ids...]: run the tests in the clone on its own code. A pytest node id, or an app test named
+  # <unit|e2e>:<spec file>:<exact title> (Playwright; e2e first rebuilds the clone's out/).
   local dir=$1; shift
-  (cd "$dir" && PYTHONPATH="$dir" UV_NO_SYNC=1 UV_PROJECT_ENVIRONMENT="$root/.venv" \
-    uv run -q --project "$dir" pytest "${@:-tests/py}" -q -p no:cacheprovider --junitxml="$dir/junit.xml")
+  case "${1:-}" in
+    unit:* | e2e:*)
+      local kind=${1%%:*} rest=${1#*:}; local spec=${rest%%:*} title=${rest#*:}
+      local grep; grep=$(printf '%s' "$title" | sed 's/[][\.*^$+?(){}|/]/\\&/g')
+      (cd "$dir" && export PYTHONPATH="$dir" UV_NO_SYNC=1 UV_PROJECT_ENVIRONMENT="$root/.venv" EX_PROJECT=mutant &&
+        { [ "$kind" = unit ] || npx electron-vite build >/dev/null; } &&
+        npx playwright test "tests/$kind/$spec" -g "$grep" --project "$kind" --workers 1)
+      cp "$dir/test-results/mutant/junit.xml" "$dir/junit.xml" ;;
+    *)
+      (cd "$dir" && PYTHONPATH="$dir" UV_NO_SYNC=1 UV_PROJECT_ENVIRONMENT="$root/.venv" \
+        uv run -q --project "$dir" pytest "${@:-tests/py}" -q -p no:cacheprovider --junitxml="$dir/junit.xml") ;;
+  esac
 }
 export -f run clone suite; export work root
 

@@ -1,5 +1,6 @@
 import { test as base, _electron, type ElectronApplication, type Page } from '@playwright/test'
 import { execFileSync } from 'child_process'
+import { mkdirSync } from 'fs'
 import { join } from 'path'
 
 export const ROOT = join(__dirname, '../..')
@@ -9,6 +10,7 @@ export const FRAMES = join(ROOT, 'test-results/fixtures/frames.json')
 
 // A private APFS clone of the built fixture, named softmax.explainer, inside the test's output dir.
 export const fixture = (dir: string): string => {
+  mkdirSync(dir, { recursive: true }) // Playwright creates a test's output dir lazily
   const b = join(dir, 'softmax.explainer')
   execFileSync('cp', ['-c', '-R', BUILT, b])
   return b

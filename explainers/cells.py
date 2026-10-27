@@ -1,10 +1,10 @@
-"""cells.md is read by one implementation, tools/cells.mjs (remark, the app's renderer); this runs it."""
+"""cells.md is read by one implementation, tools/cells.mjs (remark, shared with the app); this runs it."""
 import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-READER = Path(__file__).resolve().parents[1] / "tools" / "cells.mjs"
+READER = Path(__file__).resolve().parents[1] / "tools" / "cells-cli.mjs"
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,6 @@
-// The one reader of cells.md, used by explain-build (node tools/cells.mjs <file>) and, from stratum 4, by the app.
+// The one reader of cells.md, used by explain-build (through tools/cells-cli.mjs) and by the app.
 // remark decides what is text, code and math, so the build and the renderer cannot disagree.
 // Offsets are UTF-16 code units (JS string indices). Output: {sections, refs, links, errors}.
-import { readFileSync, realpathSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
@@ -55,8 +53,4 @@ export function readCells(text) {
     [...src.matchAll(LINK)].map((m) => ({ slug: m[1], cell: m[2], line: lineAt(start + m.index) }))
   )
   return { sections, refs, links, errors }
-}
-
-if (import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
-  process.stdout.write(JSON.stringify(readCells(readFileSync(process.argv[2], 'utf8'))) + '\n')
 }
