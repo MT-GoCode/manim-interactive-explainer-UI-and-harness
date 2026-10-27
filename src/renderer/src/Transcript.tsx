@@ -16,7 +16,9 @@ export function Transcript({
   setCur: (i: number) => void
 }) {
   const current = useRef<HTMLElement>(null)
-  useEffect(() => current.current?.scrollIntoView({ block: 'nearest' }), [cur])
+  useEffect(() => {
+    void current.current?.scrollIntoView({ block: 'nearest' }) // returns a Promise here: never the effect's cleanup
+  }, [cur])
   const values = lesson.build?.refs ?? {} // unbuilt: no values yet, every reference stays literal
   return (
     <div className="transcript">

@@ -93,7 +93,7 @@ camera move ignored%explainers/lesson.py%s/if self._camera_state\(\) != self._ca
 zoom not in the camera state%explainers/lesson.py%s/float\(c.get_zoom\(\)\), //%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[zoom=1.5]
 frame centre not in the camera state%explainers/lesson.py%s/, \*map\(float, c.frame_center\)\]/]/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[frame_center=[1, 0, 0]]
 frame step wrong%src/renderer/src/Player.tsx%s/Math.round\(t \* fps - 0.5\)/Math.round(t * fps)/%e2e:player.spec.ts:seek and step land on frames k and k+1
-r without rewind%src/renderer/src/Player.tsx%s/      v.currentTime = 0\n      void v.play\(\)/      void v.play()/%e2e:player.spec.ts:r mid-clip rewinds and plays
+r without rewind%src/renderer/src/Player.tsx%s/      v.currentTime = 0\n      void play\(v\)/      void play(v)/%e2e:player.spec.ts:r mid-clip rewinds and plays
 rebuild resets the time%src/renderer/src/Player.tsx%s/const resume = prev\?.slug === slug \? prev : null/const resume = null/%e2e:player.spec.ts:a rebuild while paused keeps the frame
 watch off%src/main/windows.ts%s/!!rel && \(!rel.startsWith\('build\/'\) \|\| rel === 'build\/index.json'\)/false/%e2e:alerts.spec.ts:editing lesson.py raises the alert and restoring clears it
 bundle inputs not checked%src/main/bundle.ts%s/\.filter\(\(\[rel, h\]\) => sha\(join\(dir, rel\)\) !== h\)/.filter(() => false)/%unit:bundle.spec.ts:an edited bundle input is stale

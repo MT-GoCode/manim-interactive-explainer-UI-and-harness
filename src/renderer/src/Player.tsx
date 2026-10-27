@@ -3,6 +3,12 @@ import type { Clip } from '../../shared/lesson'
 
 export type PlayerHandle = { toggle(): void; replay(): void; step(d: number): void }
 
+// A new src aborts a pending play(): that interruption is expected; any other failure is not.
+const play = (v: HTMLVideoElement) =>
+  v.play().catch((e: DOMException) => {
+    if (e.name !== 'AbortError') throw e
+  })
+
 // Frame k is shown on [k/fps, (k+1)/fps); its centre (k + 0.5)/fps is the time that names it exactly.
 const frameOf = (t: number, fps: number) => Math.round(t * fps - 0.5)
 
@@ -23,13 +29,13 @@ export function Player({
   useImperativeHandle(ref, () => ({
     toggle: () => {
       const v = video.current
-      if (v) void (v.paused ? v.play() : v.pause())
+      if (v) void (v.paused ? play(v) : v.pause())
     },
     replay: () => {
       const v = video.current
       if (!v) return
       v.currentTime = 0
-      void v.play()
+      void play(v)
     },
     step: (d) => {
       const v = video.current
@@ -48,7 +54,7 @@ export function Player({
     const resume = prev?.slug === slug ? prev : null
     const start = () => {
       v.currentTime = resume ? Math.min(resume.time, v.duration) : 0
-      if (!resume?.paused) void v.play()
+      if (!resume?.paused) void play(v)
     }
     v.addEventListener('loadedmetadata', start, { once: true })
     return () => {
