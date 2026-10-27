@@ -1,18 +1,21 @@
 """The base classes every lesson's scene subclasses (Lesson, Lesson3D). One continuous Manim scene; self.cell(slug)
 marks where each cell starts. In a dry run (pass 1) it records what the build needs: cell boundaries, run times, and
-exactly what is drawn at each cell's end, with the lesson.py line that created each thing."""
+exactly what is drawn at each cell's end, where the camera draws it, with the lesson.py line that created each thing."""
 import sys
 from dataclasses import dataclass, field
 
 import numpy as np
-from manim import (Axes, DecimalNumber, Dot, Group, ImageMobject, MarkupText, Mobject, NumberPlane, Scene,
+from manim import (Axes, DecimalNumber, Dot, Group, ImageMobject, MarkupText, Mobject, NumberPlane, Paragraph, Scene,
                    SingleStringMathTex, Text, ThreeDScene, VGroup, VMobject)
 
 TEXT = (Text, MarkupText)                     # plain text units (minimum font size 32)
 LATEX = (SingleStringMathTex, DecimalNumber)  # TeX-set units: MathTex, Tex, numbers (minimum 40)
-GLYPHS = TEXT + LATEX                         # every leaf under these is a glyph
+GLYPHS = TEXT + LATEX + (Paragraph,)          # every leaf under these is a glyph (Paragraph: Code, Table entries)
 BACKGROUND = (NumberPlane, Axes)              # their lines never count for overlap
-STROKE_SAMPLES = 40                           # points per stroke path (probe geo.py: no misses, no false flags)
+SAMPLES_PER_CURVE = 8  # chords per cubic: a 45° arc (Manim's circle segment) in 8 chords strays 0.0012·r from the
+#                        curve, under half a pixel (0.0037) up to r = 3
+_T = np.linspace(0, 1, SAMPLES_PER_CURVE + 1)
+_BERNSTEIN = np.stack([(1 - _T) ** 3, 3 * (1 - _T) ** 2 * _T, 3 * (1 - _T) * _T ** 2, _T ** 3], axis=1)
 
 
 class LessonError(Exception):
@@ -21,17 +24,18 @@ class LessonError(Exception):
 
 @dataclass
 class Unit:
-    """One thing drawn at a cell's end, as the geometry check sees it."""
+    """One thing drawn at a cell's end, as the geometry check sees it; coordinates are where the camera draws them."""
     kind: str
     line: int                      # lesson.py line that created it (a helper's import-time objects: the import line)
-    owners: list[int]              # ids of the object and of the plain groups it was opened from
-    attached_to: int | None        # id of the object it was attached to at creation (self.attach)
+    owners: list[int]              # ids of its whole family and of the plain groups it was opened from
+    attached_to: int | None        # id of the object it was attached to (self.attach)
     transient_cell: int | None     # index of the cell it was made transient in (self.transient)
     text_size: float | None        # smallest plain-text font size in it, if any
     latex_size: float | None       # smallest TeX font size in it (MathTex, numbers, a Matrix's entries), if any
-    glyphs: list[list[float]]      # screen boxes [x0, y0, x1, y1]
-    strokes: list[list[list[float]]]  # each STROKE_SAMPLES screen points [x, y], in order along the path
-    fills: list[list[float]]       # screen boxes of fill-only shapes and images
+    glyphs: list[list[float]]      # boxes [x0, y0, x1, y1] of letters and symbols
+    markers: list[list[float]]     # boxes of dots: placed on paths by intent, so they meet glyphs and dots only
+    strokes: list[list[list[float]]]  # polylines [[x, y], ...], one per subpath
+    fills: list[list[float]]       # boxes of fill-only shapes and images (off frame only)
 
 
 @dataclass
@@ -75,25 +79,33 @@ def _box(p: np.ndarray) -> list[float]:
     return [float(p[:, 0].min()), float(p[:, 1].min()), float(p[:, 0].max()), float(p[:, 1].max())]
 
 
+def _polylines(m: VMobject):
+    """Each subpath's cubic curves sampled at SAMPLES_PER_CURVE chords (subpaths are never joined)."""
+    for sub in m.get_subpaths():
+        pts = np.einsum("sk,ckd->csd", _BERNSTEIN, sub.reshape(-1, 4, 3))
+        yield np.concatenate([pts[:, :-1].reshape(-1, 3), pts[-1, -1:]])
+
+
 def _leaves(m, screen, glyph=False, background=False, out=None):
     """Children first, then the mobject's own path (an Arrow's shaft is the parent; its tip is a child).
     screen(mobject, points) maps points to where the camera draws them."""
-    out = out if out is not None else ([], [], [])
+    out = out if out is not None else ([], [], [], [])
     glyph = glyph or isinstance(m, GLYPHS)
     background = background or isinstance(m, BACKGROUND)
     for s in m.submobjects:
         _leaves(s, screen, glyph, background, out)
     if isinstance(m, ImageMobject):
-        out[2].append(_box(screen(m, m.points)))
+        out[3].append(_box(screen(m, m.points)))
     elif isinstance(m, VMobject) and len(m.points):
-        if glyph or isinstance(m, Dot):
+        if glyph:
             out[0].append(_box(screen(m, m.points)))
+        elif isinstance(m, Dot):
+            out[1].append(_box(screen(m, m.points)))
         elif m.get_stroke_width() > 0 and m.get_stroke_opacity() > 0:
             if not background:
-                samples = np.array([m.point_from_proportion(t) for t in np.linspace(0, 1, STROKE_SAMPLES)])
-                out[1].append(screen(m, samples).tolist())
+                out[2].extend(screen(m, p).tolist() for p in _polylines(m))
         elif m.get_fill_opacity() > 0:
-            out[2].append(_box(screen(m, m.points)))
+            out[3].append(_box(screen(m, m.points)))
     return out
 
 
@@ -115,6 +127,7 @@ class Lesson(Scene):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cells: list[CellRec] = []
+        self._anchors: list[Mobject] = []  # everything attached to stays alive, so its id is never reused
 
     def play(self, *args, **kwargs):
         if not self._cells:
@@ -137,7 +150,8 @@ class Lesson(Scene):
         super().tear_down()
 
     def _close(self):
-        """End the current cell: in pass 1, record what is on screen; the camera must not have moved."""
+        """End the current cell: in pass 1, record what is on screen; the camera must not have moved (checked at
+        cell ends: a move that returns within one cell is not seen)."""
         if not self.RECORDING:
             return
         c = self._cells[-1]
@@ -147,8 +161,10 @@ class Lesson(Scene):
         c.end = self._end_state()
 
     def attach(self, child, to):
-        """Mark child as meant to sit on `to` (a label on its arrow, a number in its cell): they may overlap."""
-        child._attached_to = to
+        """Mark child as meant to sit on `to` or any part of it (a label on its arrow, a number in its cell): they
+        may overlap. Copies of child stay attached to the same `to`."""
+        self._anchors.append(to)
+        child._attached_to = id(to)
         return child
 
     def transient(self, *mobs):
@@ -164,25 +180,25 @@ class Lesson(Scene):
 
     def _end_state(self) -> list[Unit]:
         units: list[Unit] = []
-        screen = lambda m, p: self.camera.transform_points_pre_display(m, p)[:, :2]
+        # The display's own mapping: the camera's transform, then its frame centre (Camera.points_to_subpixel_coords).
+        screen = lambda m, p: (self.camera.transform_points_pre_display(m, p) - self.camera.frame_center)[:, :2]
 
-        def visit(m, born, owners, attached, transient):
+        def visit(m, born, groups, attached, transient):
             born = getattr(m, "_born", None) or born
-            owners = owners + [id(m)]
-            attached = getattr(m, "_attached_to", None) or attached
+            a = getattr(m, "_attached_to", None)
+            attached = a if a is not None else attached
             t = getattr(m, "_transient_cell", None)
             transient = t if t is not None else transient
             if type(m) in (VGroup, Group):  # plain groups are opened: grouping never hides anything
                 for s in m.submobjects:
-                    visit(s, born, owners, attached, transient)
+                    visit(s, born, groups + [id(m)], attached, transient)
                 return
-            g, s, f = _leaves(m, screen)
-            if not (g or s or f):  # draws nothing (wait() adds such a placeholder): not on screen
+            g, d, s, f = _leaves(m, screen)
+            if not (g or d or s or f):  # draws nothing (wait() adds such a placeholder): not on screen
                 return
             assert born is not None, f"{type(m).__name__} has no creation line"  # all lesson code runs from lesson.py
-            text, latex = _sizes(m)
-            units.append(Unit(type(m).__name__, born, owners, id(attached) if attached is not None else None,
-                              transient, text, latex, g, s, f))
+            units.append(Unit(type(m).__name__, born, groups + [id(x) for x in m.get_family()], attached, transient,
+                              *_sizes(m), g, d, s, f))
 
         for m in self.mobjects:
             visit(m, None, [], None, None)
@@ -195,4 +211,4 @@ class Lesson3D(Lesson, ThreeDScene):
     def _camera_state(self) -> list[float]:
         c = self.camera
         return [float(c.get_phi()), float(c.get_theta()), float(c.get_gamma()), float(c.get_focal_distance()),
-                float(c.get_zoom())]
+                float(c.get_zoom()), *map(float, c.frame_center)]

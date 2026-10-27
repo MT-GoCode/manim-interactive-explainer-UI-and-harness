@@ -2,7 +2,12 @@
 name = "explainers"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
-dependencies = ["manim==0.22.0", "numpy", "jsonschema"]
+dependencies = [
+    "manim==0.22.0",
+    "pillow<13",  # manim 0.22 draws images with Image.fromarray(..., mode=), which Pillow 13 removed
+    "numpy",
+    "jsonschema",
+]
 
 [project.scripts]
 explain-build = "explainers.build:main"

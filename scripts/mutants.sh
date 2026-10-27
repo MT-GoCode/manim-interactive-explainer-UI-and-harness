@@ -62,24 +62,35 @@ clip named by something else%explainers/render.py%s/return hashlib.sha256\(path.
 font size from constructor%explainers/lesson.py%s/return float\(m.font_size\), None/return float(m._font_size), None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
 LaTeX sized as plain text%explainers/lesson.py%s/return None, float\(m.font_size\)/return float(m.font_size), None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
 container text not measured%explainers/lesson.py%s/found = \[_sizes\(c\) for c in m.submobjects\]/found = []/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
-placeholders counted%explainers/lesson.py%s/if not \(g or s or f\):/if False:/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
+placeholders counted%explainers/lesson.py%s/if not \(g or d or s or f\):/if False:/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
 attach ignored%explainers/geometry.py%s/if a.attached_to in b.owners or b.attached_to in a.owners:/if False:/%tests/py/test_geometry.py::test_cell_end_geometry[attached]
-attach to a group ignored%explainers/lesson.py%s/owners = owners \+ \[id\(m\)\]/owners = [id(m)]/%tests/py/test_geometry.py::test_cell_end_geometry[attached-to-a-group]
-parent path skipped%explainers/lesson.py%s/elif isinstance\(m, VMobject\) and len\(m.points\):/elif isinstance(m, VMobject) and len(m.points) and not m.submobjects:/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-arrow-shaft]
-glyph on stroke skipped%explainers/geometry.py%s/ or _stroke_hit\(g, y.strokes\)//%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-arrow-shaft]
+attach to a group ignored%explainers/lesson.py%s/visit\(s, born, groups \+ \[id\(m\)\], attached, transient\)/visit(s, born, groups, attached, transient)/%tests/py/test_geometry.py::test_cell_end_geometry[attached-to-a-group]
+attach to a part ignored%explainers/lesson.py%s/groups \+ \[id\(x\) for x in m.get_family\(\)\]/groups + [id(m)]/%tests/py/test_geometry.py::test_cell_end_geometry[attached-to-a-part]
+parent path skipped%explainers/lesson.py%s/elif isinstance\(m, VMobject\) and len\(m.points\):/elif isinstance(m, VMobject) and len(m.points) and not m.submobjects:/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-an-arrow]
+glyph on stroke skipped%explainers/geometry.py%s/ or _segment_hits\(g, p, d, s\)//%tests/py/test_geometry.py::test_cell_end_geometry[text-on-an-arrow]
 parallel segment always inside%explainers/geometry.py%s/np.where\(inside, -np.inf, np.inf\)/np.where(inside, -np.inf, -np.inf)/%tests/py/test_geometry.py::test_cell_end_geometry[label-beside-an-arrow]
-dot not a glyph%explainers/lesson.py%s/if glyph or isinstance\(m, Dot\):/if glyph:/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-dot]
-move sign flipped%explainers/geometry.py%s/\(-float\(np.max\(box\[hi\] - others\[:, lo\]\)\), axis\)/(float(np.max(box[hi] - others[:, lo])), axis)/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-dot]
-frame bound too wide%explainers/geometry.py%s/fx, fy = frame_width \/ 2, /fx, fy = frame_width \/ 2 + 0.4, /%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-stroke]
-fills ignored off frame%explainers/geometry.py%s/\[np.asarray\(u.glyphs\).reshape\(-1, 4\), np.asarray\(u.fills\).reshape\(-1, 4\)\]/[np.asarray(u.glyphs).reshape(-1, 4)]/%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-fill]
-no sub-pixel slack%explainers/geometry.py%s/slack = frame_width \/ WIDTH \/ 2/slack = 0/%tests/py/test_geometry.py::test_cell_end_geometry[under-half-a-pixel-past-the-edge]
+dot not a marker%explainers/lesson.py%s/elif isinstance\(m, Dot\):/elif False:/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-dot]
+dot meets strokes%explainers/lesson.py%s/        if glyph:\n/        if glyph or isinstance(m, Dot):\n/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-an-arrow]
+overlap without slack%explainers/geometry.py%s/_box_hits\(np.concatenate\(\[g, m\]\), solid, s\)/_box_hits(np.concatenate([g, m]), solid, 0)/%tests/py/test_geometry.py::test_cell_end_geometry[dots-touch-by-under-half-a-pixel]
+move along x only%explainers/geometry.py%s/_, axis, d = min\(best\)/_, axis, d = best[0]/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-text]
+both directions reported%explainers/geometry.py%s/\n                        break\n/\n/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-text]
+frame bound too wide%explainers/geometry.py%s/fx, fy = frame_width \/ 2, /fx, fy = frame_width \/ 2 + 0.4, /%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-right]
+left edge ignored%explainers/geometry.py%s/"left": -fx - ink\[:, 0\].min\(\),/"left": 0.0,/%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-left]
+top edge ignored%explainers/geometry.py%s/"top": ink\[:, 3\].max\(\) - fy,/"top": 0.0,/%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-top]
+fills ignored off frame%explainers/geometry.py%s/_boxes\(u.markers\), _boxes\(u.fills\)\]/_boxes(u.markers)]/%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-fill]
+images not drawn%explainers/lesson.py%s/if isinstance\(m, ImageMobject\):\n        out/if False:\n        out/%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-image]
+no sub-pixel slack%explainers/geometry.py%s/if over\[edge\] > s:/if over[edge] > 0:/%tests/py/test_geometry.py::test_cell_end_geometry[under-half-a-pixel-past-the-edge]
 text minimum lowered%explainers/geometry.py%s/MIN_TEXT, MIN_LATEX = 32, 40/MIN_TEXT, MIN_LATEX = 24, 40/%tests/py/test_geometry.py::test_cell_end_geometry[small-text]
 LaTeX minimum 32%explainers/geometry.py%s/MIN_TEXT, MIN_LATEX = 32, 40/MIN_TEXT, MIN_LATEX = 32, 32/%tests/py/test_geometry.py::test_cell_end_geometry[small-latex]
 transients never checked%explainers/geometry.py%s/if u.transient_cell == n:/if False:/%tests/py/test_geometry.py::test_cell_end_geometry[leftover-transient]
+transient not inherited through a group%explainers/lesson.py%s/transient = t if t is not None else transient/transient = t/%tests/py/test_geometry.py::test_cell_end_geometry[leftover-transient-group]
 background strokes counted%explainers/lesson.py%s/if not background:/if True:/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-a-plane]
-world coordinates, not screen%explainers/lesson.py%s/screen = lambda m, p: self.camera.transform_points_pre_display\(m, p\)\[:, :2\]/screen = lambda m, p: p[:, :2]/%tests/py/test_geometry.py::test_cell_end_geometry_is_checked_where_the_3d_camera_draws[apart-in-the-world]
+world coordinates, not screen%explainers/lesson.py%s/screen = lambda m, p: \(self.camera.transform_points_pre_display\(m, p\) - self.camera.frame_center\)\[:, :2\]/screen = lambda m, p: p[:, :2]/%tests/py/test_geometry.py::test_cell_end_geometry_is_checked_where_the_3d_camera_draws[apart-in-the-world]
 fixed-in-frame projected%explainers/lesson.py%s/self.camera.transform_points_pre_display\(m, p\)/self.camera.project_points(p)/%tests/py/test_geometry.py::test_cell_end_geometry_is_checked_where_the_3d_camera_draws[label-fixed-in-frame]
-camera move ignored%explainers/lesson.py%s/if self._camera_state\(\) != self._camera:/if False:/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error
+frame centre subtracted once%explainers/lesson.py%s/ - self.camera.frame_center\)\[:, :2\]/)[:, :2]/%tests/py/test_geometry.py::test_cell_end_geometry_is_checked_where_the_3d_camera_draws[apart-in-the-world]
+camera move ignored%explainers/lesson.py%s/if self._camera_state\(\) != self._camera:/if False:/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[theta=30 * DEGREES]
+zoom not in the camera state%explainers/lesson.py%s/float\(c.get_zoom\(\)\), //%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[zoom=1.5]
+frame centre not in the camera state%explainers/lesson.py%s/, \*map\(float, c.frame_center\)\]/]/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[frame_center=[1, 0, 0]]
 EOF
 )
 

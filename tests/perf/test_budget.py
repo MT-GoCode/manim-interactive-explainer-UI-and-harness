@@ -19,8 +19,15 @@ def test_long_lesson_build_uses_at_most_half_the_cores(tmp_path):
     samples = []
     procs: dict[int, psutil.Process] = {}
     while p.poll() is None:
-        for c in [p] + p.children(recursive=True):
-            procs.setdefault(c.pid, c).cpu_percent(None)  # first call primes the counter
+        try:
+            tree = [p] + p.children(recursive=True)
+        except psutil.NoSuchProcess:  # the build ended between poll() and the walk
+            break
+        for c in tree:
+            try:
+                procs.setdefault(c.pid, c).cpu_percent(None)  # first call primes the counter
+            except psutil.NoSuchProcess:  # a worker that has exited uses no more CPU
+                procs.pop(c.pid, None)
         time.sleep(1)
         used = 0.0
         for c in list(procs.values()):
@@ -31,5 +38,5 @@ def test_long_lesson_build_uses_at_most_half_the_cores(tmp_path):
         samples.append(used / 100)
     out, err = p.communicate()
     assert p.returncode == 0, err
-    print(out.splitlines()[-2], f"peak {max(samples):.1f} cores of {os.cpu_count()}")
+    print(*out.splitlines()[-3:-1], f"peak {max(samples):.1f} cores of {os.cpu_count()}", sep="\n")
     assert max(samples) <= 0.5 * os.cpu_count()

@@ -105,7 +105,7 @@ def test_stale_bytecode_in_the_bundle_is_not_an_input(bundle):
 
 def test_object_made_at_helper_import_time_reports_the_import_line(bundle):
     b = bundle()
-    (b / "helpers.py").write_text((b / "helpers.py").read_text() + "\nfrom manim import Dot\nSPOT = Dot()\n")
+    (b / "helpers.py").write_text((b / "helpers.py").read_text() + "\nfrom manim import Dot\nSPOT = Dot([-6.5, -3.5, 0])\n")
     src = b / "lesson.py"
     src.write_text(src.read_text().replace("from helpers import P, Z", "from helpers import P, SPOT, Z")
                    .replace("        self.play(Write(z), run_time=1.0)", "        self.add(SPOT)\n        self.play(Write(z), run_time=1.0)"))

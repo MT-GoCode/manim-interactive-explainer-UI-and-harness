@@ -102,7 +102,9 @@ def check(bundle: Path) -> dict:
     """Pass 1 and every check that needs no frames. Returns what the render pass and the report use."""
     from manim import __version__ as manim_version, config, tempconfig
     from explainers.cells import read_cells
+    from explainers.geometry import check as geometry
     from explainers.lesson import LessonError, record_creation_lines
+    from explainers.render import WIDTH
 
     missing = [str(bundle / n) for n in ("lesson.py", "cells.md") if not (bundle / n).is_file()]
     if missing:
@@ -139,6 +141,7 @@ def check(bundle: Path) -> dict:
         with tempconfig({**manim_config(bundle), "dry_run": True, "media_dir": str(build / ".media")}):
             scene = cls()
             scene.render()
+            frame = config.frame_width, config.frame_height
     except LessonError as e:
         raise BuildError(1, [str(e)])
     errs = [f'cell "{c.slug}" has no animation (lesson.py:{c.line})' for c in scene._cells if not c.run_times]
@@ -146,8 +149,7 @@ def check(bundle: Path) -> dict:
     refs, ref_errs = format_refs(cells.refs, vars(module))
     if errs + ref_errs:
         raise BuildError(1, errs + ref_errs)
-    from explainers.geometry import check as geometry
-    if errs := geometry(scene._cells, config.frame_width, config.frame_height):
+    if errs := geometry(scene._cells, *frame, WIDTH):
         raise BuildError(1, errs)
     return {"lock": lock, "lesson_sha": sha256(src), "cells": scene._cells, "refs": refs,
             "inputs": _inputs(bundle, set(sys.modules) - before - {"lesson"} | {"explainers.lesson"}, opened),
@@ -200,13 +202,20 @@ def commit(bundle: Path, rec: dict, parts: dict[int, Path]) -> Path:
 
 def build(bundle: Path) -> tuple[dict, Path]:
     import shutil
+    import time
     from explainers.render import render, width
+    t = [time.monotonic()]
     rec = check(bundle)
+    t.append(time.monotonic())
     try:
         k = width(os.cpu_count(), _ram(), len(rec["cells"]))
         parts, groups = render(bundle, rec["lock"].fileno(), rec["cells"], k)
         rec["chunks"] = groups
-        return rec, commit(bundle, rec, parts)
+        t.append(time.monotonic())
+        index = commit(bundle, rec, parts)
+        t.append(time.monotonic())
+        rec["timing"] = [b - a for a, b in zip(t, t[1:])]
+        return rec, index
     finally:
         shutil.rmtree(bundle / "build" / ".media", ignore_errors=True)
 
@@ -229,6 +238,7 @@ def main(argv: list[str] | None = None) -> int:
     print(report(bundle, rec))
     runs = ", ".join(f"{g[0] + 1}–{g[-1] + 1}" if len(g) > 1 else f"{g[0] + 1}" for g in rec["chunks"])
     print(f"render: {len(rec['chunks'])} chunk{'s' * (len(rec['chunks']) != 1)} (cells {runs})")
+    print("timing: check {:.2f} s · render {:.2f} s · commit {:.2f} s".format(*rec["timing"]))
     print(f"built  {index}")
     return 0
 

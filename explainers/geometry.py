@@ -1,90 +1,123 @@
 """The geometry check, on pass-1 records (screen coordinates): at each cell's end nothing overlaps unless attached,
-nothing is off frame, no text is too small, and nothing made transient in the cell is still on screen."""
-import numpy as np
+nothing is off frame, no text is too small, and nothing made transient in the cell is still on screen.
 
-from explainers.render import WIDTH
+Overlap is ink against ink, deeper than half a pixel: a glyph (letter, symbol) meets glyphs, dots and strokes; a dot
+meets glyphs and dots (a dot on a line or curve is a marker placed there). Fill-only shapes never overlap anything."""
+import math
+
+import numpy as np
 
 MIN_TEXT, MIN_LATEX = 32, 40  # Minh's picks from size-ladder.png (DECISIONS)
 
 
-def _clear(box: np.ndarray, others: np.ndarray) -> tuple[float, float]:
-    """The smallest single-axis move of box [x0, y0, x1, y1] that leaves it overlapping none of `others` (n×4)."""
-    moves = []
+def _boxes(b) -> np.ndarray:
+    return np.asarray(b, float).reshape(-1, 4)
+
+
+def _segments(strokes) -> tuple[np.ndarray, np.ndarray]:
+    """(starts, directions), n×2 each, of every chord of every polyline."""
+    paths = [np.asarray(s, float) for s in strokes]
+    if not paths:
+        return np.zeros((0, 2)), np.zeros((0, 2))
+    return np.concatenate([p[:-1] for p in paths]), np.concatenate([p[1:] - p[:-1] for p in paths])
+
+
+def _box_hits(a: np.ndarray, b: np.ndarray, s: float) -> bool:
+    """Some box of a overlaps some box of b by more than s along both axes."""
+    A, B = a[:, None], b[None]
+    return bool(((A[..., 0] < B[..., 2] - s) & (B[..., 0] < A[..., 2] - s) &
+                 (A[..., 1] < B[..., 3] - s) & (B[..., 1] < A[..., 3] - s)).any())
+
+
+def _segment_hits(boxes: np.ndarray, p: np.ndarray, d: np.ndarray, s: float) -> bool:
+    """Some segment p + t·d (t in [0, 1]) passes through some box shrunk by s (Liang–Barsky clip)."""
+    if not len(boxes) or not len(p):
+        return False
+    lo, hi = boxes[:, None, :2] + s, boxes[:, None, 2:] - s
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t0, t1 = (lo - p) / d, (hi - p) / d
+    flat, inside = d == 0, (lo < p) & (p < hi)  # a segment parallel to an axis is in or out along it everywhere
+    enter = np.where(flat, np.where(inside, -np.inf, np.inf), np.minimum(t0, t1)).max(axis=2).clip(min=0)
+    leave = np.where(flat, np.where(inside, np.inf, -np.inf), np.maximum(t0, t1)).min(axis=2).clip(max=1)
+    return bool((enter < leave).any())
+
+
+def _move(pairs: list[tuple[np.ndarray, np.ndarray]], s: float) -> tuple[float, float]:
+    """The smallest shift, along one axis and on the 0.01 grid, after which no box of `mine` overlaps any of `theirs`
+    by more than s, for every (mine, theirs) pair at once. Along x: the shifts that still overlap are open intervals,
+    one per box pair that overlaps in y; the answer is the nearest grid point beside an interval end in none of them."""
+    best = []
     for axis in (0, 1):
-        lo, hi = axis, axis + 2
-        moves += [(float(np.max(others[:, hi] - box[lo])), axis), (-float(np.max(box[hi] - others[:, lo])), axis)]
-    d, axis = min(moves, key=lambda m: abs(m[0]))
+        o, lo, hi = 1 - axis, [], []
+        for mine, theirs in pairs:
+            A, B = mine[:, None], theirs[None]
+            across = (A[..., o] < B[..., o + 2] - s) & (B[..., o] < A[..., o + 2] - s)
+            lo.append((B[..., axis] + s - A[..., axis + 2])[across])
+            hi.append((B[..., axis + 2] - s - A[..., axis])[across])
+        lo, hi = np.concatenate(lo), np.concatenate(hi)
+        ends = np.concatenate([lo, hi])
+        grid = np.unique(np.concatenate([np.floor(ends * 100), np.ceil(ends * 100)]) / 100)
+        free = grid[~((lo[None] < grid[:, None]) & (grid[:, None] < hi[None])).any(axis=1)]
+        d = float(free[np.argmin(np.abs(free) + (free < 0) * 1e-9)])  # ties: the positive way
+        best.append((abs(d), axis, d))
+    _, axis, d = min(best)
     return (d, 0.0) if axis == 0 else (0.0, d)
 
 
-def _glyph_hit(glyphs: np.ndarray, boxes: np.ndarray):
-    """The move that clears the first glyph overlapping any of `boxes`, or None."""
-    if not len(glyphs) or not len(boxes):
+def _overlap(x, y, s: float) -> tuple[float, float] | None:
+    """How to move x clear of y, if x's ink meets y's."""
+    g, m = _boxes(x.glyphs), _boxes(x.markers)
+    solid = np.concatenate([_boxes(y.glyphs), _boxes(y.markers)])
+    p, d = _segments(y.strokes)
+    hit = _box_hits(np.concatenate([g, m]), solid, s) or _segment_hits(g, p, d, s)
+    if not hit:
         return None
-    a, b = glyphs[:, None], boxes[None]
-    hit = (a[..., 0] < b[..., 2]) & (b[..., 0] < a[..., 2]) & (a[..., 1] < b[..., 3]) & (b[..., 1] < a[..., 3])
-    rows = np.flatnonzero(hit.any(axis=1))
-    return _clear(glyphs[rows[0]], boxes[hit[rows[0]]]) if len(rows) else None
+    # Against strokes, a chord's bounding box: never smaller than the chord, so the move always clears it.
+    chords = np.column_stack([np.minimum(p, p + d), np.maximum(p, p + d)])
+    return _move([(g, np.concatenate([solid, chords])), (m, solid)], s)
 
 
-def _stroke_hit(glyphs: np.ndarray, strokes: list):
-    """The move that clears the first glyph any stroke segment passes through (Liang–Barsky clip), or None."""
-    if not len(glyphs) or not strokes:
-        return None
-    paths = [np.asarray(s) for s in strokes]
-    p = np.concatenate([s[:-1] for s in paths])[None]          # 1×n×2 segment starts
-    d = np.concatenate([s[1:] - s[:-1] for s in paths])[None]  # 1×n×2 segment directions
-    lo, hi = glyphs[:, None, :2], glyphs[:, None, 2:]          # g×1×2
-    with np.errstate(divide="ignore", invalid="ignore"):
-        t0, t1 = (lo - p) / d, (hi - p) / d
-    flat, inside = d == 0, (lo < p) & (p < hi)                 # a segment parallel to an axis: in or out on it
-    enter = np.where(flat, np.where(inside, -np.inf, np.inf), np.minimum(t0, t1)).max(axis=2).clip(min=0)
-    leave = np.where(flat, np.where(inside, np.inf, -np.inf), np.maximum(t0, t1)).min(axis=2).clip(max=1)
-    hit = enter < leave                                        # g×n: the segment has a stretch strictly inside
-    rows = np.flatnonzero(hit.any(axis=1))
-    if not len(rows):
-        return None
-    i, j = rows[0], hit[rows[0]]
-    ends = np.concatenate([p[0, j] + enter[i, j, None] * d[0, j], p[0, j] + leave[i, j, None] * d[0, j]])
-    return _clear(glyphs[i], np.hstack([ends, ends]))
+def _ink(u) -> np.ndarray:
+    return np.concatenate([_boxes(u.glyphs), _boxes(u.markers), _boxes(u.fills)]
+                          + [np.hstack([q, q]) for q in map(np.asarray, u.strokes)])
 
 
-def _collision(x, y):
-    """How to move x's glyphs off y's glyphs and strokes, or None."""
-    g = np.asarray(x.glyphs).reshape(-1, 4)
-    return _glyph_hit(g, np.asarray(y.glyphs).reshape(-1, 4)) or _stroke_hit(g, y.strokes)
+def _named(u, ink: np.ndarray) -> str:
+    x, y = (round((ink[:, i].min() + ink[:, i + 2].max()) / 2, 2) + 0.0 for i in (0, 1))  # + 0.0: no "-0.00"
+    return f"{u.kind} at ({x:.2f}, {y:.2f})"
 
 
-def check(cells, frame_width: float, frame_height: float) -> list[str]:
+def check(cells, frame_width: float, frame_height: float, pixel_width: int) -> list[str]:
     errs = []
     fx, fy = frame_width / 2, frame_height / 2
-    slack = frame_width / WIDTH / 2  # under half a pixel past the edge draws nothing outside the frame
+    s = frame_width / pixel_width / 2  # under half a pixel of ink is not drawn: neither overlap nor off frame
     for n, cell in enumerate(cells):
         units = cell.end
+        inks = [_ink(u) for u in units]
+        name = [_named(u, i) for u, i in zip(units, inks)]
         for k, a in enumerate(units):
-            for b in units[k + 1:]:
+            for j in range(k + 1, len(units)):
+                b = units[j]
                 if a.attached_to in b.owners or b.attached_to in a.owners:
                     continue
-                for x, y in ((a, b), (b, a)):
-                    move = _collision(x, y)
+                for (x, nx), (y, ny) in (((a, name[k]), (b, name[j])), ((b, name[j]), (a, name[k]))):
+                    move = _overlap(x, y, s)
                     if move:
-                        errs.append(f"{cell.slug} · lesson.py:{x.line} · {x.kind} × {y.kind} (lesson.py:{y.line}) · "
+                        errs.append(f"{cell.slug} · lesson.py:{x.line} · {nx} × {ny} (lesson.py:{y.line}) · "
                                     f"move {x.kind} by ({move[0]:+.2f}, {move[1]:+.2f})")
                         break
-        for u in units:
-            ink = np.concatenate([np.asarray(u.glyphs).reshape(-1, 4), np.asarray(u.fills).reshape(-1, 4)]
-                                 + [np.hstack([s, s]) for s in map(np.asarray, u.strokes)])
+        for u, ink, nu in zip(units, inks, name):
             over = {"right": ink[:, 2].max() - fx, "left": -fx - ink[:, 0].min(),
                     "top": ink[:, 3].max() - fy, "bottom": -fy - ink[:, 1].min()}
             edge = max(over, key=over.get)
-            if over[edge] > slack:
-                errs.append(f"{cell.slug} · lesson.py:{u.line} · {u.kind} is off frame by {over[edge]:.2f} ({edge})")
+            if over[edge] > s:
+                errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} is off frame by "  # moving in by it clears
+                            f"{math.ceil((over[edge] - s) * 100) / 100:.2f} ({edge})")
             if u.text_size is not None and u.text_size < MIN_TEXT:
-                errs.append(f"{cell.slug} · lesson.py:{u.line} · {u.kind} font size {u.text_size:.1f} < {MIN_TEXT}")
+                errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} font size {u.text_size:.1f} < {MIN_TEXT}")
             if u.latex_size is not None and u.latex_size < MIN_LATEX:
-                errs.append(f"{cell.slug} · lesson.py:{u.line} · {u.kind} LaTeX font size {u.latex_size:.1f} < "
-                            f"{MIN_LATEX}")
+                errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} LaTeX font size {u.latex_size:.1f} < {MIN_LATEX}")
             if u.transient_cell == n:
-                errs.append(f"{cell.slug} · lesson.py:{u.line} · {u.kind} was made transient in this cell and is "
-                            "still on screen at its end")
+                errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} was made transient in this cell and is still on "
+                            "screen at its end")
     return errs

@@ -1,32 +1,93 @@
 ## dot-on-dot
-Two dots.
+Case 1.
+
+## dots-touch-by-under-half-a-pixel
+Case 2.
+
 ## text-on-text
-Two words.
-## dot-on-arrow-shaft
-A dot on the shaft.
+Case 3.
+
+## text-on-text-moved-as-told
+Case 4.
+
+## text-on-an-arrow
+Case 5.
+
+## dot-on-an-arrow
+Case 6.
+
 ## hidden-in-a-group
-Two dots in a group.
-## off-frame-stroke
-Past the right edge.
+Case 7.
+
+## off-frame-right
+Case 8.
+
+## off-frame-left
+Case 9.
+
+## off-frame-top
+Case 10.
+
 ## off-frame-fill
-Past the bottom edge.
-## small-text
-Small text.
-## small-latex
-Small TeX.
-## leftover-transient
-A cursor left behind.
-## attached
-A dot attached to its arrow.
-## attached-to-a-group
-A label attached to its group.
-## punctuation-at-the-minimum
-Punctuation at the minimum sizes.
-## text-on-a-plane
-Text over a grid.
-## transient-gone
-A cursor that leaves.
-## label-beside-an-arrow
-A label above an arrow.
+Case 11.
+
+## off-frame-image
+Case 12.
+
 ## under-half-a-pixel-past-the-edge
-A square at the edge.
+Case 13.
+
+## small-text
+Case 14.
+
+## small-latex
+Case 15.
+
+## leftover-transient
+Case 16.
+
+## leftover-transient-group
+Case 17.
+
+## attached
+Case 18.
+
+## attached-to-a-group
+Case 19.
+
+## attached-to-a-part
+Case 20.
+
+## attached-and-copied
+Case 21.
+
+## punctuation-at-the-minimum
+Case 22.
+
+## text-on-a-plane
+Case 23.
+
+## transient-gone
+Case 24.
+
+## label-beside-an-arrow
+Case 25.
+
+## matmul-with-cursors
+Case 26.
+
+## plane-with-vectors-and-points
+Case 27.
+
+## arrow-label-number-in-a-box-highlight
+Case 28.
+
+## brace-underline-root
+Case 29.
+
+## point-on-a-curve
+Case 30.
+
+## graph-edge-with-nodes
+Case 31.
+
