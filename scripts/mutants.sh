@@ -117,7 +117,7 @@ find does not move the current cell%src/renderer/src/Find.tsx%s/    setCur\(x.ce
 find jumps on reload%src/renderer/src/Find.tsx%s/if \(jump.current && found.length\) show/if (found.length) show/%e2e:find.spec.ts:a reload while Find is open leaves the reader on their cell
 find counts hidden MathML%src/renderer/src/Find.tsx%s/n.parentElement!.closest\('.katex-mathml'\)/false/%e2e:find.spec.ts:find skips formula annotations
 clip not seekable%src/main/index.ts%s/const r = byteRange\(req.headers.get\('range'\), size\)/const r = null/; s/        'Accept-Ranges': 'bytes',\n//; s/      headers\['Content-Length'\] = String\(end - start \+ 1\)\n//%e2e:player.spec.ts:seek and step land on frames k and k+1
-range parsed wrong%src/main/bundle.ts%s/start: Math.max\(0, size - Number\(m\[2\]\)\)/start: Number(m[2])/%unit:bundle.spec.ts:byteRange answers what a video asks for
+range parsed wrong%src/main/bundle.ts%s/start: Math.max\(0, size - n\)/start: n/%unit:bundle.spec.ts:byteRange answers what a video asks for
 open-file ignored%src/main/windows.ts%s/  if \(app.isReady\(\)\) openPath\(p\)/  if (app.isReady()) void p/%e2e:open.spec.ts:a bundle handed over by Finder (open-file) opens in its own window
 EOF
 )
