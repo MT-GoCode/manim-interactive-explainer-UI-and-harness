@@ -71,7 +71,7 @@ def worker(bundle: Path, media: Path, ranges: list[tuple[int, int]]) -> None:
     _, cls = exec_lesson(bundle, (bundle / "build" / ".lesson.py").read_bytes())
     for j, (first, last) in enumerate(ranges):
         with tempconfig({**shared, "from_animation_number": first, "upto_animation_number": last,
-                         "media_dir": str(media / f"range-{j}"), "disable_caching": True,
+                         "media_dir": str(media / f"range-{j}"),
                          "video_encoder_options": ENCODER, **OUTPUT}):
             cls().render()
 

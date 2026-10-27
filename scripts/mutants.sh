@@ -180,6 +180,7 @@ pass 1 not at the render's rate%explainers/build.py%s/"frame_rate": FPS, //%test
 world-to-pixel matrix not recorded%explainers/fingerprint.py%s/self._ops.append\(\("matrix", /(lambda *_: None)(("matrix", /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[centre]
 world-to-pixel scale not recorded%explainers/fingerprint.py%s/\*map\(float, \(sx, -sy, /*map(float, (0.0, 0.0, /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[width]
 recording context answers any query%explainers/fingerprint.py%s/if name not in self.DRAWING:/if False:/%tests/py/test_frames.py::test_the_recording_context_refuses_what_it_cannot_answer
+pass 1 hashes animations%explainers/build.py%s/"disable_caching": True, //%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
 numpy version not fingerprinted%explainers/build.py%s/"manim", "numpy", /"manim", /%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
 encoder code not fingerprinted%explainers/build.py%s/ *"code": \{n: sha256\(\(PICTURE_CODE \/ n\).read_bytes\(\)\) for n in \("fingerprint.py", "render.py"\)\},\n//%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
 inputs not fingerprinted%explainers/build.py%s/after = json.dumps\(\{"inputs": inputs,/after = json.dumps({/%tests/py/test_incremental.py::test_an_edit_to_a_helper_module_renders_every_cell

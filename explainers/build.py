@@ -62,11 +62,13 @@ def format_refs(refs, namespace: dict) -> tuple[dict[str, str], list[str]]:
 
 def manim_config(bundle: Path) -> dict:
     """Settings both passes share: the same frames (size and rate) and random numbers, the warm TeX and text caches,
-    every partial kept."""
+    every partial kept. No animation hashing: Manim's hash reads the source of updaters (inspect.getsource), which
+    would make lesson.py an opened input of pass 1."""
     from explainers.render import FPS, HEIGHT, WIDTH
     build = bundle / "build"
     return {"pixel_width": WIDTH, "pixel_height": HEIGHT, "frame_rate": FPS, "seed": 0, "tex_dir": str(build / ".tex"),
-            "text_dir": str(build / ".text"), "max_files_cached": -1, "verbosity": "ERROR", "progress_bar": "none"}
+            "text_dir": str(build / ".text"), "disable_caching": True, "max_files_cached": -1, "verbosity": "ERROR",
+            "progress_bar": "none"}
 
 
 def exec_lesson(bundle: Path, src: bytes):
@@ -92,7 +94,7 @@ def _inputs(bundle: Path, modules: set[str], opened: set[Path]) -> dict[str, dic
     """The files that can change a picture: bundle files the lesson imported or opened, and the picture code."""
     out = {"bundle": {}, "repo": {}}
     files = {Path(f).resolve() for n in modules if (f := getattr(sys.modules.get(n), "__file__", None))} | opened
-    for p in files:
+    for p in sorted(files):  # index.json is byte-identical when nothing changed
         if p.is_relative_to(bundle) and not p.is_relative_to(bundle / "build"):
             out["bundle"][str(p.relative_to(bundle))] = sha256(p.read_bytes())
         elif p.is_relative_to(PICTURE_CODE):
