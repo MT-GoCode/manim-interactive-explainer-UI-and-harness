@@ -124,6 +124,7 @@ test('editing its cell drops it and keeps others', async ({ launch }, info) => {
 test("a rebuild changing one cell's frames drops that cell's comments only", async ({
   launch
 }, info) => {
+  test.slow() // it starts a Python process, which under the full suite's load can take tens of seconds
   const { b, page } = await open(launch, info.outputDir)
   await commentCell(page, PROBS, 'on probs')
   await commentCell(page, TOP, 'on top')
@@ -205,6 +206,7 @@ test('Ping writes ping and waits until it is gone', async ({ launch }, info) => 
 })
 
 test('a comment reaches fetch-comments --wait', async ({ launch }, info) => {
+  test.slow() // it starts a Python process, which under the full suite's load can take tens of seconds
   const { b, page } = await open(launch, info.outputDir)
   const fetch = spawn(join(ROOT, 'bin/fetch-comments'), ['--wait', b])
   let out = ''
