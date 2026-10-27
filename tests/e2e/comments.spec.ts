@@ -98,6 +98,13 @@ test('a stale comment that cannot be pruned says so', async ({ launch }, info) =
   chmodSync(b, 0o555) // the write-back cannot make its temporary file
   try {
     const app = await launch([b], undefined, { stubErrorBox: true })
+    // the bundle opens (asserted before waiting on a window, so a failure to open fails here, not by a hang)
+    await expect
+      .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
+      .toBe(1)
+    expect(
+      await app.evaluate(() => (globalThis as unknown as { errorBoxes: unknown[] }).errorBoxes)
+    ).toEqual([])
     const page = await firstLesson(app)
     await expect(page.locator('.banner')).toContainText('comments.json could not be pruned')
     await expect(page.locator('.card')).toHaveCount(0) // the pruned list is what shows

@@ -162,7 +162,7 @@ quote by code points%explainers/comments.py%s/return text.encode\("utf-16-le"\)\
 span from rendered text%src/renderer/src/selection.ts%s/const span: \[number, number\] = \[a!.off, b!.off\]/const span: [number, number] = [r.startOffset, r.endOffset]/%e2e:comments.spec.ts:a highlight comment stores the exact span
 unbuilt cells' prose not judged%src/main/bundle.ts%s/if \(sectionSha\(cell\) !== c.fingerprint.section_sha\) return false/if (cell.clip \&\& sectionSha(cell) !== c.fingerprint.section_sha) return false/%unit:bundle.spec.ts:an unbuilt bundle keeps comments whose prose is unchanged and drops those whose prose changed
 a failed prune escapes%src/main/windows.ts%s/  \} catch \(e\) \{\n    \/\/ the lesson still shows the pruned list/  } catch (e) {\n    throw e\n    \/\/ the lesson still shows the pruned list/%e2e:comments.spec.ts:a stale comment that cannot be pruned says so
-box closes before the answer%src/renderer/src/Comments.tsx%s/\.then\(\(r\) => \(r.ok \? close\(\) : setRefused\(r.message\)\)\)/.then(() => close())/%e2e:comments.spec.ts:a refused comment keeps its text in the box
+box closes before the answer%src/renderer/src/Comments.tsx%s/        setSending\(false\)\n        if \(r.ok\) close\(\)\n        else setRefused\(r.message\)/        setSending(false)\n        close()/%e2e:comments.spec.ts:a refused comment keeps its text in the box
 EOF
 )
 
