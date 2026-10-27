@@ -40,14 +40,18 @@ if run packaged; then
   copy=~/Applications/"Explainers Test.app"
   if npm run -s dist >/dev/null; then
     rm -rf "$copy" && ditto dist/mac-arm64/Explainers.app "$copy"
+    # However the run ends (done, Ctrl-C, killed), the test copy goes and Minh's install owns .explainer again.
+    restore() {
+      "$lsr" -u "$copy" 2>/dev/null; rm -rf "$copy"
+      [ -d ~/Applications/Explainers.app ] && "$lsr" -f ~/Applications/Explainers.app
+    }
+    trap restore EXIT
     # Only the copy under test is registered for the run: another copy's record must not answer for it.
     "$lsr" -u dist/mac-arm64/Explainers.app; [ -d ~/Applications/Explainers.app ] && "$lsr" -u ~/Applications/Explainers.app
     "$lsr" -f "$copy"
     exe="$copy/Contents/MacOS/Explainers"
     EX_PROJECT=packaged-e2e EX_EXECUTABLE=$exe playwright e2e "$@" || status=1
     EX_EXECUTABLE=$exe playwright packaged "$@" || status=1
-    "$lsr" -u "$copy"; rm -rf "$copy"
-    [ -d ~/Applications/Explainers.app ] && "$lsr" -f ~/Applications/Explainers.app
   else status=1; fi
   tally packaged-e2e; tally packaged
 fi
