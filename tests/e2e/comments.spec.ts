@@ -1,6 +1,6 @@
 import { spawn, execFileSync } from 'child_process'
 import { createHash } from 'crypto'
-import { chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { expect, firstLesson, fixture, ROOT, test } from './app'
@@ -95,22 +95,19 @@ test('a stale comment that cannot be pruned says so', async ({ launch }, info) =
   )
   edit(join(b, 'cells.md'), (s) => s.replace('Add them all', 'Add every one'))
   const before = readFileSync(join(b, 'comments.json'), 'utf8')
-  chmodSync(b, 0o555) // the write-back cannot make its temporary file
-  try {
-    const app = await launch([b], undefined, { stubErrorBox: true })
-    // the bundle opens (asserted before waiting on a window, so a failure to open fails here, not by a hang)
-    await expect
-      .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
-      .toBe(1)
-    expect(
-      await app.evaluate(() => (globalThis as unknown as { errorBoxes: unknown[] }).errorBoxes)
-    ).toEqual([])
-    const page = await firstLesson(app)
-    await expect(page.locator('.banner')).toContainText('comments.json could not be pruned')
-    await expect(page.locator('.card')).toHaveCount(0) // the pruned list is what shows
-  } finally {
-    chmodSync(b, 0o755)
-  }
+  // the write-back cannot make its temporary file (a directory is in the way); nothing to undo if the test dies
+  mkdirSync(join(b, 'comments.json.tmp'))
+  const app = await launch([b], undefined, { stubErrorBox: true })
+  // the bundle opens (asserted before waiting on a window, so a failure to open fails here, not by a hang)
+  await expect
+    .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
+    .toBe(1)
+  expect(
+    await app.evaluate(() => (globalThis as unknown as { errorBoxes: unknown[] }).errorBoxes)
+  ).toEqual([])
+  const page = await firstLesson(app)
+  await expect(page.locator('.banner')).toContainText('comments.json could not be pruned')
+  await expect(page.locator('.card')).toHaveCount(0) // the pruned list is what shows
   expect(readFileSync(join(b, 'comments.json'), 'utf8')).toBe(before)
 })
 
