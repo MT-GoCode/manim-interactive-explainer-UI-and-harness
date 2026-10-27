@@ -74,8 +74,8 @@ export function byteRange(
   if (m[1] === '') return { start: Math.max(0, size - Number(m[2])), end: size - 1 }
   const start = Number(m[1])
   const end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1)
-  if (end < start) return null
-  return start < size ? { start, end } : 'unsatisfiable'
+  if (start >= size) return 'unsatisfiable'
+  return end < start ? null : { start, end }
 }
 
 // The lesson, and the repo files its build read (main watches them for the stale alert).
