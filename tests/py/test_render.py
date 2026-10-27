@@ -1,6 +1,7 @@
 """Clips: exactly the frames of a plain one-pass render, cut at the cell boundaries; content-named; atomic."""
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -53,7 +54,8 @@ def test_every_clip_is_single_threaded_keyint_6_crf_18(built):
     b, index = ok(built)
     for c in index["cells"]:
         sei = (b / "build" / c["clip"]).read_bytes()[:20000]
-        assert b"threads=1 " in sei and b"keyint=6 " in sei and b"crf=18.0 " in sei, c["slug"]
+        opts = dict(re.findall(rb"(?<![\w])(\w+)=(\S+)", sei.partition(b"options: ")[2].partition(b"\0")[0]))
+        assert (opts[b"threads"], opts[b"keyint"], opts[b"crf"]) == (b"1", b"6", b"18.0"), c["slug"]
 
 
 def test_index_validates_and_clips_are_named_by_content(built):
@@ -90,7 +92,8 @@ def test_killed_build_keeps_the_previous_build_and_leaves_no_worker(bundle):
     before = (b / "build" / "index.json").read_text()
     clips = sorted((b / "build" / "clips").iterdir())
     src = b / "lesson.py"
-    src.write_text(src.read_text().replace("run_time=1.25", "run_time=20"))  # long enough that the kill lands mid-render
+    original = src.read_text()
+    src.write_text(original.replace("run_time=1.25", "run_time=60"))  # its chunk is still rendering when the kill lands
     p = subprocess.Popen([str(REPO / "bin" / "explain-build"), str(b)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                          start_new_session=True)
     deadline = time.time() + 60
@@ -104,13 +107,14 @@ def test_killed_build_keeps_the_previous_build_and_leaves_no_worker(bundle):
     builds = [pid for pid in build if "python" in subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout]
     assert len(builds) == 1, builds
     os.kill(int(builds[0]), signal.SIGKILL)
-    for _ in range(50):  # each worker notices its parent is gone within a second
+    for _ in range(30):  # each worker notices its parent is gone within a second
         if not subprocess.run(["pgrep", "-f", f"explainers.render {b}"], capture_output=True).stdout:
             break
         time.sleep(0.1)
     assert not subprocess.run(["pgrep", "-f", f"explainers.render {b}"], capture_output=True).stdout
     assert (b / "build" / "index.json").read_text() == before
     assert all(c.exists() for c in clips)
+    src.write_text(original)
     assert explain_build(b).returncode == 0
 
 

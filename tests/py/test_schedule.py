@@ -21,6 +21,7 @@ def test_chunks_golden():
     assert chunks([1, 1], 1, T(2)) == [[0, 1]]
     assert chunks([5, 1], 3, T(2)) == [[0], [1]]                  # never an empty chunk
     assert chunks([1, 2, 1], 2, T(3)) == [[0], [1, 2]]            # tie at 1.0 vs 3.0 from 2.0: earlier cell
+    assert chunks([1, 3, 1, 1], 2, T(4)) == [[0, 1], [2, 3]]      # 4 is nearer 3 than 1 is: nearest, not floor
 
 
 def test_chunks_never_start_where_a_time_based_updater_is_live():

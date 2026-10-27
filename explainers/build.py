@@ -100,7 +100,7 @@ def _inputs(bundle: Path, modules: set[str], opened: set[Path]) -> dict[str, dic
 
 def check(bundle: Path) -> dict:
     """Pass 1 and every check that needs no frames. Returns what the render pass and the report use."""
-    from manim import __version__ as manim_version, tempconfig
+    from manim import __version__ as manim_version, config, tempconfig
     from explainers.cells import read_cells
     from explainers.lesson import LessonError, record_creation_lines
 
@@ -146,6 +146,9 @@ def check(bundle: Path) -> dict:
     refs, ref_errs = format_refs(cells.refs, vars(module))
     if errs + ref_errs:
         raise BuildError(1, errs + ref_errs)
+    from explainers.geometry import check as geometry
+    if errs := geometry(scene._cells, config.frame_width, config.frame_height):
+        raise BuildError(1, errs)
     return {"lock": lock, "lesson_sha": sha256(src), "cells": scene._cells, "refs": refs,
             "inputs": _inputs(bundle, set(sys.modules) - before - {"lesson"} | {"explainers.lesson"}, opened),
             "manim_version": manim_version, "repo_root": str(REPO)}

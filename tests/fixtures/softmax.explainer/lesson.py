@@ -34,6 +34,6 @@ class Softmax(Lesson):
         box = SurroundingRectangle(z[3], color=YELLOW)  # L:box
         twin = note.copy().to_corner(UR)  # L:twin
         self.play(Create(box), FadeIn(twin), run_time=0.5)
-        grid = Matrix([[1, 2], [3, 4]]).scale(0.5).to_corner(DR)  # L:matrix
+        grid = Matrix([[1, 2], [3, 4]]).scale(0.9).to_corner(DR)  # L:matrix
         self.add(grid)
         self.wait(0.1234)

@@ -67,13 +67,13 @@ def test_plain_group_is_opened_into_its_numbers(built):
     assert [u["kind"] for u in rec["cells"][0]["end"]] == ["DecimalNumber"] * 6
 
 
-def test_font_sizes_follow_scale_for_text_latex_and_text_inside_containers(built):
+def test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers(built):
     rec = ok(built)
-    size = {u["line"]: u["font_size"] for u in rec["cells"][5]["end"]}
-    assert size[LINE["note"]] == pytest.approx(64 * 0.75)
-    assert size[LINE["sum"]] == pytest.approx(48)
-    assert size[LINE["matrix"]] == pytest.approx(48 * 0.5)   # its entries, not the stretched brackets
-    assert size[LINE["box"]] is None
+    size = {u["line"]: (u["text_size"], u["latex_size"]) for u in rec["cells"][5]["end"]}
+    assert size[LINE["note"]] == (pytest.approx(64 * 0.75), None)
+    assert size[LINE["sum"]] == (None, pytest.approx(48))
+    assert size[LINE["matrix"]] == (None, pytest.approx(48 * 0.9))   # its entries, not the stretched brackets
+    assert size[LINE["box"]] == (None, None)
 
 
 def test_faded_out_object_is_gone_at_cell_end(built):

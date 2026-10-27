@@ -44,11 +44,7 @@ animation before first cell accepted%explainers/lesson.py%s/        if not self.
 plain group not opened%explainers/lesson.py%s/if type\(m\) in \(VGroup, Group\):/if False:/%tests/py/test_pass1.py::test_plain_group_is_opened_into_its_numbers
 copy keeps original line%explainers/lesson.py%s/        for x in c.get_family\(\):\n            x._born = line\n//%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
 run time from the clock%explainers/lesson.py%s/        super\(\).play\(\*args, \*\*kwargs\)\n        self._cells\[-1\].run_times.append\(self.duration\)/        t0 = self.renderer.time\n        super().play(*args, **kwargs)\n        self._cells[-1].run_times.append(self.renderer.time - t0)/%tests/py/test_pass1.py::test_cells_and_exact_run_times
-font size from constructor%explainers/lesson.py%s/return float\(m.font_size\)/return float(getattr(m, \"_font_size\", m.font_size))/%tests/py/test_pass1.py::test_font_sizes_follow_scale_for_text_latex_and_text_inside_containers
-LaTeX not a text unit%explainers/lesson.py%s/TEXT = \(Text, MarkupText, SingleStringMathTex, DecimalNumber\)/TEXT = (Text, MarkupText, DecimalNumber)/%tests/py/test_pass1.py::test_font_sizes_follow_scale_for_text_latex_and_text_inside_containers
-container text not measured%explainers/lesson.py%s/    sizes = \[s for c in m.submobjects if \(s := _font_size\(c\)\) is not None\]\n    return min\(sizes\) if sizes else None/    return None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_for_text_latex_and_text_inside_containers
 outermost lesson frame%explainers/lesson.py%s/while f is not None and f.f_code.co_filename != source:\n        f = f.f_back\n    return f.f_lineno if f is not None else None/hit = None\n    while f is not None:\n        hit = f if f.f_code.co_filename == source else hit\n        f = f.f_back\n    return hit.f_lineno if hit is not None else None/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
-placeholders counted%explainers/lesson.py%s/elif _draws\(m\):/else:/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
 partials pruned past 100%explainers/build.py%s/"max_files_cached": -1,/"max_files_cached": 100,/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 chunk renders one animation too many%explainers/render.py%s/first, last = starts\[g\[0\]\], starts\[g\[-1\] \+ 1\] - 1/first, last = starts[g[0]], starts[g[-1] + 1]/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 join drops a cell's first partial%explainers/build.py%s/join\(\[parts\[i\] for i in range\(c.first_anim, /join([parts[i] for i in range(c.first_anim + 1, /%tests/py/test_render.py::test_clips_equal_a_one_pass_render_cut_at_cells
@@ -63,6 +59,27 @@ no-animation cell accepted%explainers/build.py%s/errs = \[f'cell \"\{c.slug\}\" 
 chunk starts under a live updater%explainers/render.py%s/allowed = \[i for i in range\(len\(sums\) - 1\) if cuttable\[i \+ 1\]\]/allowed = list(range(len(sums) - 1))/%tests/py/test_schedule.py::test_chunks_never_start_where_a_time_based_updater_is_live
 chunk cut not nearest%explainers/render.py%s/i = min\(allowed, key=lambda i: \(abs\(sums\[i\] - target\), i\)\)/i = max(i for i in allowed if sums[i] <= target) if any(sums[i] <= target for i in allowed) else allowed[0]/%tests/py/test_schedule.py::test_chunks_golden
 clip named by something else%explainers/render.py%s/return hashlib.sha256\(path.read_bytes\(\)\).hexdigest\(\)/return hashlib.sha256(str(path).encode()).hexdigest()/%tests/py/test_render.py::test_index_validates_and_clips_are_named_by_content
+font size from constructor%explainers/lesson.py%s/return float\(m.font_size\), None/return float(m._font_size), None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
+LaTeX sized as plain text%explainers/lesson.py%s/return None, float\(m.font_size\)/return float(m.font_size), None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
+container text not measured%explainers/lesson.py%s/found = \[_sizes\(c\) for c in m.submobjects\]/found = []/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
+placeholders counted%explainers/lesson.py%s/if not \(g or s or f\):/if False:/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
+attach ignored%explainers/geometry.py%s/if a.attached_to in b.owners or b.attached_to in a.owners:/if False:/%tests/py/test_geometry.py::test_cell_end_geometry[attached]
+attach to a group ignored%explainers/lesson.py%s/owners = owners \+ \[id\(m\)\]/owners = [id(m)]/%tests/py/test_geometry.py::test_cell_end_geometry[attached-to-a-group]
+parent path skipped%explainers/lesson.py%s/elif isinstance\(m, VMobject\) and len\(m.points\):/elif isinstance(m, VMobject) and len(m.points) and not m.submobjects:/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-arrow-shaft]
+glyph on stroke skipped%explainers/geometry.py%s/ or _stroke_hit\(g, y.strokes\)//%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-arrow-shaft]
+parallel segment always inside%explainers/geometry.py%s/np.where\(inside, -np.inf, np.inf\)/np.where(inside, -np.inf, -np.inf)/%tests/py/test_geometry.py::test_cell_end_geometry[label-beside-an-arrow]
+dot not a glyph%explainers/lesson.py%s/if glyph or isinstance\(m, Dot\):/if glyph:/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-dot]
+move sign flipped%explainers/geometry.py%s/\(-float\(np.max\(box\[hi\] - others\[:, lo\]\)\), axis\)/(float(np.max(box[hi] - others[:, lo])), axis)/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-dot]
+frame bound too wide%explainers/geometry.py%s/fx, fy = frame_width \/ 2, /fx, fy = frame_width \/ 2 + 0.4, /%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-stroke]
+fills ignored off frame%explainers/geometry.py%s/\[np.asarray\(u.glyphs\).reshape\(-1, 4\), np.asarray\(u.fills\).reshape\(-1, 4\)\]/[np.asarray(u.glyphs).reshape(-1, 4)]/%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-fill]
+no sub-pixel slack%explainers/geometry.py%s/slack = frame_width \/ WIDTH \/ 2/slack = 0/%tests/py/test_geometry.py::test_cell_end_geometry[under-half-a-pixel-past-the-edge]
+text minimum lowered%explainers/geometry.py%s/MIN_TEXT, MIN_LATEX = 32, 40/MIN_TEXT, MIN_LATEX = 24, 40/%tests/py/test_geometry.py::test_cell_end_geometry[small-text]
+LaTeX minimum 32%explainers/geometry.py%s/MIN_TEXT, MIN_LATEX = 32, 40/MIN_TEXT, MIN_LATEX = 32, 32/%tests/py/test_geometry.py::test_cell_end_geometry[small-latex]
+transients never checked%explainers/geometry.py%s/if u.transient_cell == n:/if False:/%tests/py/test_geometry.py::test_cell_end_geometry[leftover-transient]
+background strokes counted%explainers/lesson.py%s/if not background:/if True:/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-a-plane]
+world coordinates, not screen%explainers/lesson.py%s/screen = lambda m, p: self.camera.transform_points_pre_display\(m, p\)\[:, :2\]/screen = lambda m, p: p[:, :2]/%tests/py/test_geometry.py::test_cell_end_geometry_is_checked_where_the_3d_camera_draws[apart-in-the-world]
+fixed-in-frame projected%explainers/lesson.py%s/self.camera.transform_points_pre_display\(m, p\)/self.camera.project_points(p)/%tests/py/test_geometry.py::test_cell_end_geometry_is_checked_where_the_3d_camera_draws[label-fixed-in-frame]
+camera move ignored%explainers/lesson.py%s/if self._camera_state\(\) != self._camera:/if False:/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error
 EOF
 )
 
