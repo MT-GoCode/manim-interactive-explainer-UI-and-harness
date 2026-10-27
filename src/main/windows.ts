@@ -97,6 +97,7 @@ function watchRepo(w: W, files: string[]): void {
 
 function createWindow(dir: string, slug: string | null, bounds?: Rectangle): void {
   const { lesson, repoFiles } = load(dir)
+  const real = realpathSync(dir) // before the window exists: nothing is left behind if it throws
   // 1280 wide: a 16:9 player 1260 px wide is 709 px tall, leaving ~250 px of transcript in a 1000 px window.
   const win = new BrowserWindow({
     width: 1280,
@@ -114,7 +115,7 @@ function createWindow(dir: string, slug: string | null, bounds?: Rectangle): voi
       backgroundThrottling: false
     }
   })
-  const w: W = { win, dir, real: realpathSync(dir), slug, lesson, watchers: [] }
+  const w: W = { win, dir, real, slug, lesson, watchers: [] }
   wins.set(win.id, w) // registered first: its close handlers below always find it
   w.watchers.push(watch(dir, { recursive: true }, (_e, rel) => relevant(rel) && reload(w)))
   watchRepo(w, repoFiles)

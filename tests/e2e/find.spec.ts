@@ -32,7 +32,7 @@ test('find steps across cells', async ({ launch }, info) => {
   await expect.poll(() => current(page)).toEqual({ i: 5, lit: 1 })
   await query(page, 'zzz')
   await expect.poll(() => count(page)).toBe('No results')
-  expect(await current(page)).toEqual({ i: 4, lit: 1 })
+  expect(await current(page)).toEqual({ i: 5, lit: 1 }) // unchanged
   await page.locator('.bar input').press('Escape')
   await expect(page.locator('.bar')).toHaveCount(0)
   expect(await highlights(page)).toBe(0)

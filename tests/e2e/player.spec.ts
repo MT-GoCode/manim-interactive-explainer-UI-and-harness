@@ -151,17 +151,18 @@ test('a rebuild while playing keeps playing from where it was', async ({ launch 
   const page = await firstLesson(app)
   await onDivide(page)
   await countErrors(page)
-  // A tenth of normal speed (kept across a src change), so the 1.3 s clip is still playing when the rebuild lands.
+  // A twentieth of normal speed (kept across a src change): from frame 3 the 1.3 s clip plays ~24 s, far longer than
+  // a rebuild even under nice 19 beside other work, so it is still playing when the new clip lands.
   await page.evaluate(() => {
     const v = document.querySelector('video')!
-    v.defaultPlaybackRate = v.playbackRate = 0.1
+    v.defaultPlaybackRate = v.playbackRate = 0.05
   })
-  await seek(page, (k + 0.5) / fps)
+  await seek(page, 3.5 / fps)
   await page.evaluate(() => document.querySelector('video')!.play())
   await rebuildDivide(page, b)
   const v = await video(page)
   expect(v.paused).toBe(false)
-  expect(v.t).toBeGreaterThanOrEqual((k + 0.5) / fps) // resumed past frame k, not restarted
+  expect(v.t).toBeGreaterThanOrEqual(3.5 / fps) // resumed past frame 3, not restarted
   expect(await errors(page)).toBe(0)
 })
 
