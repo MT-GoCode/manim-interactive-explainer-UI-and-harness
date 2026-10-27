@@ -40,14 +40,16 @@ test('a link into this bundle moves to its cell', async ({ launch }, info) => {
 })
 
 test('a link to another bundle opens it at its cell', async ({ launch }, info) => {
+  test.skip(!!process.env.EX_EXECUTABLE, 'needs electron -r (the dev app)')
   const lessons = other(info.outputDir)
   const b = fixture(join(info.outputDir, 'home'))
   setLink(b, '[[other#probs]]')
-  const app = await launch([b], undefined, { env: { EX_LESSONS: lessons } })
+  const app = await launch([b], undefined, { stubErrorBox: true, env: { EX_LESSONS: lessons } })
   const page = await firstLesson(app)
-  const [second] = await Promise.all([app.waitForEvent('window'), clickLink(page)])
-  await second.waitForSelector('.cell')
+  await clickLink(page)
   await expect.poll(() => titles(app)).toEqual(['other', 'softmax'])
+  const second = app.windows().find((w) => w !== page)!
+  await second.waitForSelector('.cell')
   await expect.poll(() => current(second)).toEqual({ i: 4, lit: 1 })
   // already open: the same window is brought back to the cell
   await second.keyboard.press('ArrowUp')

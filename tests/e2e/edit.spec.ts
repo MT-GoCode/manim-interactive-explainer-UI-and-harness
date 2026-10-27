@@ -61,7 +61,13 @@ test('double-clicking another cell keeps an edit with a conflict', async ({ laun
   edit(b, (s) => s.replace('Add them all', 'Add every one'))
   await page.keyboard.press('Meta+Enter')
   await expect(page.locator('.editor .problem')).toContainText('changed on disk')
-  await page.locator('.cell .md').nth(4).dblclick({ force: true })
+  // a word of cell 5's prose ("Now they are…"), not a link
+  await page
+    .locator('.cell')
+    .nth(4)
+    .locator('.md p')
+    .first()
+    .dblclick({ force: true, position: { x: 4, y: 6 } })
   await expect(page.locator('.editor')).toHaveCount(1)
   await expect(page.locator('.cell').nth(SUM).locator('.editor .cm-content')).toHaveText('Mine.')
 })

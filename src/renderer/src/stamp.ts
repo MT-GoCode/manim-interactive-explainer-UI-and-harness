@@ -38,8 +38,6 @@ export const stamp = () => (tree: Root, file: VFile) => {
       if (c.tagName === 'code' && cls(c).includes('math-inline') && c.position)
         parent.children[i] = wrap('span', c)
       else if (display && c.position) parent.children[i] = wrap('div', c)
-      else if (c.tagName === 'pre' && c.position)
-        Object.assign(c.properties, range(c), { dataAtom: '' }) // a fence
       else {
         if (c.position && c.properties.dataS === undefined) Object.assign(c.properties, range(c))
         if (c.tagName === 'a' || c.tagName === 'code') c.properties.dataAtom = ''

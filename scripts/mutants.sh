@@ -133,7 +133,7 @@ unresolved ref not red%src/renderer/src/atoms.ts%s/\? 'ref' : 'unresolved'/? 're
 rendered text copied%src/renderer/src/copy.ts%s/(export function copySource\(e: ClipboardEvent, cells: Cell\[\]\): void \{)/$1\n  if (cells) return/%e2e:copy.spec.ts:copy across a formula, a bold word and a code span is the exact source
 no widening%src/renderer/src/copy.ts%s/const atom = atomOf\(el, md\)/const atom = null/%e2e:copy.spec.ts:a selection inside a formula is the whole formula
 display math unwrapped%src/renderer/src/stamp.ts%s/else if \(display && c.position\) parent/else if (false) parent/%e2e:copy.spec.ts:a selection inside a formula is the whole formula
-fence not an atom%src/renderer/src/stamp.ts%s/else if \(c.tagName === 'pre' && c.position\)/else if (false)/%e2e:copy.spec.ts:a selection inside a fenced code block is the whole block
+code not an atom%src/renderer/src/stamp.ts%s/if \(c.tagName === 'a' \|\| c.tagName === 'code'\) c.properties.dataAtom/if (c.tagName === 'a') c.properties.dataAtom/%e2e:copy.spec.ts:a selection inside a fenced code block is the whole block
 inexact treated as exact%src/renderer/src/stamp.ts%s/c.value === md.slice\(r.dataS, r.dataE\) \? \{ dataX: '' \} : \{\}/{ dataX: '' }/%e2e:copy.spec.ts:a selection inside an escaped run is its whole source
 ref not an atom%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, \.\.\.props\(g.hit\) \}/{ dataS: g.hit.start, dataE: g.hit.end, ...props(g.hit) }/%e2e:copy.spec.ts:a selection inside a ref is the whole ref
 atom unstamped%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, \.\.\.props\(g.hit\) \}/{ dataAtom: '', ...props(g.hit) }/%unit:grammar.spec.ts:atoms carry their source range
@@ -147,6 +147,19 @@ lessons folder ignored%src/main/windows.ts%s/const LESSONS = process.env.EX_LESS
 an open target is focused but not moved%src/main/windows.ts%s/    send\(open, \{ t: 'show', slug: cell \}\)\n//%e2e:link.spec.ts:a link to another bundle opens it at its cell
 missing cell silent%src/main/windows.ts%s/if \(!lesson.cells.some\(\(c\) => c.slug === cell\)\) throw/if (false) throw/%e2e:link.spec.ts:a link to a missing cell says so
 links carry no target%src/renderer/src/atoms.ts%s/\{ dataLink: h.link, className: \['link'\] \}/{ className: ['link'] }/%unit:grammar.spec.ts:links are atoms with their target
+fingerprint without frames_sha%src/main/bundle.ts%s/ && f.frames_sha === c.fingerprint.frames_sha//%e2e:comments.spec.ts:a rebuild changing one cell's frames drops that cell's comments only
+fingerprint of the wrong cell%src/main/bundle.ts%s/const f = fingerprint\(cell\)/const f = fingerprint(cells.find((x) => x.clip)!)/%e2e:comments.spec.ts:editing its cell drops it and keeps others
+silent orphan drop%src/main/bundle.ts%s/if \(!cell \|\| !cell.clip\) return true/if (!cell) return false\n    if (!cell.clip) return true/%e2e:comments.spec.ts:a removed slug shows its comments as orphaned
+an unbuilt cell's comments dropped%src/main/bundle.ts%s/if \(!cell \|\| !cell.clip\) return true/if (!cell) return true\n    if (!cell.clip) return false/%unit:bundle.spec.ts:an unbuilt bundle keeps its comments
+pruned in memory only%src/main/windows.ts%s/  if \(r.comments.dropped\) writeComments\(dir, r.comments.kept\)\n//%e2e:comments.spec.ts:editing its cell drops it and keeps others
+prune only on reload%src/main/windows.ts%s/  const \{ lesson, repoFiles \} = loadAndPrune\(dir\)/  const { lesson, repoFiles } = load(dir)/%e2e:comments.spec.ts:a bundle whose comments went stale while closed is pruned when it opens
+addComment from memory%src/main/bundle.ts%s/    fingerprint: fingerprint\(cell\)/    fingerprint: { section_sha: '0'.repeat(64), frames_sha: '0'.repeat(64) }/%unit:bundle.spec.ts:addComment writes a schema-valid comment with its fingerprint
+invalid comments.json accepted%src/main/bundle.ts%s/if \(!validateComments\(file\)\) throw/if (false) throw/%unit:bundle.spec.ts:an invalid comments.json is a LoadError naming the schema path
+addComment ignores the prose it was measured on%src/main/bundle.ts%s/if \(cell.md !== base\) throw/if (false) throw/%unit:bundle.spec.ts:addComment refuses a span measured on older prose
+resolve not written%src/main/bundle.ts%s/comments.kept.filter\(\(c\) => c.id !== id\)/comments.kept/%e2e:comments.spec.ts:✕ removes a comment from the file
+ping never deleted%explainers/comments.py%s/        \(bundle \/ "ping"\).unlink\(\)/        pass/%tests/py/test_comments.py::test_wait_wakes_on_ping_prints_and_deletes_it
+quote by code points%explainers/comments.py%s/return text.encode\("utf-16-le"\)\[2 \* start:2 \* end\].decode\("utf-16-le"\)/return text[start:end]/%tests/py/test_comments.py::test_prints_exactly_the_files_comments_in_cell_order
+span from rendered text%src/renderer/src/selection.ts%s/const span: \[number, number\] = \[a!.off, b!.off\]/const span: [number, number] = [r.startOffset, r.endOffset]/%e2e:comments.spec.ts:a highlight comment stores the exact span
 EOF
 )
 

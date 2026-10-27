@@ -222,8 +222,9 @@ test('saveSection reports a failed write as invalid and writes nothing', async (
   const before = cellsOf(b)
   chmodSync(b, 0o555) // the bundle directory is read-only: the temporary file cannot be made
   try {
-    const r = saveSection(b, 'sum', section(b, 'sum'), 'x')
-    expect(r.t).toBe('invalid')
+    let r: ReturnType<typeof saveSection> | undefined
+    expect(() => (r = saveSection(b, 'sum', section(b, 'sum'), 'x'))).not.toThrow() // an answer, never a throw
+    expect(r!.t).toBe('invalid')
   } finally {
     chmodSync(b, 0o755)
   }
