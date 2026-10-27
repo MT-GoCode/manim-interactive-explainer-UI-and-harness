@@ -1,8 +1,10 @@
+import { createReadStream } from 'fs'
+import { stat } from 'fs/promises'
 import { resolve } from 'path'
-import { pathToFileURL } from 'url'
-import { app, BrowserWindow, Menu, net, protocol, shell } from 'electron'
+import { Readable } from 'stream'
+import { app, BrowserWindow, Menu, protocol, shell } from 'electron'
 import { CH, type Command } from '../shared/ipc'
-import { clipPath } from './bundle'
+import { byteRange, clipPath } from './bundle'
 import { fileMenu, openDirs, openInitial, openPaths } from './windows'
 
 if (process.env.EX_USER_DATA) app.setPath('userData', process.env.EX_USER_DATA)
@@ -31,8 +33,8 @@ app.on('web-contents-created', (_e, wc) => {
   })
 })
 
-// Clips are served under full security from the open bundles only; stream + Range lets <video> seek, and
-// CORS lets the canvas read frames back (probed).
+// Clips are served under full security from the open bundles only, answering Range requests (206) so <video>
+// can seek; CORS lets the canvas read frames back.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'clip',
@@ -55,10 +57,23 @@ if (primary)
     protocol.handle('clip', async (req) => {
       const p = clipPath(req.url, openDirs())
       if (!p) return new Response(null, { status: 404 })
-      const r = await net.fetch(pathToFileURL(p).href, { headers: req.headers })
-      const headers = new Headers(r.headers)
-      headers.set('Access-Control-Allow-Origin', '*')
-      return new Response(r.body, { status: r.status, headers })
+      const size = (await stat(p)).size
+      const r = byteRange(req.headers.get('range'), size)
+      const headers: Record<string, string> = {
+        'Content-Type': 'video/mp4',
+        'Accept-Ranges': 'bytes',
+        'Access-Control-Allow-Origin': '*'
+      }
+      if (r === 'unsatisfiable')
+        return new Response(null, {
+          status: 416,
+          headers: { ...headers, 'Content-Range': `bytes */${size}` }
+        })
+      const { start, end } = r ?? { start: 0, end: size - 1 }
+      const body = Readable.toWeb(createReadStream(p, { start, end })) as ReadableStream
+      headers['Content-Length'] = String(end - start + 1)
+      if (r) headers['Content-Range'] = `bytes ${start}-${end}/${size}`
+      return new Response(body, { status: r ? 206 : 200, headers })
     })
     Menu.setApplicationMenu(
       Menu.buildFromTemplate([

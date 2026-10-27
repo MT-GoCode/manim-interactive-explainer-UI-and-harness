@@ -110,6 +110,7 @@ reload loses the slug%src/renderer/src/App.tsx%s/cur: i >= 0 \? i : Math.min/cur
 go to off by one%src/renderer/src/GoTo.tsx%s/setCur\(k - 1\)/setCur(k)/%e2e:find.spec.ts:go to cell
 find does not move the current cell%src/renderer/src/Find.tsx%s/      setCur\(m.cell\)\n//%e2e:find.spec.ts:find steps across cells
 find counts hidden MathML%src/renderer/src/Find.tsx%s/n.parentElement!.closest\('.katex-mathml'\)/false/%e2e:find.spec.ts:find skips formula annotations
+ranges ignored%src/main/index.ts%s/const r = byteRange\(req.headers.get\('range'\), size\)/const r = byteRange(null, size)/%e2e:player.spec.ts:seek and step land on frames k and k+1
 EOF
 )
 

@@ -38,6 +38,22 @@ export function clipPath(url: string, dirs: string[]): string | null {
     : null
 }
 
+// The bytes an HTTP Range header asks of a file of `size` bytes: null for the whole file (no header), 'unsatisfiable'
+// for a range outside it. <video> seeks only through 206 partial responses, so clip: must answer ranges itself.
+export function byteRange(
+  header: string | null,
+  size: number
+): { start: number; end: number } | null | 'unsatisfiable' {
+  if (header === null) return null
+  const m = /^bytes=(\d*)-(\d*)$/.exec(header)
+  if (!m || (m[1] === '' && m[2] === '')) return 'unsatisfiable'
+  const [start, end] =
+    m[1] === ''
+      ? [Math.max(0, size - Number(m[2])), size - 1]
+      : [Number(m[1]), m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1)]
+  return start <= end && start < size ? { start, end } : 'unsatisfiable'
+}
+
 // The lesson, and the repo files its build read (main watches them for the stale alert).
 export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
   const text = readFileSync(join(dir, 'cells.md'), 'utf8')

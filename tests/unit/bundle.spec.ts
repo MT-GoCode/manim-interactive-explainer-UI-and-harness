@@ -2,7 +2,7 @@ import { execFileSync } from 'child_process'
 import { appendFileSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { expect, test } from '@playwright/test'
-import { clipPath, clipUrl, load, LoadError } from '../../src/main/bundle'
+import { byteRange, clipPath, clipUrl, load, LoadError } from '../../src/main/bundle'
 import { fixture, ROOT } from '../e2e/app'
 
 const edit = (path: string, f: (s: string) => string) =>
@@ -107,4 +107,15 @@ test("clipPath serves only open bundles' clips", async ({}, info) => {
   expect(clipPath(clipUrl(join(odd, 'build', 'clips', '..', 'index.json')), [odd])).toBeNull()
   expect(clipPath(clipUrl(join(odd, 'build', 'clips', '..', '..', 'lesson.mp4')), [odd])).toBeNull()
   expect(clipPath(clipUrl(join(odd, 'build', 'clips', 'x.json')), [odd])).toBeNull()
+})
+
+test('byteRange answers what a video asks for', () => {
+  expect(byteRange(null, 100)).toBeNull()
+  expect(byteRange('bytes=0-', 100)).toEqual({ start: 0, end: 99 })
+  expect(byteRange('bytes=10-19', 100)).toEqual({ start: 10, end: 19 })
+  expect(byteRange('bytes=90-200', 100)).toEqual({ start: 90, end: 99 })
+  expect(byteRange('bytes=-30', 100)).toEqual({ start: 70, end: 99 })
+  expect(byteRange('bytes=100-', 100)).toBe('unsatisfiable')
+  expect(byteRange('bytes=20-10', 100)).toBe('unsatisfiable')
+  expect(byteRange('items=0-1', 100)).toBe('unsatisfiable')
 })
