@@ -6,7 +6,6 @@ import { join } from 'path'
 export const ROOT = join(__dirname, '../..')
 // Built once in global setup; each test works on its own clone of it.
 export const BUILT = join(ROOT, 'test-results/fixtures/softmax.explainer')
-export const FRAMES = join(ROOT, 'test-results/fixtures/frames.json')
 
 // A private APFS clone of the built fixture, named softmax.explainer, inside the test's output dir.
 export const fixture = (dir: string): string => {

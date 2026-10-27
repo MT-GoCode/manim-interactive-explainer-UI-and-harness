@@ -2,31 +2,32 @@ import { readFileSync, writeFileSync } from 'fs'
 import { execFileSync } from 'child_process'
 import { join } from 'path'
 import type { Page } from '@playwright/test'
-import { current, expect, firstLesson, fixture, FRAMES, ROOT, test } from './app'
+import { BUILT, current, expect, firstLesson, fixture, ROOT, test } from './app'
 
-const ref = JSON.parse(readFileSync(FRAMES, 'utf8')) as {
-  k: number
-  fps: number
-  frames: number[][]
-}
-const { k, fps } = ref
-// Cell "divide": a formula moving across the frame. Frames must differ by motion, not only brightness (a fade):
-// Chromium's and FFmpeg's colour conversions differ slightly, so brightness alone does not name a frame.
+// Cell "divide" of the built fixture; k is its middle frame.
 const DIVIDE = 3
+const index = JSON.parse(readFileSync(join(BUILT, 'build', 'index.json'), 'utf8'))
+const fps: number = index.fps
+const k = Math.floor(index.cells[DIVIDE].frames / 2)
 
-// Which decoded frame the video shows: its 64×36 canvas readback, nearest (L1) among all frames of the clip.
-const shown = (page: Page) =>
-  page.evaluate((frames) => {
+// The frame the video presents, as its decoder names it: requestVideoFrameCallback reports each presented frame's
+// media time (exact, unlike matching pixels against another decoder's output). The loop runs on the one <video>
+// element, which a new clip (a new src) keeps.
+const watchFrames = (page: Page) =>
+  page.evaluate(() => {
     const v = document.querySelector('video')!
-    const c = document.createElement('canvas')
-    c.width = 64
-    c.height = 36
-    const g = c.getContext('2d', { willReadFrequently: true })!
-    g.drawImage(v, 0, 0, 64, 36)
-    const px = [...g.getImageData(0, 0, 64, 36).data].filter((_, i) => i % 4 !== 3)
-    const dist = frames.map((f) => f.reduce((s, x, i) => s + Math.abs(x - px[i]), 0))
-    return dist.indexOf(Math.min(...dist))
-  }, ref.frames)
+    const g = globalThis as unknown as { presented: number }
+    const tick = (_now: number, m: VideoFrameCallbackMetadata) => {
+      g.presented = m.mediaTime
+      v.requestVideoFrameCallback(tick)
+    }
+    v.requestVideoFrameCallback(tick)
+  })
+const shown = (page: Page) =>
+  page.evaluate(
+    (fps) => Math.round((globalThis as unknown as { presented: number }).presented * fps),
+    fps
+  )
 
 const video = (page: Page) =>
   page.evaluate(() => {
@@ -62,6 +63,7 @@ async function onDivide(page: Page): Promise<void> {
   await expect.poll(() => current(page)).toEqual({ i: DIVIDE, lit: 1 })
   await settled(page)
   await page.waitForFunction(() => !document.querySelector('video')!.paused) // a new cell plays its clip
+  await watchFrames(page)
 }
 
 // The player is done with its own loading and seeking, so a test's seek is the only one in flight.
@@ -90,11 +92,11 @@ test('seek and step land on frames k and k+1', async ({ launch }, info) => {
   const page = await firstLesson(app)
   await onDivide(page)
   await seek(page, (k + 0.5) / fps)
-  expect(await shown(page)).toBe(k)
+  await expect.poll(() => shown(page)).toBe(k)
   await seekedAfter(page, '.')
-  expect(await shown(page)).toBe(k + 1)
+  await expect.poll(() => shown(page)).toBe(k + 1)
   await seekedAfter(page, ',')
-  expect(await shown(page)).toBe(k)
+  await expect.poll(() => shown(page)).toBe(k)
 })
 
 test('r mid-clip rewinds and plays', async ({ launch }, info) => {
@@ -128,7 +130,7 @@ test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
   execFileSync(join(ROOT, 'bin/explain-build'), [b])
   await expect.poll(async () => (await video(page)).src, { timeout: 30000 }).not.toBe(before.src)
   await settled(page) // the new clip is loaded and the player's resume seek has landed
-  expect(await shown(page)).toBe(k)
+  await expect.poll(() => shown(page)).toBe(k)
   expect((await video(page)).paused).toBe(true)
   expect(await page.evaluate(() => (globalThis as unknown as { errors: number }).errors)).toBe(0)
 })

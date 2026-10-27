@@ -1,9 +1,9 @@
 import { execFileSync } from 'child_process'
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'fs'
+import { cpSync, mkdirSync, rmSync } from 'fs'
 import { join } from 'path'
-import { BUILT, FRAMES, ROOT } from './app'
+import { BUILT, ROOT } from './app'
 
-// The fixture lesson is built once, for real, and its "divide" clip decoded for frame-exact player checks.
+// The fixture lesson is built once, for real; each test works on its own clone of it.
 export default function globalSetup(): void {
   rmSync(BUILT, { recursive: true, force: true })
   mkdirSync(join(BUILT, '..'), { recursive: true })
@@ -12,15 +12,4 @@ export default function globalSetup(): void {
     filter: (src) => !src.includes('/build')
   })
   execFileSync(join(ROOT, 'bin/explain-build'), [BUILT], { stdio: 'inherit' })
-  const out = execFileSync('uv', [
-    'run',
-    '-q',
-    '--project',
-    ROOT,
-    'python',
-    join(__dirname, 'frames.py'),
-    BUILT,
-    'divide'
-  ])
-  writeFileSync(FRAMES, out)
 }
