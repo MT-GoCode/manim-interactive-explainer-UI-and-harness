@@ -106,7 +106,7 @@ schema not validated%src/main/bundle.ts%s/if \(index !== null && !validate\(inde
 empty cells.md accepted%src/main/bundle.ts%s/if \(!found.sections.length\) throw/if (false) throw/%unit:bundle.spec.ts:an empty cells.md is a load error
 duplicate slugs accepted%src/main/bundle.ts%s/if \(dup\) throw/if (false) throw/%unit:bundle.spec.ts:duplicate headings are a load error
 disk errors escape as raw errors%src/main/bundle.ts%s/throw new LoadError\(`\$\{path\}: \$\{\(e as Error\).message\}`\)/throw e/%unit:bundle.spec.ts:a vanished cells.md and a half-written index.json are load errors
-clip served outside the bundle%src/main/bundle.ts%s/return dirs.some\(/return true || dirs.some(/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
+clip served outside the bundle%src/main/bundle.ts%s/return real.endsWith\('.mp4'\) && dirs.some/return real.endsWith('.mp4') || dirs.some/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
 clip url not percent-safe%src/main/bundle.ts%s/u.pathname = pathToFileURL\(abs\).pathname/u.pathname = abs/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
 refs spliced at source offsets%tools/grammar.mjs%s/const vstart = nth\(node.value, lit, ordinal\)/const vstart = m.index/%unit:grammar.spec.ts:refsIn value offsets survive escapes, entities and quotes
 position not reported%src/renderer/src/App.tsx%s/if \(slug\) window.api.at\(slug\)/if (slug) void 0/%e2e:open.spec.ts:relaunch restores window, bounds and cell

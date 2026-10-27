@@ -42,7 +42,7 @@ export function Find(props: {
   const [at, setAt] = useState(0)
   const [matches, setMatches] = useState<Match[]>([])
   // Only the reader moves the current cell (a new query, Enter, ⇧Enter); a reload re-highlights and leaves it.
-  // A new query's matches exist only after the DOM search, so the query marks the jump and the effect makes it.
+  // A new query's matches exist only after the DOM search, so the query marks the jump and the search makes it.
   const jump = useRef(false)
   const show = (x: Match) => {
     setCur(x.cell)
@@ -51,7 +51,12 @@ export function Find(props: {
   // Matches are ranges into the rendered prose, so they are read from the DOM after React commits it (a reload
   // re-renders the prose and the old ranges are gone): the DOM is the outside system this effect syncs from.
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setMatches(search(q)), [q, lesson])
+  useEffect(() => {
+    const found = search(q)
+    setMatches(found)
+    if (jump.current && found.length) show(found[0])
+    jump.current = false
+  }, [q, lesson]) // eslint-disable-line react-hooks/exhaustive-deps
   const n = matches.length
   const m = n ? matches[at % n] : undefined
 
@@ -63,9 +68,7 @@ export function Find(props: {
   useEffect(() => {
     CSS.highlights.set('find', new Highlight(...matches.map((x) => x.range)))
     CSS.highlights.set('find-active', new Highlight(...(m ? [m.range] : [])))
-    if (jump.current && m) show(m)
-    jump.current = false
-  }, [matches, m]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [matches, m])
 
   const clear = () => {
     CSS.highlights.delete('find')

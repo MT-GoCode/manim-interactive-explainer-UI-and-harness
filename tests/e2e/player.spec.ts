@@ -156,11 +156,12 @@ test('a rebuild while playing keeps playing from where it was', async ({ launch 
     const v = document.querySelector('video')!
     v.defaultPlaybackRate = v.playbackRate = 0.1
   })
-  const t0 = (await video(page)).t
+  await seek(page, (k + 0.5) / fps)
+  await page.evaluate(() => document.querySelector('video')!.play())
   await rebuildDivide(page, b)
   const v = await video(page)
   expect(v.paused).toBe(false)
-  expect(v.t).toBeGreaterThanOrEqual(t0)
+  expect(v.t).toBeGreaterThanOrEqual((k + 0.5) / fps) // resumed past frame k, not restarted
   expect(await errors(page)).toBe(0)
 })
 

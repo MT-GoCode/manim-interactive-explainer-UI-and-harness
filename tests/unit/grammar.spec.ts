@@ -3,6 +3,7 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import { expect, test } from '@playwright/test'
+import { readCells } from '../../tools/cells.mjs'
 import { refsIn } from '../../tools/grammar.mjs'
 
 const hits = (md: string) =>
@@ -18,4 +19,10 @@ test('refsIn value offsets survive escapes, entities and quotes', () => {
   expect(hits('&amp; {x}')).toEqual([{ key: 'x', source: '{x}', value: '{x}', before: '& ' }])
   expect(hits('> a\n> {x}')).toEqual([{ key: 'x', source: '{x}', value: '{x}', before: 'a\n' }])
   expect(hits('\\{x} {x}')).toEqual([{ key: 'x', source: '{x}', value: '{x}', before: '{x} ' }])
+})
+
+test("a reference beside an entity-written brace is the author's error, never a guess", () => {
+  expect(readCells('## a\n&#123;x} {x}\n').errors).toEqual([
+    'reference {x} beside a brace written as an entity; write it as { (cells.md:2)'
+  ])
 })

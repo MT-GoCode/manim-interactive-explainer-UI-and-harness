@@ -4,6 +4,7 @@ import {
   cpSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync
@@ -29,8 +30,8 @@ test('a fresh build has every clip, its frame counts and refs, and no alert', as
   expect(lesson.cells.map((c) => [c.slug, c.clip?.frames])).toEqual(
     built.cells.map((c) => [c.slug, c.frames])
   )
-  expect(lesson.cells.map((c) => clipPath(c.clip!.url, [b]))).toEqual(
-    built.cells.map((c) => join(b, 'build', c.clip))
+  expect(lesson.cells.map((c) => clipPath(c.clip!.url, [realpathSync(b)]))).toEqual(
+    built.cells.map((c) => join(realpathSync(b), 'build', c.clip))
   )
   expect(lesson.cells[0].md.startsWith('## ')).toBe(false)
   expect(repoFiles).toEqual([join(ROOT, 'explainers/lesson.py')])
@@ -110,18 +111,19 @@ test("clipPath serves only open bundles' clips", async ({}, info) => {
   execFileSync('cp', ['-c', '-R', fixture(info.outputDir), odd])
   const { lesson } = load(odd)
   const clip = lesson.cells[0].clip!
-  const file = clipPath(clip.url, [odd])!
-  expect(file.startsWith(join(odd, 'build', 'clips') + '/')).toBe(true)
+  const real = realpathSync(odd) // as the window holds it
+  const file = clipPath(clip.url, [real])!
+  expect(file.startsWith(join(real, 'build', 'clips') + '/')).toBe(true)
   expect(readFileSync(file).length).toBeGreaterThan(0)
   expect(clipPath(clip.url, [join(info.outputDir, 'other.explainer')])).toBeNull()
   // URLs built by hand: clipUrl would normalize these before clipPath ever saw them.
   const base = 'clip://local' + pathToFileURL(odd).pathname
   writeFileSync(join(odd, 'secret.mp4'), 'x')
-  expect(clipPath(`${base}/build/clips/%2e%2e/%2e%2e/secret.mp4`, [odd])).toBeNull()
+  expect(clipPath(`${base}/build/clips/%2e%2e/%2e%2e/secret.mp4`, [real])).toBeNull()
   symlinkSync(join(odd, 'secret.mp4'), join(odd, 'build', 'clips', 'link.mp4'))
-  expect(clipPath(`${base}/build/clips/link.mp4`, [odd])).toBeNull()
-  expect(clipPath(`${base}/build/clips/x%zz.mp4`, [odd])).toBeNull()
-  expect(clipPath(clipUrl(join(odd, 'build', 'clips', 'x.json')), [odd])).toBeNull()
+  expect(clipPath(`${base}/build/clips/link.mp4`, [real])).toBeNull()
+  expect(clipPath(`${base}/build/clips/x%zz.mp4`, [real])).toBeNull()
+  expect(clipPath(clipUrl(join(odd, 'build', 'clips', 'x.json')), [real])).toBeNull()
 })
 
 test('duplicate headings are a load error', async ({}, info) => {

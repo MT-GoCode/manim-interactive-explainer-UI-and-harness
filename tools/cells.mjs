@@ -44,7 +44,14 @@ export function readCells(text) {
     errors.push(
       `cells.md has text before the first heading (cells.md:${pre.split('\n').findIndex((l) => l.trim()) + 1})`
     )
-  const refs = refsIn(tree, text).map((r) => ({
+  let found = []
+  try {
+    found = refsIn(tree, text)
+  } catch (e) {
+    if (e.offset === undefined) throw e // only a reference refsIn cannot place is the author's error
+    errors.push(`${e.message} (cells.md:${lineAt(e.offset)})`)
+  }
+  const refs = found.map((r) => ({
     key: r.key,
     name: r.key.split(':')[0],
     line: lineAt(r.start)

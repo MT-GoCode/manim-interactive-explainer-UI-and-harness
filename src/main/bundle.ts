@@ -21,8 +21,14 @@ type Index = {
 }
 
 const validate = new Ajv2020({ allErrors: true }).compile<Index>(schema)
-const sha = (path: string): string | null =>
-  existsSync(path) ? createHash('sha256').update(readFileSync(path)).digest('hex') : null
+// null for a file that is gone or cannot be read (mid-save, a directory now): not what the build read, so stale.
+const sha = (path: string): string | null => {
+  try {
+    return createHash('sha256').update(readFileSync(path)).digest('hex')
+  } catch {
+    return null
+  }
+}
 
 // The disk is outside the app: a file can vanish mid-save (editors that save by rename, git checkout) or hold a
 // half-written edit. Each read is where that becomes a LoadError.
@@ -41,18 +47,17 @@ export const clipUrl = (abs: string): string => {
   return u.href
 }
 
-// The file a clip: URL names, only if it is an existing .mp4 inside one of these bundles' build/clips/ (after
-// symlinks are resolved). A malformed URL names nothing.
+// The file a clip: URL names, only if it is an existing .mp4 inside one of these bundles' build/clips/, symlinks
+// resolved. `dirs` are the open bundles' real paths (resolved once, when each opened). A malformed URL, or a file
+// that is gone, names nothing.
 export function clipPath(url: string, dirs: string[]): string | null {
-  let p: string
+  let real: string
   try {
-    p = resolve(decodeURIComponent(new URL(url).pathname))
+    real = realpathSync(resolve(decodeURIComponent(new URL(url).pathname)))
   } catch {
     return null
   }
-  if (!p.endsWith('.mp4') || !existsSync(p)) return null
-  const real = realpathSync(p)
-  return dirs.some((d) => real.startsWith(join(realpathSync(d), 'build', 'clips') + sep))
+  return real.endsWith('.mp4') && dirs.some((d) => real.startsWith(join(d, 'build', 'clips') + sep))
     ? real
     : null
 }

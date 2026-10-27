@@ -25,6 +25,11 @@ test('find steps across cells', async ({ launch }, info) => {
   await expect.poll(() => current(page)).toEqual({ i: 5, lit: 1 })
   await page.locator('.bar input').press('Enter')
   await expect.poll(() => current(page)).toEqual({ i: 4, lit: 1 })
+  await page.locator('.bar input').press('Enter') // "2 of 2": then a new query starts at its own first match
+  await page.locator('.bar input').press('End')
+  await page.locator('.bar input').pressSequentially('y') // "probability": only cell 6
+  await expect.poll(() => count(page)).toBe('1 of 1')
+  await expect.poll(() => current(page)).toEqual({ i: 5, lit: 1 })
   await query(page, 'zzz')
   await expect.poll(() => count(page)).toBe('No results')
   expect(await current(page)).toEqual({ i: 4, lit: 1 })

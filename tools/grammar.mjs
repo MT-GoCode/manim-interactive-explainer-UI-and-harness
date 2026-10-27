@@ -24,10 +24,9 @@ export function textsIn(tree, source) {
 const nth = (s, needle, n) => {
   let i = -1
   for (let k = 0; k <= n; k++) i = s.indexOf(needle, i + 1)
-  // An entity-written brace (`&#123;x}`) is a `{x}` in the value with none in the source; the count no longer lines up.
-  if (i < 0) throw new Error(`reference ${needle} not found in its text node`)
   return i
 }
+const count = (s, needle) => s.split(needle).length - 1
 
 // Every value reference: [{ node, key, start, end, vstart, vend }]; start/end index `source`, vstart/vend index
 // node.value. Each literal `{key}` in a node's source, escaped or not, is exactly one `{key}` in its value (escapes,
@@ -37,6 +36,15 @@ export function refsIn(tree, source) {
   for (const { node, start, src } of textsIn(tree, source))
     for (const m of src.matchAll(REF)) {
       const lit = `{${m[1]}}`
+      // An entity-written brace (`&#123;x}`) is a `{x}` in the value that is not one in the source: the ordinals no
+      // longer line up, so the reference cannot be placed. It is the author's to fix, never a guess.
+      if (count(node.value, lit) !== count(src, lit))
+        throw Object.assign(
+          new Error(`reference ${lit} beside a brace written as an entity; write it as {`),
+          {
+            offset: start + m.index
+          }
+        )
       const ordinal = src.slice(0, m.index).split(lit).length - 1
       const vstart = nth(node.value, lit, ordinal)
       out.push({

@@ -7,7 +7,7 @@ import {
   type MenuItemConstructorOptions,
   type Rectangle
 } from 'electron'
-import { existsSync, watch, type FSWatcher } from 'fs'
+import { existsSync, realpathSync, watch, type FSWatcher } from 'fs'
 import { basename, dirname, join, resolve } from 'path'
 import { CH, type Command } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
@@ -18,6 +18,7 @@ import { readSession, writeSession, type Entry } from './session'
 type W = {
   win: BrowserWindow
   dir: string
+  real: string // dir with symlinks resolved, once at open: what clip: URLs are checked against
   slug: string | null
   lesson: Lesson
   watchers: FSWatcher[]
@@ -36,7 +37,7 @@ const saveSession = (): void => {
   if (!quitting) writeSession([...wins.values()].map(entry))
 }
 const send = (w: W, c: Command): void => w.win.webContents.send(CH.command, c)
-export const openDirs = (): string[] => [...wins.values()].map((w) => w.dir)
+export const openDirs = (): string[] => [...wins.values()].map((w) => w.real)
 
 // A failure is always shown, never swallowed.
 function guarded(label: string, fn: () => unknown): void {
@@ -113,7 +114,7 @@ function createWindow(dir: string, slug: string | null, bounds?: Rectangle): voi
       backgroundThrottling: false
     }
   })
-  const w: W = { win, dir, slug, lesson, watchers: [] }
+  const w: W = { win, dir, real: realpathSync(dir), slug, lesson, watchers: [] }
   wins.set(win.id, w) // registered first: its close handlers below always find it
   w.watchers.push(watch(dir, { recursive: true }, (_e, rel) => relevant(rel) && reload(w)))
   watchRepo(w, repoFiles)
