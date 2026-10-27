@@ -99,7 +99,11 @@ def test_killed_build_keeps_the_previous_build_and_leaves_no_worker(bundle):
     assert time.time() < deadline, "no partial appeared"
     workers = subprocess.run(["pgrep", "-f", f"explainers.render {b}"], capture_output=True, text=True).stdout.split()
     assert workers
-    os.kill(p.pid, signal.SIGKILL)
+    # Kill the build itself (the Python under uv's shim), not the shim: uv runs Python as a child, not via exec.
+    build = subprocess.run(["pgrep", "-f", f"bin/explain-build {b}"], capture_output=True, text=True).stdout.split()
+    builds = [pid for pid in build if "python" in subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout]
+    assert len(builds) == 1, builds
+    os.kill(int(builds[0]), signal.SIGKILL)
     for _ in range(50):  # each worker notices its parent is gone within a second
         if not subprocess.run(["pgrep", "-f", f"explainers.render {b}"], capture_output=True).stdout:
             break
