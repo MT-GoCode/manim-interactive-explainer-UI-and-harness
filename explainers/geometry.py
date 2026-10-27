@@ -72,9 +72,15 @@ def _overlap(x, y, s: float) -> tuple[float, float] | None:
     hit = _box_hits(np.concatenate([g, m]), solid, s) or _segment_hits(g, p, d, s)
     if not hit:
         return None
-    # Against strokes, a chord's bounding box: never smaller than the chord, so the move always clears it.
-    chords = np.column_stack([np.minimum(p, p + d), np.maximum(p, p + d)])
-    return _move([(g, np.concatenate([solid, chords])), (m, solid)], s)
+    # The move must clear every pair the rule checks, both ways (x's own strokes must not land on y's glyphs either).
+    return _move([(g, np.concatenate([solid, _chords(y.strokes)])), (m, solid),
+                  (_chords(x.strokes), _boxes(y.glyphs))], s)
+
+
+def _chords(strokes) -> np.ndarray:
+    """Each chord's bounding box: never smaller than the chord, so a move that clears it clears the chord."""
+    p, d = _segments(strokes)
+    return np.column_stack([np.minimum(p, p + d), np.maximum(p, p + d)])
 
 
 def _ink(u) -> np.ndarray:

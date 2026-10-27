@@ -1,6 +1,6 @@
 import numpy as np
 from manim import (DOWN, LEFT, ORIGIN, RIGHT, UL, UP, UR, YELLOW, Arrow, Axes, Brace, Circle, Dot, FadeIn, FadeOut,
-                   ImageMobject, Line, MathTex, Matrix, NumberPlane, Square, SurroundingRectangle, Text, Underline,
+                   ImageMobject, Line, MathTex, Matrix, NumberLine, NumberPlane, Square, SurroundingRectangle, Text, Underline,
                    VGroup, config)
 
 from explainers import Lesson
@@ -88,3 +88,9 @@ class Geometry(Lesson):
         ax = Axes(x_range=[0, 3], y_range=[0, 9], x_length=5, y_length=4)
         self.show("point-on-a-curve", ax, ax.plot(lambda x: x ** 2), Dot(ax.c2p(2, 4)))
         self.show("graph-edge-with-nodes", Line(LEFT * 2, RIGHT * 2), Dot(LEFT * 2), Dot(RIGHT * 2))
+        # a unit with glyphs AND strokes: its move must keep its own line off the other's glyphs too
+        self.show("number-line-under-text", NumberLine(x_range=[-4, 4, 1], length=8, include_numbers=True, font_size=40),
+                  Text("here", font_size=40).move_to([1, -0.3, 0]))
+        self.show("number-line-moved-as-told",
+                  NumberLine(x_range=[-4, 4, 1], length=8, include_numbers=True, font_size=40).shift(UP * 0.30),
+                  Text("here", font_size=40).move_to([1, -0.3, 0]))

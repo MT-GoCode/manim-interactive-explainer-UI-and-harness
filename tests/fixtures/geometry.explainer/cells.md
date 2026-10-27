@@ -91,3 +91,9 @@ Case 30.
 ## graph-edge-with-nodes
 Case 31.
 
+## number-line-under-text
+Case.
+
+## number-line-moved-as-told
+Case.
+

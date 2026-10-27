@@ -72,6 +72,7 @@ parallel segment always inside%explainers/geometry.py%s/np.where\(inside, -np.in
 dot not a marker%explainers/lesson.py%s/elif isinstance\(m, Dot\):/elif False:/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-dot]
 dot meets strokes%explainers/lesson.py%s/        if glyph:\n/        if glyph or isinstance(m, Dot):\n/%tests/py/test_geometry.py::test_cell_end_geometry[dot-on-an-arrow]
 overlap without slack%explainers/geometry.py%s/_box_hits\(np.concatenate\(\[g, m\]\), solid, s\)/_box_hits(np.concatenate([g, m]), solid, 0)/%tests/py/test_geometry.py::test_cell_end_geometry[dots-touch-by-under-half-a-pixel]
+own strokes ignored by the move%explainers/geometry.py%s/,\n                  \(_chords\(x.strokes\), _boxes\(y.glyphs\)\)\]/]/%tests/py/test_geometry.py::test_cell_end_geometry[number-line-under-text]
 move along x only%explainers/geometry.py%s/_, axis, d = min\(best\)/_, axis, d = best[0]/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-text]
 both directions reported%explainers/geometry.py%s/\n                        break\n/\n/%tests/py/test_geometry.py::test_cell_end_geometry[text-on-text]
 frame bound too wide%explainers/geometry.py%s/fx, fy = frame_width \/ 2, /fx, fy = frame_width \/ 2 + 0.4, /%tests/py/test_geometry.py::test_cell_end_geometry[off-frame-right]
