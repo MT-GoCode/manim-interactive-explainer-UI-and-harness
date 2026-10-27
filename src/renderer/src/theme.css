@@ -30,6 +30,10 @@ body {
   width: 100%;
   aspect-ratio: 16 / 9;
 }
+.player .failed {
+  color: #f48771;
+  padding: 4px 12px;
+}
 .player .noclip {
   display: grid;
   place-items: center;

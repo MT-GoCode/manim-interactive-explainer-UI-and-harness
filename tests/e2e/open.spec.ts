@@ -41,6 +41,9 @@ test('relaunch restores window, bounds and cell', async ({ launch }, info) => {
   const page = await firstLesson(app)
   for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown')
   await expect.poll(() => current(page)).toEqual({ i: 3, lit: 1 })
+  // Main has recorded the cell (its session file names it) before the window moves.
+  const session = () => readFileSync(join(userData, 'session.json'), 'utf8')
+  await expect.poll(session).toContain('"slug":"divide"')
   // After the last per-cell save: only the quit-time write can record these bounds.
   const rect = { x: 137, y: 91, width: 1111, height: 888 }
   await app.evaluate(({ BrowserWindow }, r) => BrowserWindow.getAllWindows()[0].setBounds(r), rect)

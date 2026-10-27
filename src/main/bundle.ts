@@ -1,6 +1,6 @@
 // Reads one bundle into a Lesson snapshot. Pure Node (no Electron), so the unit suite runs it directly.
 import { createHash } from 'crypto'
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, realpathSync } from 'fs'
 import { basename, join, resolve, sep } from 'path'
 import { pathToFileURL } from 'url'
 import Ajv2020 from 'ajv/dist/2020'
@@ -8,6 +8,7 @@ import { readCells } from '../../tools/cells.mjs'
 import schema from '../../schema/index.schema.json'
 import type { Alert, Lesson } from '../shared/lesson'
 
+// Everything that can be wrong with a bundle on disk; shown to the reader, never thrown past main.
 export class LoadError extends Error {}
 
 type Index = {
@@ -23,6 +24,16 @@ const validate = new Ajv2020({ allErrors: true }).compile<Index>(schema)
 const sha = (path: string): string | null =>
   existsSync(path) ? createHash('sha256').update(readFileSync(path)).digest('hex') : null
 
+// The disk is outside the app: a file can vanish mid-save (editors that save by rename, git checkout) or hold a
+// half-written edit. Each read is where that becomes a LoadError.
+function read<T>(path: string, parse: (text: string) => T): T {
+  try {
+    return parse(readFileSync(path, 'utf8'))
+  } catch (e) {
+    throw new LoadError(`${path}: ${(e as Error).message}`)
+  }
+}
+
 // pathToFileURL percent-encodes every character a URL path cannot hold as-is, `%` included.
 export const clipUrl = (abs: string): string => {
   const u = new URL('clip://local/')
@@ -30,40 +41,33 @@ export const clipUrl = (abs: string): string => {
   return u.href
 }
 
-// The file a clip: URL names, only if it is an .mp4 inside one of these bundles' build/clips/.
+// The file a clip: URL names, only if it is an existing .mp4 inside one of these bundles' build/clips/ (after
+// symlinks are resolved). A malformed URL names nothing.
 export function clipPath(url: string, dirs: string[]): string | null {
-  const p = resolve(decodeURIComponent(new URL(url).pathname))
-  return p.endsWith('.mp4') && dirs.some((d) => p.startsWith(join(d, 'build', 'clips') + sep))
-    ? p
+  let p: string
+  try {
+    p = resolve(decodeURIComponent(new URL(url).pathname))
+  } catch {
+    return null
+  }
+  if (!p.endsWith('.mp4') || !existsSync(p)) return null
+  const real = realpathSync(p)
+  return dirs.some((d) => real.startsWith(join(realpathSync(d), 'build', 'clips') + sep))
+    ? real
     : null
-}
-
-// The bytes an HTTP Range header asks of a file of `size` bytes: null for the whole file (no header), 'unsatisfiable'
-// for a range outside it. <video> seeks only through 206 partial responses, so clip: must answer ranges itself.
-export function byteRange(
-  header: string | null,
-  size: number
-): { start: number; end: number } | null | 'unsatisfiable' {
-  if (header === null) return null
-  const m = /^bytes=(\d*)-(\d*)$/.exec(header)
-  if (!m || (m[1] === '' && m[2] === '')) return 'unsatisfiable'
-  const [start, end] =
-    m[1] === ''
-      ? [Math.max(0, size - Number(m[2])), size - 1]
-      : [Number(m[1]), m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1)]
-  return start <= end && start < size ? { start, end } : 'unsatisfiable'
 }
 
 // The lesson, and the repo files its build read (main watches them for the stale alert).
 export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
-  const text = readFileSync(join(dir, 'cells.md'), 'utf8')
-  const read = readCells(text)
-  if (read.errors.length) throw new LoadError(read.errors.join('\n'))
-  if (!read.sections.length) throw new LoadError('cells.md has no cells') // an editor caught mid-write
+  const text = read(join(dir, 'cells.md'), (t) => t)
+  const found = readCells(text)
+  if (found.errors.length) throw new LoadError(found.errors.join('\n'))
+  if (!found.sections.length) throw new LoadError('cells.md has no cells') // an editor caught mid-write
+  const slugs = found.sections.map((s) => s.slug)
+  const dup = slugs.find((s, i) => slugs.indexOf(s) !== i)
+  if (dup) throw new LoadError(`cells.md has "## ${dup}" twice; a slug names one cell`)
   const indexPath = join(dir, 'build', 'index.json')
-  const index = existsSync(indexPath)
-    ? (JSON.parse(readFileSync(indexPath, 'utf8')) as unknown)
-    : null
+  const index = existsSync(indexPath) ? read(indexPath, (t) => JSON.parse(t) as unknown) : null
   if (index !== null && !validate(index))
     throw new LoadError(
       `${indexPath}: ` +
@@ -71,7 +75,7 @@ export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
     )
   const build = index as Index | null
   const clips = new Map(build?.cells.map((c) => [c.slug, c]))
-  const cells = read.sections.map((s) => {
+  const cells = found.sections.map((s) => {
     const c = clips.get(s.slug)
     const section = text.slice(s.start, s.end)
     return {
@@ -94,9 +98,9 @@ export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
         .map(([rel]) => `repo/${rel}`)
     ]
     if (files.length) alerts.push({ t: 'stale', files })
-    const prose = read.sections.map((s) => s.slug)
     const built = build.cells.map((c) => c.slug)
-    if (prose.join('\n') !== built.join('\n')) alerts.push({ t: 'order', prose, build: built })
+    if (slugs.join('\n') !== built.join('\n'))
+      alerts.push({ t: 'order', prose: slugs, build: built })
   }
   return {
     lesson: {
@@ -104,7 +108,7 @@ export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
       title: basename(dir, '.explainer'),
       cells,
       alerts,
-      build: build && { fps: build.fps, refs: build.refs }
+      build: build && { refs: build.refs }
     },
     repoFiles: build ? Object.keys(build.inputs.repo).map((rel) => join(build.repo_root, rel)) : []
   }

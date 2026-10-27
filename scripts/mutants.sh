@@ -94,23 +94,28 @@ zoom not in the camera state%explainers/lesson.py%s/float\(c.get_zoom\(\)\), //%
 frame centre not in the camera state%explainers/lesson.py%s/, \*map\(float, c.frame_center\)\]/]/%tests/py/test_geometry.py::test_a_moved_3d_camera_is_an_error[frame_center=[1, 0, 0]]
 frame step wrong%src/renderer/src/Player.tsx%s/Math.round\(t \* fps - 0.5\)/Math.round(t * fps)/%e2e:player.spec.ts:seek and step land on frames k and k+1
 r without rewind%src/renderer/src/Player.tsx%s/      v.currentTime = 0\n      void play\(v\)/      void play(v)/%e2e:player.spec.ts:r mid-clip rewinds and plays
-rebuild resets the time%src/renderer/src/Player.tsx%s/const resume = same \? \{ time: v.currentTime, paused: v.paused \} : null/const resume = null/%e2e:player.spec.ts:a rebuild while paused keeps the frame
+rebuild resets the time%src/renderer/src/Player.tsx%s/const same = prev\?.el === v && prev.slug === slug/const same = false/%e2e:player.spec.ts:a rebuild while paused keeps the frame
+rebuild pauses the playing clip%src/renderer/src/Player.tsx%s/if \(!resume\?.paused\) void play\(v\)/if (!resume) void play(v)/%e2e:player.spec.ts:a rebuild while playing keeps playing from where it was
+media errors silent%src/renderer/src/Player.tsx%s/\{failed\?.url === clip.url && /{false && /%e2e:player.spec.ts:a clip that cannot load says so
 watch off%src/main/windows.ts%s/!!rel && \(!rel.startsWith\('build\/'\) \|\| rel === 'build\/index.json'\)/false/%e2e:alerts.spec.ts:editing lesson.py raises the alert and restoring clears it
+repo dirs not watched%src/main/windows.ts%s/\.filter\(\(x\) => existsSync\(x\)\)/.filter(() => false)/%e2e:alerts.spec.ts:editing a repo file the build read raises the alert
 bundle inputs not checked%src/main/bundle.ts%s/\.filter\(\(\[rel, h\]\) => sha\(join\(dir, rel\)\) !== h\)/.filter(() => false)/%unit:bundle.spec.ts:an edited bundle input is stale
 repo inputs not checked%src/main/bundle.ts%s/\.filter\(\(\[rel, h\]\) => sha\(join\(build.repo_root, rel\)\) !== h\)/.filter(() => false)/%unit:bundle.spec.ts:an edited repo input is stale
-slug order not checked%src/main/bundle.ts%s/if \(prose.join\('\\n'\) !== built.join\('\\n'\)\)/if (false)/%unit:bundle.spec.ts:swapped headings raise the order alert
+slug order not checked%src/main/bundle.ts%s/if \(slugs.join\('\\n'\) !== built.join\('\\n'\)\)/if (false)/%unit:bundle.spec.ts:swapped headings raise the order alert
 schema not validated%src/main/bundle.ts%s/if \(index !== null && !validate\(index\)\)/if (false)/%unit:bundle.spec.ts:an index without fps is a load error
-empty cells.md accepted%src/main/bundle.ts%s/if \(!read.sections.length\) throw/if (false) throw/%unit:bundle.spec.ts:an empty cells.md is a load error
-clip served outside the bundle%src/main/bundle.ts%s/p.endsWith\('.mp4'\) && dirs.some/p.endsWith('.mp4') || dirs.some/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
+empty cells.md accepted%src/main/bundle.ts%s/if \(!found.sections.length\) throw/if (false) throw/%unit:bundle.spec.ts:an empty cells.md is a load error
+duplicate slugs accepted%src/main/bundle.ts%s/if \(dup\) throw/if (false) throw/%unit:bundle.spec.ts:duplicate headings are a load error
+disk errors escape as raw errors%src/main/bundle.ts%s/throw new LoadError\(`\$\{path\}: \$\{\(e as Error\).message\}`\)/throw e/%unit:bundle.spec.ts:a vanished cells.md and a half-written index.json are load errors
+clip served outside the bundle%src/main/bundle.ts%s/return dirs.some\(/return true || dirs.some(/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
 clip url not percent-safe%src/main/bundle.ts%s/u.pathname = pathToFileURL\(abs\).pathname/u.pathname = abs/%unit:bundle.spec.ts:clipPath serves only open bundles' clips
 refs spliced at source offsets%tools/grammar.mjs%s/const vstart = nth\(node.value, lit, ordinal\)/const vstart = m.index/%unit:grammar.spec.ts:refsIn value offsets survive escapes, entities and quotes
 position not reported%src/renderer/src/App.tsx%s/if \(slug\) window.api.at\(slug\)/if (slug) void 0/%e2e:open.spec.ts:relaunch restores window, bounds and cell
 session not written at quit%src/main/windows.ts%s/app.on\('before-quit', \(\) => \{\n  saveSession\(\)\n/app.on('before-quit', () => {\n/%e2e:open.spec.ts:relaunch restores window, bounds and cell
 reload loses the slug%src/renderer/src/App.tsx%s/cur: i >= 0 \? i : Math.min/cur: false ? i : Math.min/%e2e:alerts.spec.ts:swapped headings keep the current cell
 go to off by one%src/renderer/src/GoTo.tsx%s/setCur\(k - 1\)/setCur(k)/%e2e:find.spec.ts:go to cell
-find does not move the current cell%src/renderer/src/Find.tsx%s/      setCur\(m.cell\)\n//%e2e:find.spec.ts:find steps across cells
+find does not move the current cell%src/renderer/src/Find.tsx%s/    setCur\(x.cell\)\n//%e2e:find.spec.ts:find steps across cells
+find jumps on reload%src/renderer/src/Find.tsx%s/if \(jump.current && m\) show\(m\)/if (m) show(m)/%e2e:find.spec.ts:a reload while Find is open leaves the reader on their cell
 find counts hidden MathML%src/renderer/src/Find.tsx%s/n.parentElement!.closest\('.katex-mathml'\)/false/%e2e:find.spec.ts:find skips formula annotations
-ranges ignored%src/main/index.ts%s/const r = byteRange\(req.headers.get\('range'\), size\)/const r = byteRange(null, size)/%e2e:player.spec.ts:seek and step land on frames k and k+1
 EOF
 )
 

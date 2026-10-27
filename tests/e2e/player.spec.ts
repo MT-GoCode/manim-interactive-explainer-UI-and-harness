@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'fs'
+import { readFileSync, rmSync, writeFileSync } from 'fs'
 import { execFileSync } from 'child_process'
 import { join } from 'path'
 import type { Page } from '@playwright/test'
@@ -110,27 +110,66 @@ test('r mid-clip rewinds and plays', async ({ launch }, info) => {
   expect(v.paused).toBe(false)
 })
 
-test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
-  const b = fixture(info.outputDir)
-  const app = await launch([b])
-  const page = await firstLesson(app)
-  await onDivide(page)
-  await page.evaluate(() => {
-    const g = globalThis as unknown as { errors: number }
-    g.errors = 0
-    document.querySelector('video')!.addEventListener('error', () => g.errors++)
-  })
-  await seek(page, (k + 0.5) / fps)
-  const before = await video(page)
-  // A new last animation in "divide": a new clip, whose earlier frames are the same bytes (per-animation partials).
+// A new last animation in "divide": a new clip, whose earlier frames are the same bytes (per-animation partials).
+// Returns once the player holds the new clip and has applied its resume.
+async function rebuildDivide(page: Page, b: string): Promise<void> {
+  const before = (await video(page)).src
   const lesson = join(b, 'lesson.py')
   const src = readFileSync(lesson, 'utf8')
   const next = src.indexOf('        self.cell("probs")')
   writeFileSync(lesson, src.slice(0, next) + '        self.wait(0.5)\n' + src.slice(next))
   execFileSync(join(ROOT, 'bin/explain-build'), [b])
-  await expect.poll(async () => (await video(page)).src, { timeout: 30000 }).not.toBe(before.src)
-  await settled(page) // the new clip is loaded and the player's resume seek has landed
+  await expect.poll(async () => (await video(page)).src, { timeout: 30000 }).not.toBe(before)
+  await settled(page)
+}
+
+const countErrors = (page: Page) =>
+  page.evaluate(() => {
+    const g = globalThis as unknown as { errors: number }
+    g.errors = 0
+    document.querySelector('video')!.addEventListener('error', () => g.errors++)
+  })
+const errors = (page: Page) =>
+  page.evaluate(() => (globalThis as unknown as { errors: number }).errors)
+
+test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
+  const b = fixture(info.outputDir)
+  const app = await launch([b])
+  const page = await firstLesson(app)
+  await onDivide(page)
+  await countErrors(page)
+  await seek(page, (k + 0.5) / fps)
+  await rebuildDivide(page, b)
   await expect.poll(() => shown(page)).toBe(k)
   expect((await video(page)).paused).toBe(true)
-  expect(await page.evaluate(() => (globalThis as unknown as { errors: number }).errors)).toBe(0)
+  expect(await errors(page)).toBe(0)
+})
+
+test('a rebuild while playing keeps playing from where it was', async ({ launch }, info) => {
+  const b = fixture(info.outputDir)
+  const app = await launch([b])
+  const page = await firstLesson(app)
+  await onDivide(page)
+  await countErrors(page)
+  // A tenth of normal speed (kept across a src change), so the 1.3 s clip is still playing when the rebuild lands.
+  await page.evaluate(() => {
+    const v = document.querySelector('video')!
+    v.defaultPlaybackRate = v.playbackRate = 0.1
+  })
+  const t0 = (await video(page)).t
+  await rebuildDivide(page, b)
+  const v = await video(page)
+  expect(v.paused).toBe(false)
+  expect(v.t).toBeGreaterThanOrEqual(t0)
+  expect(await errors(page)).toBe(0)
+})
+
+test('a clip that cannot load says so', async ({ launch }, info) => {
+  const b = fixture(info.outputDir)
+  const index = JSON.parse(readFileSync(join(b, 'build', 'index.json'), 'utf8'))
+  rmSync(join(b, 'build', index.cells[1].clip)) // cell 2's clip is gone from disk
+  const app = await launch([b])
+  const page = await firstLesson(app)
+  await page.keyboard.press('ArrowDown')
+  await expect(page.locator('.player .failed')).toHaveText(/^This clip cannot play \(\d\): /)
 })

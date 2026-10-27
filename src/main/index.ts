@@ -1,10 +1,8 @@
-import { createReadStream } from 'fs'
-import { stat } from 'fs/promises'
 import { resolve } from 'path'
-import { Readable } from 'stream'
-import { app, BrowserWindow, Menu, protocol, shell } from 'electron'
+import { pathToFileURL } from 'url'
+import { app, BrowserWindow, Menu, net, protocol, shell } from 'electron'
 import { CH, type Command } from '../shared/ipc'
-import { byteRange, clipPath } from './bundle'
+import { clipPath } from './bundle'
 import { fileMenu, openDirs, openInitial, openPaths } from './windows'
 
 if (process.env.EX_USER_DATA) app.setPath('userData', process.env.EX_USER_DATA)
@@ -16,7 +14,11 @@ const primary = app.requestSingleInstanceLock()
 if (!primary) app.exit(0)
 const bundles = (argv: string[], cwd: string) =>
   argv.map((a) => resolve(cwd, a).replace(/\/+$/, '')).filter((a) => a.endsWith('.explainer'))
-app.on('second-instance', (_e, argv, cwd) => openPaths(bundles(argv, cwd)))
+app.on('second-instance', (_e, argv, cwd) => {
+  const paths = bundles(argv, cwd)
+  if (paths.length) openPaths(paths)
+  else BrowserWindow.getAllWindows()[0]?.focus() // launched again from the Dock: come forward
+})
 
 // Links in rendered markdown open in the browser; the app window never navigates away.
 app.on('web-contents-created', (_e, wc) => {
@@ -33,8 +35,7 @@ app.on('web-contents-created', (_e, wc) => {
   })
 })
 
-// Clips are served under full security from the open bundles only, answering Range requests (206) so <video>
-// can seek; CORS lets the canvas read frames back.
+// Clips are served under full security from the open bundles only; CORS lets a canvas read frames back.
 protocol.registerSchemesAsPrivileged([
   {
     scheme: 'clip',
@@ -57,23 +58,10 @@ if (primary)
     protocol.handle('clip', async (req) => {
       const p = clipPath(req.url, openDirs())
       if (!p) return new Response(null, { status: 404 })
-      const size = (await stat(p)).size
-      const r = byteRange(req.headers.get('range'), size)
-      const headers: Record<string, string> = {
-        'Content-Type': 'video/mp4',
-        'Accept-Ranges': 'bytes',
-        'Access-Control-Allow-Origin': '*'
-      }
-      if (r === 'unsatisfiable')
-        return new Response(null, {
-          status: 416,
-          headers: { ...headers, 'Content-Range': `bytes */${size}` }
-        })
-      const { start, end } = r ?? { start: 0, end: size - 1 }
-      const body = Readable.toWeb(createReadStream(p, { start, end })) as ReadableStream
-      headers['Content-Length'] = String(end - start + 1)
-      if (r) headers['Content-Range'] = `bytes ${start}-${end}/${size}`
-      return new Response(body, { status: r ? 206 : 200, headers })
+      const r = await net.fetch(pathToFileURL(p).href, { headers: req.headers })
+      const headers = new Headers(r.headers)
+      headers.set('Access-Control-Allow-Origin', '*')
+      return new Response(r.body, { status: r.status, headers })
     })
     Menu.setApplicationMenu(
       Menu.buildFromTemplate([

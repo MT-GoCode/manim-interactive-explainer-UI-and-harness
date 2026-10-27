@@ -5,7 +5,7 @@ export type Alert =
   | { t: 'invalid'; message: string } // a reload failed: the last good lesson stays on screen
 export type Clip = { url: string; frames: number; fps: number }
 export type Cell = { slug: string; md: string; clip: Clip | null } // md: the section without its heading line
-export type Build = { fps: number; refs: Record<string, string> }
+export type Build = { refs: Record<string, string> }
 // build null: never built. A cell's number is its position + 1, never stored.
 export type Lesson = {
   dir: string

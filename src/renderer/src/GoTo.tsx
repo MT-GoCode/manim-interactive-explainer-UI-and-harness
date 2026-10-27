@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 
 // ⌘G: a cell number, Enter.
 export function GoTo({
+  ask,
   n,
   setCur,
   close
 }: {
+  ask: number
   n: number
   setCur: (i: number) => void
   close: () => void
@@ -13,7 +15,10 @@ export function GoTo({
   const input = useRef<HTMLInputElement>(null)
   const [v, setV] = useState('')
   const [bad, setBad] = useState<string | null>(null)
-  useEffect(() => input.current!.focus(), [])
+  useEffect(() => {
+    input.current!.focus()
+    input.current!.select()
+  }, [ask]) // each ⌘G returns to the box
   return (
     <div className="bar goto">
       <input

@@ -1,3 +1,5 @@
+import { readFileSync, writeFileSync } from 'fs'
+import { join } from 'path'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { click, current, expect, firstLesson, fixture, test, winId } from './app'
 
@@ -56,4 +58,23 @@ test('go to cell', async ({ launch }, info) => {
     expect(await current(page)).toEqual({ i: 3, lit: 1 })
     await page.locator('.bar input').press('Escape')
   }
+})
+
+test('a reload while Find is open leaves the reader on their cell', async ({ launch }, info) => {
+  const b = fixture(info.outputDir)
+  const app = await launch([b])
+  const page = await firstLesson(app)
+  await open(app, page, 'find')
+  await query(page, 'probabilit')
+  await expect.poll(() => current(page)).toEqual({ i: 4, lit: 1 })
+  await page.locator('.transcript').click({ position: { x: 1, y: 1 }, force: true }) // focus leaves the find box
+  await page.keyboard.press('ArrowUp')
+  await expect.poll(() => current(page)).toEqual({ i: 3, lit: 1 })
+  writeFileSync(join(b, 'cells.md'), readFileSync(join(b, 'cells.md'), 'utf8') + 'Reloaded.\n')
+  await expect(page.locator('.cell').last()).toContainText('Reloaded.')
+  // Two frames: React has run the reload's effects (Find's re-search among them) before the next paint.
+  await page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  )
+  expect(await current(page)).toEqual({ i: 3, lit: 1 })
 })

@@ -7,7 +7,8 @@ type Match = { cell: number; range: Range }
 // KaTeX's hidden MathML annotation repeats a formula's TeX source as text; it is not what the reader sees.
 function search(q: string): Match[] {
   if (!q) return []
-  const needle = q.toLowerCase()
+  // Matched on the text itself (lowercasing can change a string's length, e.g. 'İ', and shift every offset).
+  const re = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
   const out: Match[] = []
   document.querySelectorAll('.cell .md').forEach((md, cell) => {
     const walk = document.createTreeWalker(md, NodeFilter.SHOW_TEXT, {
@@ -17,11 +18,10 @@ function search(q: string): Match[] {
           : NodeFilter.FILTER_ACCEPT
     })
     for (let n = walk.nextNode(); n; n = walk.nextNode()) {
-      const text = n.textContent!.toLowerCase()
-      for (let i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + needle.length)) {
+      for (const m of n.textContent!.matchAll(re)) {
         const range = new Range()
-        range.setStart(n, i)
-        range.setEnd(n, i + needle.length)
+        range.setStart(n, m.index)
+        range.setEnd(n, m.index + m[0].length)
         out.push({ cell, range })
       }
     }
@@ -41,6 +41,13 @@ export function Find(props: {
   const [q, setQ] = useState('')
   const [at, setAt] = useState(0)
   const [matches, setMatches] = useState<Match[]>([])
+  // Only the reader moves the current cell (a new query, Enter, ⇧Enter); a reload re-highlights and leaves it.
+  // A new query's matches exist only after the DOM search, so the query marks the jump and the effect makes it.
+  const jump = useRef(false)
+  const show = (x: Match) => {
+    setCur(x.cell)
+    void x.range.startContainer.parentElement!.scrollIntoView({ block: 'center' })
+  }
   // Matches are ranges into the rendered prose, so they are read from the DOM after React commits it (a reload
   // re-renders the prose and the old ranges are gone): the DOM is the outside system this effect syncs from.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -56,10 +63,8 @@ export function Find(props: {
   useEffect(() => {
     CSS.highlights.set('find', new Highlight(...matches.map((x) => x.range)))
     CSS.highlights.set('find-active', new Highlight(...(m ? [m.range] : [])))
-    if (m) {
-      setCur(m.cell)
-      m.range.startContainer.parentElement!.scrollIntoView({ block: 'center' })
-    }
+    if (jump.current && m) show(m)
+    jump.current = false
   }, [matches, m]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const clear = () => {
@@ -76,12 +81,16 @@ export function Find(props: {
         placeholder="Find"
         value={q}
         onChange={(e) => {
+          jump.current = true
           setQ(e.target.value)
           setAt(0)
         }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && n) setAt((at + (e.shiftKey ? n - 1 : 1)) % n)
-          else if (e.key === 'Escape') clear()
+          if (e.key === 'Enter' && n) {
+            const next = (at + (e.shiftKey ? n - 1 : 1)) % n
+            setAt(next)
+            show(matches[next])
+          } else if (e.key === 'Escape') clear()
           else return
           e.preventDefault()
         }}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Command } from '../../shared/ipc'
 import type { Alert, Lesson } from '../../shared/lesson'
 import { Find } from './Find'
@@ -44,11 +44,13 @@ export function App() {
       switch (c.t) {
         case 'lesson':
           // The reader stays on their cell by slug; if it is gone, on the same position (a cell always exists).
+          // Before init has answered there is nothing to update: init's answer is this lesson or a newer one.
           return setS((old) => {
-            const i = c.lesson.cells.findIndex((x) => x.slug === old!.lesson.cells[old!.cur].slug)
+            if (!old) return old
+            const i = c.lesson.cells.findIndex((x) => x.slug === old.lesson.cells[old.cur].slug)
             return {
               lesson: c.lesson,
-              cur: i >= 0 ? i : Math.min(old!.cur, c.lesson.cells.length - 1)
+              cur: i >= 0 ? i : Math.min(old.cur, c.lesson.cells.length - 1)
             }
           })
         case 'find':
@@ -90,9 +92,11 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey, true)
   }, [])
 
+  // Stable, so a cell that did not change does not re-render (the transcript's cells are memoised on it).
+  const setCur = useCallback((i: number) => setS((o) => o && { ...o, cur: i }), [])
+
   if (!s) return null
   const { lesson, cur } = s
-  const setCur = (i: number) => setS((o) => o && { ...o, cur: i })
   const lines = banner(lesson)
   return (
     <div className="app">
@@ -108,7 +112,9 @@ export function App() {
       {finding > 0 && (
         <Find ask={finding} lesson={lesson} setCur={setCur} close={() => setFinding(0)} />
       )}
-      {going > 0 && <GoTo n={lesson.cells.length} setCur={setCur} close={() => setGoing(0)} />}
+      {going > 0 && (
+        <GoTo ask={going} n={lesson.cells.length} setCur={setCur} close={() => setGoing(0)} />
+      )}
     </div>
   )
 }

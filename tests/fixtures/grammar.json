@@ -1,867 +1,861 @@
 [
- {
-  "name": "basic",
-  "text": "## one\nText {a:.2f} and [[other#two]].\n\n## two\nMore {b}.\n",
-  "sections": [
-   {
-    "slug": "one",
-    "start": 0,
-    "line": 1,
-    "end": 40
-   },
-   {
-    "slug": "two",
-    "start": 40,
-    "line": 4,
-    "end": 57
-   }
-  ],
-  "refs": [
-   {
-    "key": "a:.2f",
-    "name": "a",
-    "line": 2
-   },
-   {
-    "key": "b",
-    "name": "b",
-    "line": 5
-   }
-  ],
-  "links": [
-   {
-    "slug": "other",
-    "cell": "two",
-    "line": 2
-   }
-  ],
-  "errors": []
- },
- {
-  "name": "heading-not-at-col-1-or-wrong-depth",
-  "text": "## a\n##nospace {r1}\n### three {r2}\n## trail   \n    ## indented {r3}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 35
-   },
-   {
-    "slug": "trail",
-    "start": 35,
-    "line": 4,
-    "end": 68
-   }
-  ],
-  "refs": [
-   {
-    "key": "r1",
-    "name": "r1",
-    "line": 2
-   },
-   {
-    "key": "r2",
-    "name": "r2",
-    "line": 3
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "uppercase-heading-is-error",
-  "text": "## a\n## Upper\n{r}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 18
-   }
-  ],
-  "refs": [
-   {
-    "key": "r",
-    "name": "r",
-    "line": 3
-   }
-  ],
-  "links": [],
-  "errors": [
-   "\"## Upper\" (cells.md:2) is not a cell heading; cell headings are \"## <slug>\", slug [a-z0-9-]+"
-  ]
- },
- {
-  "name": "setext-h2-is-error",
-  "text": "## a\ntitle\n---\n{r}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 19
-   }
-  ],
-  "refs": [
-   {
-    "key": "r",
-    "name": "r",
-    "line": 4
-   }
-  ],
-  "links": [],
-  "errors": [
-   "\"title\" (cells.md:2) is not a cell heading; cell headings are \"## <slug>\", slug [a-z0-9-]+"
-  ]
- },
- {
-  "name": "closing-hashes-is-error",
-  "text": "## a\n## b ##\n{r}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 17
-   }
-  ],
-  "refs": [
-   {
-    "key": "r",
-    "name": "r",
-    "line": 3
-   }
-  ],
-  "links": [],
-  "errors": [
-   "\"## b ##\" (cells.md:2) is not a cell heading; cell headings are \"## <slug>\", slug [a-z0-9-]+"
-  ]
- },
- {
-  "name": "indented-heading-is-a-heading",
-  "text": "## a\nbody\n  ## two-spaces\n{r}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 10
-   },
-   {
-    "slug": "two-spaces",
-    "start": 10,
-    "line": 3,
-    "end": 30
-   }
-  ],
-  "refs": [
-   {
-    "key": "r",
-    "name": "r",
-    "line": 4
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "fenced-backticks",
-  "text": "## a\n```\n## not\n{x}\n```\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 28
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 6
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "fenced-tildes",
-  "text": "## a\n~~~py\n## not\n{x}\n~~~\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 30
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 6
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "fence-4-not-closed-by-3",
-  "text": "## a\n````\n```\n{x}\n## not\n````\n## b\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 30
-   },
-   {
-    "slug": "b",
-    "start": 30,
-    "line": 7,
-    "end": 39
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 8
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "unclosed-fence-runs-to-end",
-  "text": "## a\n```\n## not\n{x}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 20
-   }
-  ],
-  "refs": [],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "indented-code-block",
-  "text": "## a\ntext\n\n    {x}\n\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 24
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 6
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "inline-code",
-  "text": "## a\nuse `{x}` and ``{y} ` z`` but {w}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 39
-   }
-  ],
-  "refs": [
-   {
-    "key": "w",
-    "name": "w",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "inline-math",
-  "text": "## a\nvalue $p_{i} = {x}$ then {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 34
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "currency-dollars-pair-up",
-  "text": "## a\ncosts $5 and {x} $6 for {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 33
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "lone-dollar-is-literal",
-  "text": "## a\ncost $5 then {x}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 22
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "escaped-dollar",
-  "text": "## a\ncosts \\$5 and {x} $6 {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 30
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "escaped-dollar-inside-math",
-  "text": "## a\n$a\\$b {x}$ {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 20
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "dollar-in-code",
-  "text": "## a\n`$x$ {x}` then {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 24
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "math-block",
-  "text": "## a\n$$\n## not\n{x}\n$$\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 26
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 6
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "math-block-one-line",
-  "text": "## a\n$$p = {x}$$\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 21
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 3
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "double-dollar-inline",
-  "text": "## a\ntext $$e^{z} {x}$$ and {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 32
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "mismatched-dollar-runs",
-  "text": "## a\nx $a $$ b$ {y} then $$c$ {z}$$ {w}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 40
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   },
-   {
-    "key": "w",
-    "name": "w",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "math-in-list-closes-with-list",
-  "text": "## a\n- item\n  $$\n  {x}\n  $$\n- {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 34
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 6
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "fence-in-blockquote-ends-with-quote",
-  "text": "## a\n> ```\n> {x}\n\n## b\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 18
-   },
-   {
-    "slug": "b",
-    "start": 18,
-    "line": 5,
-    "end": 27
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 6
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "link-url-and-autolink",
-  "text": "## a\n[label {x}](https://e.com/{y}) <https://e.com/{z}> https://f.com/{v} [https://g.com/{u}](https://g.com/{u}) {w}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 117
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "u",
-    "name": "u",
-    "line": 2
-   },
-   {
-    "key": "w",
-    "name": "w",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "html-comment",
-  "text": "## a\n<!-- {x} -->\n{y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 22
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 3
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "escaped-brace-is-literal",
-  "text": "## a\n\\{x} and {y} and \\[[no#link]] [[yes#link]]\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 48
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 2
-   }
-  ],
-  "links": [
-   {
-    "slug": "yes",
-    "cell": "link",
-    "line": 2
-   }
-  ],
-  "errors": []
- },
- {
-  "name": "links-in-code",
-  "text": "## a\n`[[no#link]]` and [[yes#link]]\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 36
-   }
-  ],
-  "refs": [],
-  "links": [
-   {
-    "slug": "yes",
-    "cell": "link",
-    "line": 2
-   }
-  ],
-  "errors": []
- },
- {
-  "name": "ref-forms",
-  "text": "## a\n{x} {x:.4f} {x:,} {_y2:>8} {p_a_b:.2f} {x:*>8} {9bad} {x:{nested}} {}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 75
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "x:.4f",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "x:,",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "_y2:>8",
-    "name": "_y2",
-    "line": 2
-   },
-   {
-    "key": "p_a_b:.2f",
-    "name": "p_a_b",
-    "line": 2
-   },
-   {
-    "key": "x:*>8",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "nested",
-    "name": "nested",
-    "line": 2
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "preamble-is-error",
-  "text": "intro text\n\n## a\nbody {x}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 12,
-    "line": 3,
-    "end": 26
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 4
-   }
-  ],
-  "links": [],
-  "errors": [
-   "cells.md has text before the first heading (cells.md:1)"
-  ]
- },
- {
-  "name": "blank-preamble-is-fine",
-  "text": "\n\n## a\nbody {x}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 2,
-    "line": 3,
-    "end": 16
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 4
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "paragraph-then-heading",
-  "text": "## a\ntext {x}\n## b\nmore {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 14
-   },
-   {
-    "slug": "b",
-    "start": 14,
-    "line": 3,
-    "end": 28
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "y",
-    "name": "y",
-    "line": 4
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "multiline-inline-math",
-  "text": "## a\nstart $a +\n{x} b$ end {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 31
-   }
-  ],
-  "refs": [
-   {
-    "key": "y",
-    "name": "y",
-    "line": 3
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "non-ascii-offsets",
-  "text": "## a\nσ — สวัสดี 😀 {x}\n\n## b\n😀 {y}\n",
-  "sections": [
-   {
-    "slug": "a",
-    "start": 0,
-    "line": 1,
-    "end": 24
-   },
-   {
-    "slug": "b",
-    "start": 24,
-    "line": 4,
-    "end": 36
-   }
-  ],
-  "refs": [
-   {
-    "key": "x",
-    "name": "x",
-    "line": 2
-   },
-   {
-    "key": "y",
-    "name": "y",
-    "line": 5
-   }
-  ],
-  "links": [],
-  "errors": []
- },
- {
-  "name": "crlf-is-error",
-  "text": "## a\r\n{x}\r\n",
-  "sections": [],
-  "refs": [],
-  "links": [],
-  "errors": [
-   "cells.md has CR line endings; save it with LF only"
-  ]
- },
- {
-  "name": "bom-is-error",
-  "text": "﻿## a\n{x}\n",
-  "sections": [],
-  "refs": [],
-  "links": [],
-  "errors": [
-   "cells.md starts with a byte-order mark; save it as plain UTF-8"
-  ]
- }
+  {
+    "name": "basic",
+    "text": "## one\nText {a:.2f} and [[other#two]].\n\n## two\nMore {b}.\n",
+    "sections": [
+      {
+        "slug": "one",
+        "start": 0,
+        "line": 1,
+        "end": 40
+      },
+      {
+        "slug": "two",
+        "start": 40,
+        "line": 4,
+        "end": 57
+      }
+    ],
+    "refs": [
+      {
+        "key": "a:.2f",
+        "name": "a",
+        "line": 2
+      },
+      {
+        "key": "b",
+        "name": "b",
+        "line": 5
+      }
+    ],
+    "links": [
+      {
+        "slug": "other",
+        "cell": "two",
+        "line": 2
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "heading-not-at-col-1-or-wrong-depth",
+    "text": "## a\n##nospace {r1}\n### three {r2}\n## trail   \n    ## indented {r3}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 35
+      },
+      {
+        "slug": "trail",
+        "start": 35,
+        "line": 4,
+        "end": 68
+      }
+    ],
+    "refs": [
+      {
+        "key": "r1",
+        "name": "r1",
+        "line": 2
+      },
+      {
+        "key": "r2",
+        "name": "r2",
+        "line": 3
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "uppercase-heading-is-error",
+    "text": "## a\n## Upper\n{r}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 18
+      }
+    ],
+    "refs": [
+      {
+        "key": "r",
+        "name": "r",
+        "line": 3
+      }
+    ],
+    "links": [],
+    "errors": [
+      "\"## Upper\" (cells.md:2) is not a cell heading; cell headings are \"## <slug>\", slug [a-z0-9-]+"
+    ]
+  },
+  {
+    "name": "setext-h2-is-error",
+    "text": "## a\ntitle\n---\n{r}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 19
+      }
+    ],
+    "refs": [
+      {
+        "key": "r",
+        "name": "r",
+        "line": 4
+      }
+    ],
+    "links": [],
+    "errors": [
+      "\"title\" (cells.md:2) is not a cell heading; cell headings are \"## <slug>\", slug [a-z0-9-]+"
+    ]
+  },
+  {
+    "name": "closing-hashes-is-error",
+    "text": "## a\n## b ##\n{r}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 17
+      }
+    ],
+    "refs": [
+      {
+        "key": "r",
+        "name": "r",
+        "line": 3
+      }
+    ],
+    "links": [],
+    "errors": [
+      "\"## b ##\" (cells.md:2) is not a cell heading; cell headings are \"## <slug>\", slug [a-z0-9-]+"
+    ]
+  },
+  {
+    "name": "indented-heading-is-a-heading",
+    "text": "## a\nbody\n  ## two-spaces\n{r}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 10
+      },
+      {
+        "slug": "two-spaces",
+        "start": 10,
+        "line": 3,
+        "end": 30
+      }
+    ],
+    "refs": [
+      {
+        "key": "r",
+        "name": "r",
+        "line": 4
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "fenced-backticks",
+    "text": "## a\n```\n## not\n{x}\n```\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 28
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 6
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "fenced-tildes",
+    "text": "## a\n~~~py\n## not\n{x}\n~~~\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 30
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 6
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "fence-4-not-closed-by-3",
+    "text": "## a\n````\n```\n{x}\n## not\n````\n## b\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 30
+      },
+      {
+        "slug": "b",
+        "start": 30,
+        "line": 7,
+        "end": 39
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 8
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "unclosed-fence-runs-to-end",
+    "text": "## a\n```\n## not\n{x}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 20
+      }
+    ],
+    "refs": [],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "indented-code-block",
+    "text": "## a\ntext\n\n    {x}\n\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 24
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 6
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "inline-code",
+    "text": "## a\nuse `{x}` and ``{y} ` z`` but {w}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 39
+      }
+    ],
+    "refs": [
+      {
+        "key": "w",
+        "name": "w",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "inline-math",
+    "text": "## a\nvalue $p_{i} = {x}$ then {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 34
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "currency-dollars-pair-up",
+    "text": "## a\ncosts $5 and {x} $6 for {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 33
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "lone-dollar-is-literal",
+    "text": "## a\ncost $5 then {x}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 22
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "escaped-dollar",
+    "text": "## a\ncosts \\$5 and {x} $6 {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 30
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "escaped-dollar-inside-math",
+    "text": "## a\n$a\\$b {x}$ {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 20
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "dollar-in-code",
+    "text": "## a\n`$x$ {x}` then {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 24
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "math-block",
+    "text": "## a\n$$\n## not\n{x}\n$$\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 26
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 6
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "math-block-one-line",
+    "text": "## a\n$$p = {x}$$\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 21
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 3
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "double-dollar-inline",
+    "text": "## a\ntext $$e^{z} {x}$$ and {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 32
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "mismatched-dollar-runs",
+    "text": "## a\nx $a $$ b$ {y} then $$c$ {z}$$ {w}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 40
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      },
+      {
+        "key": "w",
+        "name": "w",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "math-in-list-closes-with-list",
+    "text": "## a\n- item\n  $$\n  {x}\n  $$\n- {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 34
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 6
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "fence-in-blockquote-ends-with-quote",
+    "text": "## a\n> ```\n> {x}\n\n## b\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 18
+      },
+      {
+        "slug": "b",
+        "start": 18,
+        "line": 5,
+        "end": 27
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 6
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "link-url-and-autolink",
+    "text": "## a\n[label {x}](https://e.com/{y}) <https://e.com/{z}> https://f.com/{v} [https://g.com/{u}](https://g.com/{u}) {w}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 117
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "u",
+        "name": "u",
+        "line": 2
+      },
+      {
+        "key": "w",
+        "name": "w",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "html-comment",
+    "text": "## a\n<!-- {x} -->\n{y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 22
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 3
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "escaped-brace-is-literal",
+    "text": "## a\n\\{x} and {y} and \\[[no#link]] [[yes#link]]\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 48
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 2
+      }
+    ],
+    "links": [
+      {
+        "slug": "yes",
+        "cell": "link",
+        "line": 2
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "links-in-code",
+    "text": "## a\n`[[no#link]]` and [[yes#link]]\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 36
+      }
+    ],
+    "refs": [],
+    "links": [
+      {
+        "slug": "yes",
+        "cell": "link",
+        "line": 2
+      }
+    ],
+    "errors": []
+  },
+  {
+    "name": "ref-forms",
+    "text": "## a\n{x} {x:.4f} {x:,} {_y2:>8} {p_a_b:.2f} {x:*>8} {9bad} {x:{nested}} {}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 75
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "x:.4f",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "x:,",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "_y2:>8",
+        "name": "_y2",
+        "line": 2
+      },
+      {
+        "key": "p_a_b:.2f",
+        "name": "p_a_b",
+        "line": 2
+      },
+      {
+        "key": "x:*>8",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "nested",
+        "name": "nested",
+        "line": 2
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "preamble-is-error",
+    "text": "intro text\n\n## a\nbody {x}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 12,
+        "line": 3,
+        "end": 26
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 4
+      }
+    ],
+    "links": [],
+    "errors": ["cells.md has text before the first heading (cells.md:1)"]
+  },
+  {
+    "name": "blank-preamble-is-fine",
+    "text": "\n\n## a\nbody {x}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 2,
+        "line": 3,
+        "end": 16
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 4
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "paragraph-then-heading",
+    "text": "## a\ntext {x}\n## b\nmore {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 14
+      },
+      {
+        "slug": "b",
+        "start": 14,
+        "line": 3,
+        "end": 28
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "y",
+        "name": "y",
+        "line": 4
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "multiline-inline-math",
+    "text": "## a\nstart $a +\n{x} b$ end {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 31
+      }
+    ],
+    "refs": [
+      {
+        "key": "y",
+        "name": "y",
+        "line": 3
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "non-ascii-offsets",
+    "text": "## a\nσ — สวัสดี 😀 {x}\n\n## b\n😀 {y}\n",
+    "sections": [
+      {
+        "slug": "a",
+        "start": 0,
+        "line": 1,
+        "end": 24
+      },
+      {
+        "slug": "b",
+        "start": 24,
+        "line": 4,
+        "end": 36
+      }
+    ],
+    "refs": [
+      {
+        "key": "x",
+        "name": "x",
+        "line": 2
+      },
+      {
+        "key": "y",
+        "name": "y",
+        "line": 5
+      }
+    ],
+    "links": [],
+    "errors": []
+  },
+  {
+    "name": "crlf-is-error",
+    "text": "## a\r\n{x}\r\n",
+    "sections": [],
+    "refs": [],
+    "links": [],
+    "errors": ["cells.md has CR line endings; save it with LF only"]
+  },
+  {
+    "name": "bom-is-error",
+    "text": "﻿## a\n{x}\n",
+    "sections": [],
+    "refs": [],
+    "links": [],
+    "errors": ["cells.md starts with a byte-order mark; save it as plain UTF-8"]
+  }
 ]

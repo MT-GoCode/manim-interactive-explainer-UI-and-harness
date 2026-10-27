@@ -23,9 +23,14 @@ export function Player({
 }) {
   const video = useRef<HTMLVideoElement>(null)
   const [t, setT] = useState(0)
-  // Which cell's clip this <video> element holds. The effect below is the only writer of src: it reads the old
-  // clip's time and paused state before assigning the new one (assigning src resets the time to 0 at once).
-  const loaded = useRef<{ el: HTMLVideoElement; slug: string } | null>(null)
+  // A media error is shown for the clip it happened to; a new clip has none until it fails itself.
+  const [failed, setFailed] = useState<{ url: string; message: string } | null>(null)
+  // Which cell's clip this <video> element holds, and the resume it is to apply. The effect below is the only writer
+  // of src: it reads the old clip's time and paused state before assigning the new one (assigning src resets the
+  // time to 0 at once). Before the old clip's metadata arrived the element holds no time of its own, so a resume
+  // still waiting is carried over.
+  type Resume = { time: number; paused: boolean } | null
+  const loaded = useRef<{ el: HTMLVideoElement; slug: string; resume: Resume } | null>(null)
 
   useImperativeHandle(ref, () => ({
     toggle: () => {
@@ -52,9 +57,14 @@ export function Player({
     const v = video.current
     if (!v || !url) return
     // The same cell on the same element is a rebuild: it keeps its time and paused state.
-    const same = loaded.current?.el === v && loaded.current.slug === slug
-    const resume = same ? { time: v.currentTime, paused: v.paused } : null
-    loaded.current = { el: v, slug }
+    const prev = loaded.current
+    const same = prev?.el === v && prev.slug === slug
+    const resume: Resume = !same
+      ? null
+      : v.readyState >= HTMLMediaElement.HAVE_METADATA
+        ? { time: v.currentTime, paused: v.paused }
+        : prev.resume
+    loaded.current = { el: v, slug, resume }
     v.src = url
     const start = () => {
       if (resume) v.currentTime = Math.min(resume.time, v.duration) // a fresh clip already starts at 0
@@ -76,9 +86,18 @@ export function Player({
         ref={video}
         crossOrigin="anonymous"
         muted
+        onLoadedMetadata={(e) => setT(e.currentTarget.currentTime)}
         onTimeUpdate={(e) => setT(e.currentTarget.currentTime)}
         onSeeked={(e) => setT(e.currentTarget.currentTime)}
+        onError={(e) => {
+          const err = e.currentTarget.error!
+          setFailed({
+            url: clip.url,
+            message: `This clip cannot play (${err.code}): ${err.message}`
+          })
+        }}
       />
+      {failed?.url === clip.url && <div className="failed">{failed.message}</div>}
       <input
         type="range"
         min={0}
@@ -86,7 +105,9 @@ export function Player({
         step={1 / clip.fps}
         value={t}
         onChange={(e) => {
-          video.current!.currentTime = Number(e.target.value)
+          // The bar's steps are frame starts; a frame is named by its centre (see frameOf).
+          const k = Math.min(clip.frames - 1, Math.round(Number(e.target.value) * clip.fps))
+          video.current!.currentTime = (k + 0.5) / clip.fps
         }}
       />
     </div>

@@ -7,7 +7,7 @@ import {
   type MenuItemConstructorOptions,
   type Rectangle
 } from 'electron'
-import { watch, type FSWatcher } from 'fs'
+import { existsSync, watch, type FSWatcher } from 'fs'
 import { basename, dirname, join, resolve } from 'path'
 import { CH, type Command } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
@@ -31,7 +31,10 @@ let quitting = false
 const ofWin = (win: { id: number } | null | undefined): W | undefined =>
   win ? wins.get(win.id) : undefined
 const entry = (w: W): Entry => ({ dir: w.dir, slug: w.slug, bounds: w.win.getBounds() })
-const saveSession = (): void => writeSession([...wins.values()].map(entry))
+// After before-quit has written the session once, the windows closing (and late messages from them) never rewrite it.
+const saveSession = (): void => {
+  if (!quitting) writeSession([...wins.values()].map(entry))
+}
 const send = (w: W, c: Command): void => w.win.webContents.send(CH.command, c)
 export const openDirs = (): string[] => [...wins.values()].map((w) => w.dir)
 
@@ -84,7 +87,8 @@ function reload(w: W): void {
 // The bundle (recursive) plus the directories of the repo files its build read, filtered to those files.
 function watchRepo(w: W, files: string[]): void {
   w.watchers.splice(1).forEach((x) => x.close())
-  for (const d of new Set(files.map(dirname))) {
+  // A directory that is gone (the repo moved since the build) is not watched: its files already show as stale.
+  for (const d of [...new Set(files.map(dirname))].filter((x) => existsSync(x))) {
     const names = new Set(files.filter((f) => dirname(f) === d).map((f) => basename(f)))
     w.watchers.push(watch(d, (_e, name) => name !== null && names.has(name) && reload(w)))
   }
@@ -110,9 +114,9 @@ function createWindow(dir: string, slug: string | null, bounds?: Rectangle): voi
     }
   })
   const w: W = { win, dir, slug, lesson, watchers: [] }
+  wins.set(win.id, w) // registered first: its close handlers below always find it
   w.watchers.push(watch(dir, { recursive: true }, (_e, rel) => relevant(rel) && reload(w)))
   watchRepo(w, repoFiles)
-  wins.set(win.id, w)
   win.setRepresentedFilename(dir)
   app.addRecentDocument(dir)
   win.on('page-title-updated', (e) => e.preventDefault())

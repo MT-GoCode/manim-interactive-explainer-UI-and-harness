@@ -24,6 +24,8 @@ export function textsIn(tree, source) {
 const nth = (s, needle, n) => {
   let i = -1
   for (let k = 0; k <= n; k++) i = s.indexOf(needle, i + 1)
+  // An entity-written brace (`&#123;x}`) is a `{x}` in the value with none in the source; the count no longer lines up.
+  if (i < 0) throw new Error(`reference ${needle} not found in its text node`)
   return i
 }
 

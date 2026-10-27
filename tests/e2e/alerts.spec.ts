@@ -1,7 +1,7 @@
-import { readFileSync, writeFileSync } from 'fs'
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { Page } from '@playwright/test'
-import { current, expect, firstLesson, fixture, test } from './app'
+import { current, expect, firstLesson, fixture, ROOT, test } from './app'
 
 const banner = (page: Page) => page.locator('.banner div').allTextContents()
 const edit = (path: string, f: (s: string) => string) =>
@@ -22,6 +22,21 @@ test('editing lesson.py raises the alert and restoring clears it', async ({ laun
   await expect.poll(() => banner(page)).toEqual([])
   edit(join(b, 'helpers.py'), (s) => s + '\n')
   await expect.poll(() => banner(page)).toEqual(['Changed since last build: helpers.py'])
+})
+
+test('editing a repo file the build read raises the alert', async ({ launch }, info) => {
+  const b = fixture(info.outputDir)
+  const repo = join(info.outputDir, 'repo')
+  mkdirSync(repo)
+  cpSync(join(ROOT, 'explainers'), join(repo, 'explainers'), { recursive: true })
+  edit(join(b, 'build', 'index.json'), (s) => JSON.stringify({ ...JSON.parse(s), repo_root: repo }))
+  const app = await launch([b])
+  const page = await firstLesson(app)
+  expect(await banner(page)).toEqual([])
+  edit(join(repo, 'explainers', 'lesson.py'), (s) => s + '\n')
+  await expect
+    .poll(() => banner(page))
+    .toEqual(['Changed since last build: repo/explainers/lesson.py'])
 })
 
 test('swapped headings keep the current cell', async ({ launch }, info) => {
@@ -48,7 +63,6 @@ test('a heading with no clip says so, and an empty cells.md keeps the last lesso
   const page = await firstLesson(app)
   edit(join(b, 'cells.md'), (s) => s + '\n## extra\nMore.\n')
   await expect.poll(() => page.locator('.cell').count()).toBe(7)
-  await page.keyboard.press('End') // not bound: the cell is reached with arrows
   for (let i = 0; i < 6; i++) await page.keyboard.press('ArrowDown')
   await expect(page.locator('.player .noclip')).toHaveText(
     'No clip for this cell — run explain-build'
