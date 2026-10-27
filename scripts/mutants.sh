@@ -155,6 +155,7 @@ pruned in memory only%src/main/windows.ts%s/    writeComments\(dir, r.comments.k
 prune only on reload%src/main/windows.ts%s/  const \{ lesson, repoFiles \} = loadAndPrune\(dir\)/  const { lesson, repoFiles } = load(dir)/%e2e:comments.spec.ts:a bundle whose comments went stale while closed is pruned when it opens
 addComment from memory%src/main/bundle.ts%s/    fingerprint: fingerprint\(cell\)/    fingerprint: { section_sha: '0'.repeat(64), frames_sha: '0'.repeat(64) }/%unit:bundle.spec.ts:addComment writes a schema-valid comment with its fingerprint
 invalid comments.json accepted%src/main/bundle.ts%s/if \(!validateComments\(file\)\) throw/if (false) throw/%unit:bundle.spec.ts:an invalid comments.json is a LoadError naming the schema path
+created not checked as a date-time%src/main/bundle.ts%s/addFormats\(new Ajv2020\(\{ allErrors: true \}\), \['date-time'\]\)/new Ajv2020({ allErrors: true }).addFormat('date-time', true)/%unit:bundle.spec.ts:an invalid comments.json is a LoadError naming the schema path
 addComment ignores the prose it was measured on%src/main/bundle.ts%s/if \(cell.md !== base\) throw/if (false) throw/%unit:bundle.spec.ts:addComment refuses a span measured on older prose
 resolve not written%src/main/bundle.ts%s/comments.kept.filter\(\(c\) => c.id !== id\)/comments.kept/%e2e:comments.spec.ts:✕ removes a comment from the file
 ping never deleted%explainers/comments.py%s/\(bundle \/ "ping"\).unlink\(missing_ok=True\)/None/%tests/py/test_comments.py::test_wait_wakes_on_ping_prints_and_deletes_it

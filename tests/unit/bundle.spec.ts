@@ -303,8 +303,11 @@ test('an unbuilt bundle keeps comments whose prose is unchanged and drops those 
 
 test('an invalid comments.json is a LoadError naming the schema path', async ({}, info) => {
   const b = fixture(info.outputDir)
-  writeStored(b, [{ ...comment(b, 'aaaaaaa1', 'sum'), id: 'nothex!!' }])
+  const valid = comment(b, 'aaaaaaa1', 'sum')
+  writeStored(b, [{ ...valid, id: 'nothex!!' }])
   expect(() => load(b)).toThrow(`${join(b, 'comments.json')}: /comments/0/id must match pattern`)
+  writeStored(b, [{ ...valid, created: 'yesterday' }])
+  expect(() => load(b)).toThrow('/comments/0/created must match format "date-time"')
 })
 
 test('addComment writes a schema-valid comment with its fingerprint', async ({}, info) => {

@@ -4,6 +4,7 @@ import { existsSync, readFileSync, realpathSync } from 'fs'
 import { basename, join, resolve, sep } from 'path'
 import { pathToFileURL } from 'url'
 import Ajv2020 from 'ajv/dist/2020'
+import addFormats from 'ajv-formats'
 import { readCells } from '../../tools/cells.mjs'
 import schema from '../../schema/index.schema.json'
 import commentsSchema from '../../schema/comments.schema.json'
@@ -32,7 +33,7 @@ type Stored = {
   fingerprint: { section_sha: string; frames_sha: string }
 }
 
-const ajv = new Ajv2020({ allErrors: true })
+const ajv = addFormats(new Ajv2020({ allErrors: true }), ['date-time'])
 const validate = ajv.compile<Index>(schema)
 const validateComments = ajv.compile<{ comments: Stored[] }>(commentsSchema)
 const schemaError = (path: string, errors: typeof validate.errors) =>
