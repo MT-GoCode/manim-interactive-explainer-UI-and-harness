@@ -23,8 +23,9 @@ export function Player({
 }) {
   const video = useRef<HTMLVideoElement>(null)
   const [t, setT] = useState(0)
-  // What was playing before the src changed: the same cell (a rebuild) keeps its time and paused state.
-  const last = useRef<{ slug: string; time: number; paused: boolean } | null>(null)
+  // Which cell's clip this <video> element holds. The effect below is the only writer of src: it reads the old
+  // clip's time and paused state before assigning the new one (assigning src resets the time to 0 at once).
+  const loaded = useRef<{ el: HTMLVideoElement; slug: string } | null>(null)
 
   useImperativeHandle(ref, () => ({
     toggle: () => {
@@ -50,17 +51,17 @@ export function Player({
   useEffect(() => {
     const v = video.current
     if (!v || !url) return
-    const prev = last.current
-    const resume = prev?.slug === slug ? prev : null
+    // The same cell on the same element is a rebuild: it keeps its time and paused state.
+    const same = loaded.current?.el === v && loaded.current.slug === slug
+    const resume = same ? { time: v.currentTime, paused: v.paused } : null
+    loaded.current = { el: v, slug }
+    v.src = url
     const start = () => {
       if (resume) v.currentTime = Math.min(resume.time, v.duration) // a fresh clip already starts at 0
       if (!resume?.paused) void play(v)
     }
     v.addEventListener('loadedmetadata', start, { once: true })
-    return () => {
-      v.removeEventListener('loadedmetadata', start)
-      last.current = { slug, time: v.currentTime, paused: v.paused }
-    }
+    return () => v.removeEventListener('loadedmetadata', start)
   }, [slug, url])
 
   if (!clip)
@@ -73,7 +74,6 @@ export function Player({
     <div className="player">
       <video
         ref={video}
-        src={clip.url}
         crossOrigin="anonymous"
         muted
         onTimeUpdate={(e) => setT(e.currentTarget.currentTime)}
