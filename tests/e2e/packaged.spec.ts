@@ -1,55 +1,34 @@
-import { execFileSync, spawnSync } from 'child_process'
-import { existsSync, readdirSync, readFileSync } from 'fs'
-import { homedir } from 'os'
-import { join } from 'path'
-import { expect, fixture, test } from './app'
+import { execFileSync } from 'child_process'
+import { pathToFileURL } from 'url'
+import { expect, firstLesson, fixture, test } from './app'
 
-// Only a packaged, registered app owns .explainer (exported UTI), so only it is reached through LaunchServices or
-// listed in Open Recent. LaunchServices launches it here, as Finder does: an app started by the test runner instead
-// belongs to the runner's process, and LaunchServices cannot deliver to it (error -600, measured).
-test.skip(!process.env.EX_EXECUTABLE, 'needs EX_EXECUTABLE (a packaged Explainers.app)')
+// Only a packaged, registered app owns .explainer (exported UTI, document type), so these run against one. Each fact
+// Finder relies on is read from macOS itself; a live LaunchServices launch is not used, because an ad-hoc signed app
+// launched that way waits on Gatekeeper's first-launch check, which an unattended machine never answers (measured).
+test.skip(!process.env.EX_EXECUTABLE, 'needs EX_EXECUTABLE (a packaged, registered Explainers.app)')
 
 const ID = 'com.mtgocode.explainers'
-const RECENTS = join(
-  homedir(),
-  'Library/Application Support/com.apple.sharedfilelist/com.apple.LSSharedFileList.ApplicationRecentDocuments'
-)
+const osa = (js: string) =>
+  execFileSync('osascript', ['-l', 'JavaScript', '-e', js], { encoding: 'utf8' }).trim()
 
-test('bundles opened through LaunchServices open in the app and land in Open Recent', async ({}, info) => {
-  const first = fixture(join(info.outputDir, 'a'))
-  const second = fixture(join(info.outputDir, 'b'))
-  const userData = info.outputPath('userdata')
-  const session = () => {
-    const f = join(userData, 'session.json')
-    return existsSync(f)
-      ? (JSON.parse(readFileSync(f, 'utf8')) as { dir: string }[]).map((e) => e.dir)
-      : []
-  }
-  const exe = process.env.EX_EXECUTABLE!
-  try {
-    // A fresh instance with its own userData, invisible: the bundle arrives as Finder's open-file at launch.
-    execFileSync('open', [
-      '-n',
-      '-b',
-      ID,
-      '--env',
-      `EX_USER_DATA=${userData}`,
-      '--env',
-      'EX_INVISIBLE=1',
-      first
-    ])
-    await expect.poll(session, { timeout: 15000 }).toEqual([first])
-    // The running instance receives the next one.
-    execFileSync('open', ['-b', ID, second])
-    await expect.poll(session, { timeout: 15000 }).toEqual([first, second])
-    // macOS writes the recents list asynchronously; it names the bundle in its bookmark data.
-    const listed = () =>
-      readdirSync(RECENTS)
-        .filter((f) => f.startsWith(`${ID}.sfl`))
-        .some((f) => readFileSync(join(RECENTS, f)).includes('softmax.explainer'))
-    await expect.poll(listed, { timeout: 15000 }).toBe(true)
-  } finally {
-    // The instance LaunchServices started is not the runner's to close: stop it by its executable.
-    spawnSync('pkill', ['-f', exe.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')])
-  }
+test('Finder opens a bundle with this app, as one document', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  // The app LaunchServices picks to open the bundle: what a Finder double-click would launch.
+  const handler = osa(
+    `ObjC.import('AppKit'); const u = $.NSWorkspace.sharedWorkspace.URLForApplicationToOpenURL($.NSURL.URLWithString(${JSON.stringify(pathToFileURL(b).href)})); $.NSBundle.bundleWithURL(u).bundleIdentifier.js`
+  )
+  expect(handler).toBe(ID)
+  // Typed as our exported UTI, which conforms to a package: Finder shows the folder as one file.
+  const types = execFileSync('mdls', ['-raw', '-name', 'kMDItemContentTypeTree', b], {
+    encoding: 'utf8'
+  })
+  expect(types).toContain('"com.mtgocode.explainer"')
+  expect(types).toContain('"com.apple.package"')
+})
+
+test('an opened bundle lands in Open Recent', async ({ launch }, info) => {
+  const b = fixture(info.outputDir)
+  const app = await launch([b])
+  await firstLesson(app)
+  await expect.poll(() => app.evaluate(({ app }) => app.getRecentDocuments())).toContain(b)
 })

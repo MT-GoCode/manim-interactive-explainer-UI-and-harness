@@ -114,7 +114,7 @@ session not written at quit%src/main/windows.ts%s/app.on\('before-quit', \(\) =>
 reload loses the slug%src/renderer/src/App.tsx%s/cur: i >= 0 \? i : Math.min/cur: false ? i : Math.min/%e2e:alerts.spec.ts:swapped headings keep the current cell
 go to off by one%src/renderer/src/GoTo.tsx%s/setCur\(k - 1\)/setCur(k)/%e2e:find.spec.ts:go to cell
 find does not move the current cell%src/renderer/src/Find.tsx%s/    setCur\(x.cell\)\n//%e2e:find.spec.ts:find steps across cells
-find jumps on reload%src/renderer/src/Find.tsx%s/if \(jump.current && m\) show\(m\)/if (m) show(m)/%e2e:find.spec.ts:a reload while Find is open leaves the reader on their cell
+find jumps on reload%src/renderer/src/Find.tsx%s/if \(jump.current && found.length\) show/if (found.length) show/%e2e:find.spec.ts:a reload while Find is open leaves the reader on their cell
 find counts hidden MathML%src/renderer/src/Find.tsx%s/n.parentElement!.closest\('.katex-mathml'\)/false/%e2e:find.spec.ts:find skips formula annotations
 clip not seekable%src/main/index.ts%s/const r = byteRange\(req.headers.get\('range'\), size\)/const r = null/; s/        'Accept-Ranges': 'bytes',\n//; s/      headers\['Content-Length'\] = String\(end - start \+ 1\)\n//%e2e:player.spec.ts:seek and step land on frames k and k+1
 range parsed wrong%src/main/bundle.ts%s/start: Math.max\(0, size - Number\(m\[2\]\)\)/start: Number(m[2])/%unit:bundle.spec.ts:byteRange answers what a video asks for

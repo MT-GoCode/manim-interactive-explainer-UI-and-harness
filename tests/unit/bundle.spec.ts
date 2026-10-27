@@ -112,9 +112,8 @@ test("clipPath serves only open bundles' clips", async ({}, info) => {
   const { lesson } = load(odd)
   const clip = lesson.cells[0].clip!
   const real = realpathSync(odd) // as the window holds it
-  const file = clipPath(clip.url, [real])!
-  expect(file.startsWith(join(real, 'build', 'clips') + '/')).toBe(true)
-  expect(readFileSync(file).length).toBeGreaterThan(0)
+  const built = JSON.parse(readFileSync(join(odd, 'build', 'index.json'), 'utf8'))
+  expect(clipPath(clip.url, [real])).toBe(join(real, 'build', built.cells[0].clip))
   expect(clipPath(clip.url, [join(info.outputDir, 'other.explainer')])).toBeNull()
   // URLs built by hand: clipUrl would normalize these before clipPath ever saw them.
   const base = 'clip://local' + pathToFileURL(odd).pathname
