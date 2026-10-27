@@ -72,6 +72,7 @@ test('a refused comment keeps its text in the box', async ({ launch }, info) => 
 })
 
 test('a stale comment that cannot be pruned says so', async ({ launch }, info) => {
+  test.skip(!!process.env.EX_EXECUTABLE, 'needs electron -r (the dev app)')
   const b = fixture(info.outputDir)
   const index = JSON.parse(readFileSync(join(b, 'build', 'index.json'), 'utf8'))
   const frames = index.cells.find((c: { slug: string }) => c.slug === 'sum').frames_sha

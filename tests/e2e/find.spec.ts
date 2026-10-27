@@ -72,7 +72,7 @@ test('a reload while Find is open leaves the reader on their cell', async ({ lau
   await open(app, page, 'find')
   await query(page, 'probabilit')
   await expect.poll(() => current(page)).toEqual({ i: 4, lit: 1 })
-  await page.locator('.transcript').click({ position: { x: 1, y: 1 }, force: true }) // focus leaves the find box
+  await page.locator('.bar input').blur() // focus leaves the find box, the cell stays
   await page.keyboard.press('ArrowUp')
   await expect.poll(() => current(page)).toEqual({ i: 3, lit: 1 })
   writeFileSync(join(b, 'cells.md'), readFileSync(join(b, 'cells.md'), 'utf8') + 'Reloaded.\n')

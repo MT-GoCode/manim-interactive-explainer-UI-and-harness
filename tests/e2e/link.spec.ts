@@ -48,6 +48,7 @@ test('a link to another bundle opens it at its cell', async ({ launch }, info) =
   const page = await firstLesson(app)
   await clickLink(page)
   await expect.poll(() => titles(app)).toEqual(['other', 'softmax'])
+  await expect.poll(() => app.windows().length).toBe(2) // main's window list leads Playwright's page list
   const second = app.windows().find((w) => w !== page)!
   await second.waitForSelector('.cell')
   await expect.poll(() => current(second)).toEqual({ i: 4, lit: 1 })

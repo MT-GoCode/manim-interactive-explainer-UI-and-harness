@@ -19,12 +19,17 @@ test('Finder opens a bundle with this app, as one document', async ({}, info) =>
     `ObjC.import('AppKit'); $.NSWorkspace.sharedWorkspace.URLForApplicationToOpenURL($.NSURL.URLWithString(${JSON.stringify(pathToFileURL(b).href)})).path.js`
   )
   expect(handler).toBe(resolve(process.env.EX_EXECUTABLE!, '../../..'))
-  // Typed as our exported UTI, which conforms to a package: Finder shows the folder as one file.
-  const types = execFileSync('mdls', ['-raw', '-name', 'kMDItemContentTypeTree', b], {
-    encoding: 'utf8'
-  })
-  expect(types).toContain('"com.mtgocode.explainer"')
-  expect(types).toContain('"com.apple.package"')
+  // Typed as our exported UTI, which conforms to a package: Finder shows the folder as one file. Asked of
+  // LaunchServices directly (Spotlight's kMDItemContentTypeTree is empty until it has indexed the new folder).
+  const type = osa(
+    `ObjC.import('AppKit'); $.NSURL.fileURLWithPath(${JSON.stringify(b)}).resourceValuesForKeysError($([$.NSURLTypeIdentifierKey]), null).objectForKey($.NSURLTypeIdentifierKey).js`
+  )
+  expect(type).toBe('com.mtgocode.explainer')
+  expect(
+    osa(
+      `ObjC.import('AppKit'); $.NSWorkspace.sharedWorkspace.typeConformsToType(${JSON.stringify(type)}, 'com.apple.package')`
+    )
+  ).toBe('true')
 })
 
 test('an opened bundle lands in Open Recent', async ({ launch }, info) => {
