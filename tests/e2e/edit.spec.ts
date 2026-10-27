@@ -51,6 +51,19 @@ test('editing cell 3 while cell 3 changes shows the conflict and writes nothing'
   await expect(page.locator('.editor .problem pre')).toContainText('Add every one')
   expect(cellsMd(b)).toBe(disk)
   await expect(editor(page)).toHaveText('Mine.')
+  await page.keyboard.type('!') // the editor kept focus through the save
+  await expect(editor(page)).toHaveText('Mine.!')
+})
+
+test('double-clicking another cell keeps an edit with a conflict', async ({ launch }, info) => {
+  const { b, page } = await open(launch, info.outputDir)
+  await rewrite(page, SUM, 'Mine.')
+  edit(b, (s) => s.replace('Add them all', 'Add every one'))
+  await page.keyboard.press('Meta+Enter')
+  await expect(page.locator('.editor .problem')).toContainText('changed on disk')
+  await page.locator('.cell .md').nth(4).dblclick({ force: true })
+  await expect(page.locator('.editor')).toHaveCount(1)
+  await expect(page.locator('.cell').nth(SUM).locator('.editor .cm-content')).toHaveText('Mine.')
 })
 
 test('Keep mine saves over the disk version', async ({ launch }, info) => {

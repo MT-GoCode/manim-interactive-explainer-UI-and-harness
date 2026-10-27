@@ -8,12 +8,27 @@ test.describe.configure({ mode: 'serial' })
 // script cannot click; a test checks that the menu carries them, and drives the same command the role sends.
 const role = (app: ElectronApplication, id: string) =>
   app.evaluate(({ Menu }, id) => Menu.getApplicationMenu()!.getMenuItemById(id)?.role ?? null, id)
+// The clipboard's text, HTML, RTF and image are put back afterwards (Minh may be using the machine).
 const withClipboard = async (app: ElectronApplication, f: () => Promise<void>) => {
-  const saved = await app.evaluate(({ clipboard }) => clipboard.readText())
+  await app.evaluate(({ clipboard }) => {
+    const g = globalThis as unknown as { saved: object }
+    const image = clipboard.readImage()
+    g.saved = {
+      text: clipboard.readText(),
+      html: clipboard.readHTML(),
+      rtf: clipboard.readRTF(),
+      ...(image.isEmpty() ? {} : { image })
+    }
+  })
   try {
     await f()
   } finally {
-    await app.evaluate(({ clipboard }, s) => clipboard.writeText(s), saved)
+    await app.evaluate(({ clipboard }) => {
+      clipboard.clear()
+      clipboard.write(
+        (globalThis as unknown as { saved: Parameters<typeof clipboard.write>[0] }).saved
+      )
+    })
   }
 }
 

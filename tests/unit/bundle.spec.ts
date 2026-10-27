@@ -1,6 +1,7 @@
 import { execFileSync } from 'child_process'
 import {
   appendFileSync,
+  chmodSync,
   cpSync,
   mkdirSync,
   readFileSync,
@@ -203,4 +204,17 @@ test('saveSection reports an unreadable cells.md as invalid', async ({}, info) =
     t: 'invalid',
     message: `${join(b, 'cells.md')}: ENOENT: no such file or directory, open '${join(b, 'cells.md')}'`
   })
+})
+
+test('saveSection reports a failed write as invalid and writes nothing', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  const before = cellsOf(b)
+  chmodSync(b, 0o555) // the bundle directory is read-only: the temporary file cannot be made
+  try {
+    const r = saveSection(b, 'sum', section(b, 'sum'), 'x')
+    expect(r.t).toBe('invalid')
+  } finally {
+    chmodSync(b, 0o755)
+  }
+  expect(cellsOf(b)).toBe(before)
 })

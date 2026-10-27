@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Command } from '../../shared/ipc'
 import type { Alert, Lesson } from '../../shared/lesson'
 import { Editor, type Problem } from './Editor'
@@ -40,9 +40,6 @@ export function App() {
     edit.current = e
     setEditingState(e)
   }, [])
-  useLayoutEffect(() => {
-    edit.current = editing
-  }, [editing])
 
   useEffect(() => {
     window.api.init().then(({ lesson, slug }) =>
@@ -110,9 +107,13 @@ export function App() {
   // Stable, so a cell that did not change does not re-render (the transcript's cells are memoised on it).
   const setCur = useCallback((i: number) => setS((o) => o && { ...o, cur: i }), [])
 
+  // One edit at a time: while one is open (a problem showing, or a save in flight) another cannot replace it; a
+  // successful leave-save has already ended it by the time a second click lands.
   const startEdit = useCallback(
-    (slug: string, md: string) =>
-      setEditing({ slug, base: md, buf: md, saving: false, problem: null }),
+    (slug: string, md: string) => {
+      if (edit.current === null)
+        setEditing({ slug, base: md, buf: md, saving: false, problem: null })
+    },
     [setEditing]
   )
   const save = useCallback(
@@ -124,7 +125,7 @@ export function App() {
       const sending = { ...e, base: from, saving: true, problem: null }
       setEditing(sending)
       window.api.save(e.slug, from, e.buf).then((r) => {
-        if (edit.current?.slug !== e.slug) return
+        if (edit.current !== sending) return // this edit was ended or replaced meanwhile
         if (r.t === 'saved') return setEditing(null)
         // gone: the reload that dropped the heading already shows it (derived below)
         setEditing({ ...sending, saving: false, problem: r.t === 'gone' ? null : r })

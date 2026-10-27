@@ -119,7 +119,11 @@ export function saveSection(dir: string, slug: string, base: string, text: strin
       t: 'invalid',
       message: `This would change the cells (${after.errors.join('; ') || slugs(after)}); nothing was saved`
     }
-  atomicWrite(path, next)
+  try {
+    atomicWrite(path, next)
+  } catch (e) {
+    return { t: 'invalid', message: `${path}: ${(e as Error).message}; nothing was saved` }
+  }
   return { t: 'saved' }
 }
 

@@ -139,6 +139,9 @@ ref not an atom%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start,
 atom unstamped%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, className/{ dataAtom: '', className/%unit:grammar.spec.ts:atoms carry their source range
 cross-cell join without heads%src/renderer/src/copy.ts%s/return out \+ cells\[b.cell\].head \+ '\\n' \+ /return out + /%e2e:copy.spec.ts:copy across cells is the file between the two points
 container points not normalized%src/renderer/src/copy.ts%s/return l \? \{ cell: ci, off: num\(l, 'e'\) \} : prev\(\)/return l ? { cell: ci, off: num(l, 'e') } : null/%e2e:copy.spec.ts:a triple-clicked paragraph is its source
+an open edit replaced%src/renderer/src/App.tsx%s/if \(edit.current === null\)\n\s*setEditing/setEditing/%e2e:edit.spec.ts:double-clicking another cell keeps an edit with a conflict
+saving unfocuses the editor%src/renderer/src/Editor.tsx%s/EditorState.readOnly.of\(saving\)/EditorView.editable.of(!saving)/%e2e:edit.spec.ts:editing cell 3 while cell 3 changes shows the conflict and writes nothing
+a failed write escapes%src/main/bundle.ts%s/  try \{\n    atomicWrite\(path, next\)\n  \} catch \(e\) \{\n    return \{ t: 'invalid', message: `\$\{path\}: \$\{\(e as Error\).message\}; nothing was saved` \}\n  \}/  atomicWrite(path, next)/%unit:bundle.spec.ts:saveSection reports a failed write as invalid and writes nothing
 EOF
 )
 

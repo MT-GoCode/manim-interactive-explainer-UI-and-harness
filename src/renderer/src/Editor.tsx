@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import CodeMirror, { EditorView, keymap, type BasicSetupOptions } from '@uiw/react-codemirror'
 import { markdown } from '@codemirror/lang-markdown'
-import { Prec } from '@codemirror/state'
+import { EditorState, Prec } from '@codemirror/state'
 import { vscodeDark } from '@uiw/codemirror-theme-vscode'
 
 export type Problem = { t: 'conflict'; disk: string } | { t: 'invalid'; message: string }
@@ -41,7 +41,7 @@ export function Editor(props: {
       markdown(),
       EditorView.lineWrapping,
       metrics,
-      EditorView.editable.of(!saving),
+      EditorState.readOnly.of(saving), // read-only, not uneditable: it keeps focus and its keys
       Prec.high(
         keymap.of([
           { key: 'Mod-Enter', run: () => (onSave(), true) },
