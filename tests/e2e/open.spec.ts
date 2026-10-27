@@ -74,9 +74,11 @@ test('Reopen Closed Window returns to the bundle and its cell', async ({ launch 
   await expect.poll(() => current(page2)).toEqual({ i: 1, lit: 1 })
 })
 
+// Error boxes are recorded by a script preloaded with `electron -r`, which a packaged app does not accept.
 test('an index that fails the schema shows the schema path and opens no window', async ({
   launch
 }, info) => {
+  test.skip(!!process.env.EX_EXECUTABLE, 'needs electron -r (the dev app)')
   const b = fixture(info.outputDir)
   const index = join(b, 'build', 'index.json')
   writeFileSync(
