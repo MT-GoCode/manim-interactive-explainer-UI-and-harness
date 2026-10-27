@@ -10,12 +10,17 @@ rm -rf test-results && mkdir -p test-results
 want=${1:-all}; [ $# -gt 0 ] && shift
 status=0
 summary() { echo "$1" >> test-results/summary.txt; }
-tally() {  # category: counts summed over every <testsuite> of its junit file (pytest and Playwright alike)
-  summary "$1 $(python3 -c "
+tally() {  # category: counts summed over every <testsuite> of its junit file (pytest and Playwright alike);
+  # a category that ran nothing fails the run, so "green" cannot mean "nothing ran"
+  local counts
+  counts=$(python3 -c "
 import sys, xml.etree.ElementTree as E
 s = list(E.parse(sys.argv[1]).getroot().iter('testsuite'))
-print(' '.join(f'{k}={sum(int(x.get(k) or 0) for x in s)}' for k in ('tests', 'failures', 'errors', 'skipped')))
-" "test-results/$1/junit.xml" 2>/dev/null || echo 'no results')"
+n = {k: sum(int(x.get(k) or 0) for x in s) for k in ('tests', 'failures', 'errors', 'skipped')}
+print(' '.join(f'{k}={v}' for k, v in n.items()))
+sys.exit(n['tests'] == n['skipped'])
+" "test-results/$1/junit.xml" 2>/dev/null) || { status=1; counts="${counts:-no results} · NOTHING RAN"; }
+  summary "$1 $counts"
 }
 run() { [ "$want" = all ] || [ "$want" = "$1" ]; }
 playwright() {  # project [args]: the app's Playwright project, against out/ or EX_EXECUTABLE; results under
