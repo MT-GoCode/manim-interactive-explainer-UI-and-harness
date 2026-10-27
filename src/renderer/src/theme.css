@@ -24,11 +24,20 @@ body {
   flex: none;
   background: #000;
 }
+/* Full width at the clips' 2:1 shape (explainers/render.py) is 50vw tall; the divider scales that. A smaller frame
+   shows the whole picture, letterboxed, never stretched. */
 .player video,
 .player .noclip {
   display: block;
   width: 100%;
-  aspect-ratio: 2 / 1; /* the clips' shape (explainers/render.py) */
+  height: calc(50vw * var(--video-scale));
+  object-fit: contain;
+}
+.divider {
+  flex: none;
+  height: 6px;
+  background: #2a2a2a;
+  cursor: row-resize;
 }
 .player .failed {
   color: #f48771;

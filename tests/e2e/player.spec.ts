@@ -191,3 +191,26 @@ test('in a wide window the player stays in view as the cells move', async ({ lau
     await page.evaluate(() => document.querySelector('.player')!.getBoundingClientRect().top)
   ).toBe(0)
 })
+
+test('dragging the bar under the video shrinks its frame, keeps the picture whole and is remembered', async ({
+  launch
+}, info) => {
+  const app = await launch([fixture(info.outputDir)])
+  const page = await firstLesson(app)
+  const height = () =>
+    page.evaluate(() => document.querySelector('video')!.getBoundingClientRect().height)
+  const full = await height()
+  const bar = (await page.locator('.divider').boundingBox())!
+  await page.mouse.move(bar.x + 100, bar.y + 3)
+  await page.mouse.down()
+  await page.mouse.move(bar.x + 100, bar.y + 3 - 200, { steps: 5 })
+  await page.mouse.up()
+  expect(Math.abs((await height()) - (full - 200))).toBeLessThan(1)
+  // letterboxed, not stretched: the picture keeps its 2:1 shape inside the smaller frame
+  expect(
+    await page.evaluate(() => getComputedStyle(document.querySelector('video')!).objectFit)
+  ).toBe('contain')
+  await page.reload()
+  await page.waitForSelector('.cell')
+  expect(Math.abs((await height()) - (full - 200))).toBeLessThan(1)
+})

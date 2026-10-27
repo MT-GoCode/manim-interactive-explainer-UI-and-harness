@@ -29,10 +29,33 @@ const banner = (lesson: Lesson): string[] => [
   })
 ]
 
+// The video's height as a share of its full-width 2:1 height, set by dragging the bar under the player. One store
+// (localStorage) for every window, like the Ping command.
+const SCALE = 'videoScale'
+const clamp = (x: number): number => Math.min(1, Math.max(0, x))
+
 export function App() {
   const [s, setS] = useState<State | null>(null)
   const [finding, setFinding] = useState(0) // bumped by each ⌘F
   const [going, setGoing] = useState(0) // bumped by each ⌘G
+  const [scale, setScale] = useState(() => Number(localStorage.getItem(SCALE) ?? 1))
+  const resize = (e: React.PointerEvent<HTMLDivElement>) => {
+    const y0 = e.clientY
+    const s0 = scale
+    const bar = e.currentTarget
+    bar.setPointerCapture(e.pointerId)
+    const move = (m: PointerEvent) => {
+      const s = clamp(s0 + (m.clientY - y0) / (innerWidth / 2))
+      setScale(s)
+      localStorage.setItem(SCALE, String(s))
+    }
+    const up = () => {
+      bar.removeEventListener('pointermove', move)
+      bar.removeEventListener('pointerup', up)
+    }
+    bar.addEventListener('pointermove', move)
+    bar.addEventListener('pointerup', up)
+  }
   const player = useRef<PlayerHandle>(null)
   const [editing, setEditingState] = useState<Editing | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null) // a comment being written
@@ -178,7 +201,7 @@ export function App() {
     />
   )
   return (
-    <div className="app">
+    <div className="app" style={{ '--video-scale': scale } as React.CSSProperties}>
       {lines.length > 0 && (
         <div className="banner">
           {lines.map((l) => (
@@ -187,6 +210,7 @@ export function App() {
         </div>
       )}
       <Player ref={player} slug={lesson.cells[cur].slug} clip={lesson.cells[cur].clip} />
+      <div className="divider" title="Drag to resize the video" onPointerDown={resize} />
       {gone && editor /* its cell is gone from cells.md: the edit stays, above the transcript */}
       <Orphans comments={lesson.comments.filter((c) => c.on === 'orphan')} />
       <Transcript
