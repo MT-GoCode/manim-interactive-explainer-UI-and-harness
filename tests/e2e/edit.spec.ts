@@ -68,6 +68,7 @@ test('double-clicking another cell keeps an edit with a conflict', async ({ laun
     .locator('.md p')
     .first()
     .dblclick({ force: true, position: { x: 4, y: 6 } })
+  await expect.poll(() => current(page)).toEqual({ i: 4, lit: 1 }) // the double-click landed on cell 5
   await expect(page.locator('.editor')).toHaveCount(1)
   await expect(page.locator('.cell').nth(SUM).locator('.editor .cm-content')).toHaveText('Mine.')
 })

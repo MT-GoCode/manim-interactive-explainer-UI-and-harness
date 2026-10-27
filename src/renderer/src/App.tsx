@@ -131,7 +131,8 @@ export function App() {
       if (!e || e.saving) return
       const from = base ?? e.base
       if (e.buf === from && base === undefined) return setEditing(null)
-      const sending = { ...e, base: from, saving: true, problem: null }
+      // the problem stays up until the reply replaces it: removing it would move the page under the reader's mouse
+      const sending = { ...e, base: from, saving: true }
       setEditing(sending)
       window.api.save(e.slug, from, e.buf).then((r) => {
         if (edit.current !== sending) return // this edit was ended or replaced meanwhile
