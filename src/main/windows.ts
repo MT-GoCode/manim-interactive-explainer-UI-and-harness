@@ -7,8 +7,9 @@ import {
   type MenuItemConstructorOptions,
   type Rectangle
 } from 'electron'
-import { existsSync, realpathSync, watch, writeFileSync, type FSWatcher } from 'fs'
-import { homedir } from 'os'
+import { execFile } from 'child_process'
+import { existsSync, realpathSync, watch, type FSWatcher } from 'fs'
+import { homedir, userInfo } from 'os'
 import { basename, dirname, join, resolve } from 'path'
 import { CH, type Command, type Commented } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
@@ -96,7 +97,7 @@ function loadAndPrune(dir: string): ReturnType<typeof load> {
   return r
 }
 
-// Comments and Ping: main writes, then reloads the window, whose next lesson carries the result.
+// Comments: main writes, then reloads the window, whose next lesson carries the result.
 const writing = (label: string, f: (w: W) => void) => (e: Electron.IpcMainEvent) => {
   const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
   guarded(label, () => f(w))
@@ -119,7 +120,15 @@ ipcMain.handle(
 ipcMain.on(CH.resolve, (e, id: string) =>
   writing('Cannot resolve the comment', (w) => resolveComment(w.dir, id))(e)
 )
-ipcMain.on(CH.ping, (e) => writing('Cannot ping', (w) => writeFileSync(join(w.dir, 'ping'), ''))(e))
+// Ping runs the user's command once per press, in their login shell (an app opened from Finder has a bare PATH), in
+// the lesson's folder with EXPLAINER set to it. A command that fails says so.
+ipcMain.on(CH.ping, (e, command: string) => {
+  const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
+  const env = { ...process.env, EXPLAINER: w.dir }
+  execFile(userInfo().shell!, ['-lc', command], { cwd: w.dir, env }, (err, _out, stderr) => {
+    if (err) dialog.showErrorBox('Ping failed', `${command}\n\n${stderr || err.message}`)
+  })
+})
 
 ipcMain.on(CH.at, (e, slug: string) => {
   const w = ofWin(BrowserWindow.fromWebContents(e.sender))!

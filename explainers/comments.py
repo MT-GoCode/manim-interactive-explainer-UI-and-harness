@@ -1,10 +1,8 @@
-"""fetch-comments <bundle> [--wait]: the comments open in a lesson, one line each, in cell order (orphans last):
+"""fetch-comments <bundle>: the comments open in a lesson, one line each, in cell order (orphans last):
 `<id> · #<n> <slug> · "<quote>" → <comment>`, or `whole cell`. The app is the only writer of comments.json and
-writes it whole (write, then rename), so a read never sees half a file. --wait blocks until the app's Ping, then
-prints and deletes `ping`."""
+writes it whole (write, then rename), so a read never sees half a file."""
 import json
 import sys
-import threading
 from pathlib import Path
 
 from explainers.cells import read_cells
@@ -43,45 +41,12 @@ def lines(bundle: Path) -> list[str]:
     return out
 
 
-def wait_for_ping(bundle: Path) -> None:
-    """Returns once `ping` exists. The watch starts BEFORE the check, so a ping made between them is not missed."""
-    from watchdog.events import FileSystemEventHandler
-    from watchdog.observers import Observer
-    ping, seen = bundle / "ping", threading.Event()
-
-    class Handler(FileSystemEventHandler):
-        def on_created(self, e):
-            if Path(e.src_path) == ping:
-                seen.set()
-
-        def on_moved(self, e):
-            if Path(e.dest_path) == ping:
-                seen.set()
-
-    observer = Observer()
-    observer.schedule(Handler(), str(bundle))
-    observer.start()
-    try:
-        if not ping.exists():
-            seen.wait()
-    finally:
-        observer.stop()
-        observer.join()
-
-
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    wait = "--wait" in args
-    rest = [a for a in args if a != "--wait"]
-    if len(rest) != 1:
-        print("usage: fetch-comments <bundle> [--wait]", file=sys.stderr)
+    if len(args) != 1:
+        print("usage: fetch-comments <bundle>", file=sys.stderr)
         return 2
-    bundle = Path(rest[0]).expanduser().resolve()
-    if wait:
-        wait_for_ping(bundle)
-    print("\n".join(lines(bundle)) or "no comments")
-    if wait:
-        (bundle / "ping").unlink(missing_ok=True)  # consumed either way (another waiter, or Minh)
+    print("\n".join(lines(Path(args[0]).expanduser().resolve())) or "no comments")
     return 0
 
 

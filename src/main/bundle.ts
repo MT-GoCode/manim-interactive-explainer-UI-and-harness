@@ -204,8 +204,7 @@ export function load(dir: string): {
       cells,
       alerts,
       build: build && { refs: build.refs },
-      comments: kept.map((c) => mark(c, cells)),
-      pinging: existsSync(join(dir, 'ping'))
+      comments: kept.map((c) => mark(c, cells))
     },
     repoFiles: build ? Object.keys(build.inputs.repo).map((rel) => join(build.repo_root, rel)) : [],
     comments: { kept, dropped }

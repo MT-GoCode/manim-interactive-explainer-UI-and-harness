@@ -41,6 +41,6 @@ export interface Api {
     text: string
   ): Promise<Commented>
   resolve(id: string): void
-  ping(): void
+  ping(command: string): void // runs command in the user's login shell, EXPLAINER = the lesson's folder
   onCommand(fn: (c: Command) => void): void
 }

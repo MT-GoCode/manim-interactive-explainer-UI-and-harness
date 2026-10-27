@@ -160,7 +160,10 @@ invalid comments.json accepted%src/main/bundle.ts%s/if \(!validateComments\(file
 created not checked as a date-time%src/main/bundle.ts%s/addFormats\(new Ajv2020\(\{ allErrors: true \}\), \['date-time'\]\)/new Ajv2020({ allErrors: true }).addFormat('date-time', true)/%unit:bundle.spec.ts:an invalid comments.json is a LoadError naming the schema path
 addComment ignores the prose it was measured on%src/main/bundle.ts%s/if \(cell.md !== base\) throw/if (false) throw/%unit:bundle.spec.ts:addComment refuses a span measured on older prose
 resolve not written%src/main/bundle.ts%s/comments.kept.filter\(\(c\) => c.id !== id\)/comments.kept/%e2e:comments.spec.ts:✕ removes a comment from the file
-ping never deleted%explainers/comments.py%s/\(bundle \/ "ping"\).unlink\(missing_ok=True\)/None/%tests/py/test_comments.py::test_wait_wakes_on_ping_prints_and_deletes_it
+ping without the lesson folder%src/main/windows.ts%s/EXPLAINER: w.dir/EXPLAINER: ''/%e2e:comments.spec.ts:each Ping runs the command once, in the lesson's folder
+a failing ping silent%src/main/windows.ts%s/if \(err\) dialog.showErrorBox/if (false) dialog.showErrorBox/%e2e:comments.spec.ts:a failing Ping command says so
+unset ping runs the template%src/renderer/src/Comments.tsx%s/if \(command\) window.api.ping\(command\)/if (true) window.api.ping(command ?? TEMPLATE)/%e2e:comments.spec.ts:Ping with no command shows the template
+comment keys taken by the player%src/renderer/src/App.tsx%s/      if \(e.target instanceof HTMLTextAreaElement\) return.*\n//%e2e:comments.spec.ts:typing a comment keeps every key
 quote by code points%explainers/comments.py%s/return text.encode\("utf-16-le"\)\[2 \* start:2 \* end\].decode\("utf-16-le"\)/return text[start:end]/%tests/py/test_comments.py::test_prints_exactly_the_files_comments_in_cell_order
 span from rendered text%src/renderer/src/selection.ts%s/const span: \[number, number\] = \[a!.off, b!.off\]/const span: [number, number] = [r.startOffset, r.endOffset]/%e2e:comments.spec.ts:a highlight comment stores the exact span
 unbuilt cells' prose not judged%src/main/bundle.ts%s/if \(sectionSha\(cell\) !== c.fingerprint.section_sha\) return false/if (cell.clip \&\& sectionSha(cell) !== c.fingerprint.section_sha) return false/%unit:bundle.spec.ts:an unbuilt bundle keeps comments whose prose is unchanged and drops those whose prose changed

@@ -22,5 +22,4 @@ export type Lesson = {
   alerts: Alert[]
   build: Build | null
   comments: Comment[]
-  pinging: boolean // the `ping` file exists: the model has not fetched yet
 }

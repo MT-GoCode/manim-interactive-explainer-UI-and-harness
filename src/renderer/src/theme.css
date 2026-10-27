@@ -211,16 +211,38 @@ body {
   position: fixed;
   right: 16px;
   bottom: 16px;
+  display: flex;
+  width: 120px;
+}
+.ping button {
   background: #2ea043;
   color: #fff;
   border: 0;
-  padding: 6px 14px;
-  border-radius: 4px;
+  padding: 6px 0;
   cursor: pointer;
 }
-.ping:disabled {
-  background: #3c3c3c;
-  color: #aaa;
+.ping .send {
+  flex: 3;
+  border-radius: 4px 0 0 4px;
+}
+.ping .settings {
+  flex: 1;
+  border-left: 1px solid #1f7a32;
+  border-radius: 0 4px 4px 0;
+}
+.ping textarea {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  width: 520px;
+  height: 64px;
+  background: #1f1f1f;
+  color: #cccccc;
+  border: 1px solid #3c3c3c;
+  font:
+    13px / 1.4 ui-monospace,
+    Menlo,
+    monospace;
 }
 .comment-box .refused {
   color: #f48771;

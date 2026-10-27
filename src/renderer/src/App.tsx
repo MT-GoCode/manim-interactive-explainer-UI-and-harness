@@ -89,9 +89,10 @@ export function App() {
   }, [slug])
 
   useEffect(() => {
-    // Captured before anything else; only a text input (Find, Go to) keeps its keys.
+    // Captured before anything else; only text boxes (Find, Go to, a comment, the Ping command) keep their keys.
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement && e.target.type === 'text') return
+      if (e.target instanceof HTMLTextAreaElement) return // a comment, the Ping command
       if ((e.target as Element).closest?.('.cm-editor')) return // typing in a cell
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const act: Record<string, () => void> = {
@@ -208,7 +209,7 @@ export function App() {
         </button>
       )}
       {draft && <CommentBox draft={draft} close={() => setDraft(null)} />}
-      <PingButton pinging={lesson.pinging} />
+      <PingButton />
       {finding > 0 && (
         <Find ask={finding} lesson={lesson} setCur={setCur} close={() => setFinding(0)} />
       )}

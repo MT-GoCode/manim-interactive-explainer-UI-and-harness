@@ -3,15 +3,14 @@
 Read this before making or editing a lesson.
 
 1. Each lesson is a folder `~/Documents/explainers/<slug>.explainer/`: `cells.md` (the transcript), `lesson.py` (the
-   Manim scene) and any helper scripts or data. Never touch `build/`, `comments.json` or `ping`.
+   Manim scene) and any helper scripts or data. Never touch `build/` or `comments.json`.
 2. If the lesson needs numbers, write a script that computes them (e.g. `helpers.py`, imported by `lesson.py`). Prose
    never types a number: it writes `{name}` or `{name:.3f}`, filled in from `lesson.py` at build time.
 3. Meanwhile, write `cells.md` and `lesson.py` in parallel: one `## slug` section per `self.cell("slug")`, same order.
 4. Build with `explain-build <bundle>`; it renders all cells in parallel. Fix each error at the `lesson.py` line it
    names, and rebuild until it prints `built`.
-5. Minh opens the lesson in the Explainers app, comments, and presses Ping. Keep `fetch-comments --wait <bundle>`
-   running: it waits for the ping, prints each comment, and exits. Answer, then start it again. Edit a cell only when
-   asked, then rebuild.
+5. Minh opens the lesson in the Explainers app, comments, and presses Ping, which sends you a message. Then run
+   `fetch-comments <bundle>`: it prints each open comment. Answer them. Edit a cell only when asked, then rebuild.
 6. Follow the heuristics below.
 
 # Minh's lesson heuristics (binding for every lesson)

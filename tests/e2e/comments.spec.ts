@@ -1,9 +1,9 @@
-import { spawn, execFileSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import { createHash } from 'crypto'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { ElectronApplication, Page } from '@playwright/test'
-import { expect, firstLesson, fixture, ROOT, test } from './app'
+import { current, expect, firstLesson, fixture, ROOT, test } from './app'
 
 const SUM = 2
 const PROBS = 4
@@ -196,27 +196,66 @@ test('a bundle whose comments went stale while closed is pruned when it opens', 
   await expect.poll(() => stored(b).map((c) => c.id)).toEqual(['aaaaaaa2'])
 })
 
-test('Ping writes ping and waits until it is gone', async ({ launch }, info) => {
-  const { b, page } = await open(launch, info.outputDir)
-  await page.locator('.ping').click({ force: true })
-  await expect(page.locator('.ping')).toHaveText('waiting…')
-  expect(existsSync(join(b, 'ping'))).toBe(true)
-  rmSync(join(b, 'ping'))
-  await expect(page.locator('.ping')).toHaveText('Ping')
+async function setPing(page: Page, command: string) {
+  await page.locator('.ping .settings').click({ force: true })
+  await page.locator('.ping textarea').fill(command)
+  await page.locator('.ping .settings').click({ force: true })
+}
+const ping = (page: Page) => page.locator('.ping .send').click({ force: true })
+
+test('Ping with no command shows the template', async ({ launch }, info) => {
+  test.skip(!!process.env.EX_EXECUTABLE, 'needs electron -r (the dev app)')
+  // error boxes recorded, never shown: a build that runs the template must fail here, not pop a dialog
+  const app = await launch([fixture(info.outputDir)], undefined, { stubErrorBox: true })
+  const page = await firstLesson(app)
+  await ping(page)
+  await expect(page.locator('.ping textarea')).toHaveValue(
+    'paseo send --no-wait <agent-id> "Check my comments: fetch-comments $EXPLAINER"'
+  )
 })
 
-test('a comment reaches fetch-comments --wait', async ({ launch }, info) => {
+test("each Ping runs the command once, in the lesson's folder", async ({ launch }, info) => {
+  const { b, page } = await open(launch, info.outputDir)
+  const out = join(info.outputDir, 'pings')
+  await setPing(page, `printf '%s\\n' "$EXPLAINER" "$PWD" >> ${JSON.stringify(out)}`)
+  for (let i = 0; i < 3; i++) await ping(page)
+  await expect
+    .poll(() => (existsSync(out) ? readFileSync(out, 'utf8').trim().split('\n') : []))
+    .toEqual([b, b, b, b, b, b])
+})
+
+test('a failing Ping command says so', async ({ launch }, info) => {
+  test.skip(!!process.env.EX_EXECUTABLE, 'needs electron -r (the dev app)')
+  const b = fixture(info.outputDir)
+  const app = await launch([b], undefined, { stubErrorBox: true })
+  const page = await firstLesson(app)
+  await setPing(page, 'echo no such agent >&2; exit 3')
+  await ping(page)
+  await expect
+    .poll(() => app.evaluate(() => (globalThis as unknown as { errorBoxes: unknown[] }).errorBoxes))
+    .toEqual([
+      { title: 'Ping failed', message: 'echo no such agent >&2; exit 3\n\nno such agent\n' }
+    ])
+})
+
+test('a comment reaches the agent through Ping', async ({ launch }, info) => {
   test.slow() // it starts a Python process, which under the full suite's load can take tens of seconds
   const { b, page } = await open(launch, info.outputDir)
-  const fetch = spawn(join(ROOT, 'bin/fetch-comments'), ['--wait', b])
-  let out = ''
-  fetch.stdout.on('data', (d) => (out += d))
-  const done = new Promise<number | null>((r) => fetch.on('exit', r))
+  const out = join(info.outputDir, 'fetched')
+  await setPing(page, `${join(ROOT, 'bin/fetch-comments')} "$EXPLAINER" > ${JSON.stringify(out)}`)
   await commentCell(page, SUM, 'Why add them?')
   await expect.poll(() => stored(b).length).toBe(1)
-  await page.locator('.ping').click({ force: true })
-  expect(await done).toBe(0)
-  expect(out.trim()).toMatch(/^[0-9a-f]{8} · #3 sum · whole cell → Why add them\?$/)
-  expect(existsSync(join(b, 'ping'))).toBe(false)
-  await expect(page.locator('.ping')).toHaveText('Ping')
+  await ping(page)
+  await expect
+    .poll(() => (existsSync(out) ? readFileSync(out, 'utf8').trim() : ''), { timeout: 30000 })
+    .toMatch(/^[0-9a-f]{8} · #3 sum · whole cell → Why add them\?$/)
+})
+
+test('typing a comment keeps every key', async ({ launch }, info) => {
+  const { page } = await open(launch, info.outputDir)
+  await page.locator('.cell').nth(SUM).locator('.add-comment').click({ force: true })
+  await page.locator('.comment-box textarea').focus()
+  await page.keyboard.type('r, then. a b')
+  await expect(page.locator('.comment-box textarea')).toHaveValue('r, then. a b')
+  expect(await current(page)).toEqual({ i: 0, lit: 1 })
 })

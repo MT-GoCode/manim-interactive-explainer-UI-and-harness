@@ -1,11 +1,9 @@
-"""fetch-comments on the softmax fixture with hand-written comments.json files: exact lines, --wait, and reading
+"""fetch-comments on the softmax fixture with hand-written comments.json files: exact lines, and reading
 while the app's own atomic writer (Node writeFileSync + renameSync) replaces the file."""
 import json
 import subprocess
-import time
 from pathlib import Path
 
-from conftest import REPO
 
 from explainers.comments import lines
 
@@ -34,19 +32,6 @@ def test_prints_exactly_the_files_comments_in_cell_order(bundle):
         "aaaaaaa3 · #5 probs · whole cell → Say why⏎they sum to 1",
         "aaaaaaa4 · #– gone · about gone",
     ]
-
-
-def test_wait_wakes_on_ping_prints_and_deletes_it(bundle):
-    b = bundle()
-    write(b, [c("aaaaaaa1", "sum", None, "hello")])
-    p = subprocess.Popen([str(REPO / "bin" / "fetch-comments"), "--wait", str(b)], stdout=subprocess.PIPE, text=True)
-    time.sleep(1.5)  # it is waiting: nothing printed, still running
-    assert p.poll() is None
-    (b / "ping").write_text("")
-    out, _ = p.communicate(timeout=30)
-    assert p.returncode == 0
-    assert out.splitlines() == ["aaaaaaa1 · #3 sum · whole cell → hello"]
-    assert not (b / "ping").exists()
 
 
 def test_a_reader_never_sees_half_a_file(bundle):
