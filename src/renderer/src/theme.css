@@ -47,7 +47,14 @@ body {
 .transcript {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0 40vh;
+  padding-top: 8px;
+}
+/* Room to scroll the last cell up, as content: padding would set a floor on the transcript's height, and a tall
+   player plus that floor overflows the window and scrolls the page, player and all. */
+.transcript::after {
+  content: '';
+  display: block;
+  height: 40vh;
 }
 .cell {
   display: flex;
