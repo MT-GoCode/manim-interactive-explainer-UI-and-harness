@@ -1,0 +1,24 @@
+appId: com.mtgocode.explainers
+productName: Explainers
+# Main and preload bundle their dependencies, so the app needs nothing from node_modules.
+files:
+  - out/**
+mac:
+  target: dir
+  # Explicit ad-hoc signature (electron-builder 26: "-"); ad-hoc needs hardenedRuntime off.
+  identity: '-'
+  hardenedRuntime: false
+  # A .explainer folder is one document in Finder only with an exported package UTI (probed; fileAssociations
+  # alone is not enough).
+  extendInfo:
+    UTExportedTypeDeclarations:
+      - UTTypeIdentifier: com.mtgocode.explainer
+        UTTypeDescription: Explainer Lesson
+        UTTypeConformsTo: [com.apple.package, public.composite-content]
+        UTTypeTagSpecification: { public.filename-extension: [explainer] }
+    CFBundleDocumentTypes:
+      - CFBundleTypeName: Explainer Lesson
+        CFBundleTypeRole: Viewer
+        LSHandlerRank: Owner
+        LSItemContentTypes: [com.mtgocode.explainer]
+        LSTypeIsPackage: true

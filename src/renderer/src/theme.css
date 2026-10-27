@@ -1,0 +1,109 @@
+/* VS Code Dark Modern palette on black. The player sits on top; the transcript scrolls below it. */
+html,
+body {
+  margin: 0;
+  background: #000;
+  color: #cccccc;
+  font:
+    16px / 1.5 -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  overflow: hidden;
+}
+.app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.banner {
+  background: #5a1d1d;
+  color: #f48771;
+  padding: 6px 12px;
+}
+.player {
+  flex: none;
+  background: #000;
+}
+.player video,
+.player .noclip {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.player .noclip {
+  display: grid;
+  place-items: center;
+  color: #f48771;
+}
+.player input[type='range'] {
+  display: block;
+  width: 100%;
+  margin: 0;
+}
+.transcript {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0 40vh;
+}
+.cell {
+  display: flex;
+  gap: 12px;
+  padding: 4px 16px 4px 13px;
+  border-left: 3px solid transparent;
+  color: #777;
+  cursor: default;
+}
+.cell.current {
+  color: #ddd;
+  border-left-color: #0078d4;
+}
+.cell .n {
+  flex: none;
+  width: 2.5ch;
+  text-align: right;
+  color: #5a5a5a;
+  user-select: none;
+}
+.cell .md {
+  flex: 1;
+  min-width: 0;
+}
+.cell .md > :first-child {
+  margin-top: 0;
+}
+.cell .md > :last-child {
+  margin-bottom: 0;
+}
+.cell code {
+  font-family: Menlo, monospace;
+  background: #1e1e1e;
+}
+.bar {
+  position: fixed;
+  top: 8px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #252526;
+  border: 1px solid #3c3c3c;
+  padding: 4px 8px;
+}
+.bar input {
+  font: inherit;
+  color: inherit;
+  background: #3c3c3c;
+  border: 0;
+  outline: none;
+  padding: 2px 6px;
+}
+.bar .count {
+  color: #999;
+  min-width: 8ch;
+}
+::highlight(find) {
+  background-color: #623315;
+}
+::highlight(find-active) {
+  background-color: #9e6a03;
+}

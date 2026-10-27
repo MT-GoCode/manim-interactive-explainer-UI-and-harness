@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # The one entry point: every test category, results in test-results/<category>/, counts in test-results/summary.txt.
 #   ./test            everything        ./test py -k grammar     one category, extra args passed through
+# Categories run in this order: py, unit, e2e, perf (alone: it measures the machine), packaged.
 set -uo pipefail
 cd "$(dirname "$0")"
 # Lowest priority and macOS background QoS, so the person using this machine never waits on the tests.
@@ -9,16 +10,43 @@ rm -rf test-results && mkdir -p test-results
 want=${1:-all}; [ $# -gt 0 ] && shift
 status=0
 summary() { echo "$1" >> test-results/summary.txt; }
+tally() {  # category: counts summed over every <testsuite> of its junit file (pytest and Playwright alike)
+  summary "$1 $(python3 -c "
+import sys, xml.etree.ElementTree as E
+s = list(E.parse(sys.argv[1]).getroot().iter('testsuite'))
+print(' '.join(f'{k}={sum(int(x.get(k) or 0) for x in s)}' for k in ('tests', 'failures', 'errors', 'skipped')))
+" "test-results/$1/junit.xml" 2>/dev/null || echo 'no results')"
+}
+run() { [ "$want" = all ] || [ "$want" = "$1" ]; }
+playwright() {  # project [args]: the app's Playwright project, against out/ or EX_EXECUTABLE; results under
+  # test-results/$EX_PROJECT (default: the project's name)
+  EX_PROJECT=${EX_PROJECT:-$1} npx playwright test --project "$1" --workers "${JOBS:-2}" "${@:2}"
+}
 summary "commit $(git rev-parse --short HEAD)$([ -z "$(git status --porcelain -- . ':!JOURNEY-explainers')" ] || echo '+dirty')"
-if [ "$want" = all ] || [ "$want" = py ]; then
-  uv run -q pytest tests/py -n "${JOBS:-2}" --dist loadgroup -q --junitxml=test-results/py/junit.xml "$@"; rc=$?
-  summary "py $(python3 -c "import xml.etree.ElementTree as E;s=E.parse('test-results/py/junit.xml').getroot().find('testsuite');print(f\"tests={s.get('tests')} failures={s.get('failures')} errors={s.get('errors')} skipped={s.get('skipped')}\")")"
-  [ $rc -eq 0 ] || status=1
+if run py; then
+  uv run -q pytest tests/py -n "${JOBS:-2}" --dist loadgroup -q --junitxml=test-results/py/junit.xml "$@" || status=1
+  tally py
 fi
-if [ "$want" = all ] || [ "$want" = perf ]; then  # alone and last: it measures the machine
-  uv run -q pytest tests/perf -q -s --junitxml=test-results/perf/junit.xml "$@"; rc=$?
-  summary "perf $(python3 -c "import xml.etree.ElementTree as E;s=E.parse('test-results/perf/junit.xml').getroot().find('testsuite');print(f\"tests={s.get('tests')} failures={s.get('failures')} errors={s.get('errors')}\")")"
-  [ $rc -eq 0 ] || status=1
+if run unit || run e2e; then npx electron-vite build >/dev/null || status=1; fi
+if run unit; then playwright unit "$@" || status=1; tally unit; fi
+if run e2e; then playwright e2e "$@" || status=1; tally e2e; fi
+if run perf; then
+  uv run -q pytest tests/perf -q -s --junitxml=test-results/perf/junit.xml "$@" || status=1
+  tally perf
+fi
+if run packaged; then
+  # A test copy of the packaged app, registered for the run; Minh's own install is re-registered afterwards.
+  lsr=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+  copy=~/Applications/"Explainers Test.app"
+  if npm run -s dist >/dev/null; then
+    rm -rf "$copy" && ditto dist/mac-arm64/Explainers.app "$copy" && "$lsr" -f "$copy"
+    exe="$copy/Contents/MacOS/Explainers"
+    EX_PROJECT=packaged-e2e EX_EXECUTABLE=$exe playwright e2e "$@" || status=1
+    EX_EXECUTABLE=$exe playwright packaged "$@" || status=1
+    "$lsr" -u "$copy"; rm -rf "$copy"
+    [ -d ~/Applications/Explainers.app ] && "$lsr" -f ~/Applications/Explainers.app
+  else status=1; fi
+  tally packaged-e2e; tally packaged
 fi
 cat test-results/summary.txt
 exit $status

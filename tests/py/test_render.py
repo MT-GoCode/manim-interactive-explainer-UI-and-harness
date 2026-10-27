@@ -62,6 +62,7 @@ def test_index_validates_and_clips_are_named_by_content(built):
     import hashlib
     b, index = ok(built)
     jsonschema.validate(index, json.loads((REPO / "schema" / "index.schema.json").read_text()))
+    assert index["fps"] == 30
     for c in index["cells"]:
         clip = b / "build" / c["clip"]
         assert clip.name == f"{c['frames_sha']}.mp4" == f"{hashlib.sha256(clip.read_bytes()).hexdigest()}.mp4"

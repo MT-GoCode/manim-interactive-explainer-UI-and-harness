@@ -174,7 +174,7 @@ def commit(bundle: Path, rec: dict, parts: dict[int, Path]) -> Path:
     """Write each cell's clip under its content hash, then index.json last and atomically: a reader always sees a
     whole old build or a whole new one. Clips of neither the new nor the previous build are deleted."""
     import jsonschema
-    from explainers.render import frames_sha, join
+    from explainers.render import FPS, frames_sha, join
     build = bundle / "build"
     clips = build / "clips"
     clips.mkdir(exist_ok=True)
@@ -188,7 +188,8 @@ def commit(bundle: Path, rec: dict, parts: dict[int, Path]) -> Path:
         os.replace(tmp, clips / f"{sha}.mp4")
         cells.append({"slug": c.slug, "clip": f"clips/{sha}.mp4", "frames_sha": sha, "frames": frames})
     index = {"format": "explainer", "version": 1, "lesson_sha": rec["lesson_sha"], "inputs": rec["inputs"],
-             "repo_root": rec["repo_root"], "manim_version": rec["manim_version"], "refs": rec["refs"], "cells": cells}
+             "repo_root": rec["repo_root"], "manim_version": rec["manim_version"], "fps": FPS, "refs": rec["refs"],
+             "cells": cells}
     jsonschema.validate(index, json.loads((REPO / "schema" / "index.schema.json").read_text()))
     tmp = build / "index.json.tmp"
     tmp.write_text(json.dumps(index, indent=1) + "\n")

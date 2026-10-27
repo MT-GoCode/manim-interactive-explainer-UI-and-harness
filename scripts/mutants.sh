@@ -14,9 +14,9 @@ filter=${1:-}
 
 # name % file % perl substitution (applied with -0pi) % the test that must kill it   (% never occurs in a pattern)
 MUTANTS=$(cat <<'EOF'
-autolink text counted%tools/cells.mjs%s/if \(ancestors.some\(\(a\) => isAutolink\(text, a\)\)\) return/if (false) return/%tests/py/test_grammar.py::test_reader_matches_golden[link-url-and-autolink]
-autolink decided by label text%tools/cells.mjs%s/text\[n.position.start.offset\] !== '\['/n.url === n.children.map((c) => c.value).join('')/%tests/py/test_grammar.py::test_reader_matches_golden[link-url-and-autolink]
-escaped brace counted%tools/cells.mjs%s/\(\?<!\\\\\)\\\{/\\{/%tests/py/test_grammar.py::test_reader_matches_golden[escaped-brace-is-literal]
+autolink text counted%tools/grammar.mjs%s/if \(ancestors.some\(\(a\) => isAutolink\(source, a\)\)\) return/if (false) return/%tests/py/test_grammar.py::test_reader_matches_golden[link-url-and-autolink]
+autolink decided by label text%tools/grammar.mjs%s/source\[n.position.start.offset\] !== '\['/n.url === n.children.map((c) => c.value).join('')/%tests/py/test_grammar.py::test_reader_matches_golden[link-url-and-autolink]
+escaped brace counted%tools/grammar.mjs%s/\(\?<!\\\\\)\\\{/\\{/%tests/py/test_grammar.py::test_reader_matches_golden[escaped-brace-is-literal]
 uppercase slug accepted%tools/cells.mjs%s/\^## \(\[a-z0-9-\]\+\)/^## ([A-Za-z0-9-]+)/%tests/py/test_grammar.py::test_reader_matches_golden[uppercase-heading-is-error]
 closing hashes accepted%tools/cells.mjs%s/\[ \\t\]\*\$\/.exec/[ \\t#]*\$\/.exec/%tests/py/test_grammar.py::test_reader_matches_golden[closing-hashes-is-error]
 section end off by one%tools/cells.mjs%s/heads\[i \+ 1\].start : text.length/heads[i + 1].start - 1 : text.length/%tests/py/test_grammar.py::test_reader_matches_golden[basic]

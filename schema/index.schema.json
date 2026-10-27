@@ -11,6 +11,7 @@
     "inputs",
     "repo_root",
     "manim_version",
+    "fps",
     "refs",
     "cells"
   ],
@@ -84,6 +85,10 @@
           }
         }
       }
+    },
+    "fps": {
+      "type": "integer",
+      "minimum": 1
     }
   },
   "$defs": {
