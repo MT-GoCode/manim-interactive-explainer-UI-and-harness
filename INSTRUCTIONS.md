@@ -45,12 +45,14 @@ Read this before making or editing a lesson.
     look: at what just appeared or moved.
 13. **Use the whole stage.** The frame is wide: 2:1, 16 × 8 units. Put things side by side on one line before
     stacking them. Prefer a few big, well-spaced elements to many small ones.
-14. **A row of labels is one line.** Labels over a row of cells sit on one line, each centred over its cell. Never
-    stagger them up and down to dodge an overlap: shorten them, widen the cells, or show fewer.
+14. **A row of labels is one line.** Labels over a row of cells sit on one line and one baseline (not centred by
+    their own height: "Lyon" and "a" must not float above "the"), each centred over its cell. Never stagger them up
+    and down to dodge an overlap: shorten them, widen the cells, or show fewer.
 15. **Quiet visuals.** No decoration: no borders, shadows, gradients or icons that carry no information. One accent
     colour means "look here", one means "wrong", and a colour means the same thing in every cell.
-16. **Align and space evenly.** Things that belong together share a row or a column edge, with equal gaps, so the
-    picture reads as a grid.
+16. **Align, space evenly, balance.** Things that belong together share a row or a column edge, with equal gaps, so
+    the picture reads as a grid. The picture as a whole is centred on the stage: two parts side by side share it
+    with an even gap, never pinned to the edges, and no large band of the frame stays empty.
 17. **Words go in the transcript.** On screen: labels, numbers and formulas only. Sentences belong in cells.md.
 18. **Things stay put.** An object that stays on screen keeps its place from cell to cell. Move it only when the
     movement is the point.
