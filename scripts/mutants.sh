@@ -132,9 +132,9 @@ PY
   elif [ -f "$dir/junit.xml" ] && grep -q "<error" "$dir/junit.xml"; then echo "BROKE (error, not a failure): $name   ($test)"; return 1
   else echo "SURVIVED: $name   (should be killed by $test)"; return 1; fi
 }
-clone() {
-  cp -cR "$root" "$1" 2>/dev/null || cp -R "$root" "$1"
-  rm -rf "$1/.venv" "$1/node_modules" "$1/.tinytex" "$1/test-results"
+clone() {  # the working tree's own files (tracked and not ignored, edits included); big shared dirs by symlink
+  mkdir -p "$1"
+  (cd "$root" && git ls-files -co --exclude-standard -z) | rsync -a --from0 --files-from=- "$root/" "$1/"
   ln -s "$root/node_modules" "$1/node_modules"; ln -s "$root/.tinytex" "$1/.tinytex"
 }
 suite() {  # dir [test ids...]: run the tests in the clone on its own code. A pytest node id, or an app test named
