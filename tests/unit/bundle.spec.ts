@@ -12,7 +12,7 @@ import {
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { expect, test } from '@playwright/test'
-import { clipPath, clipUrl, load, LoadError } from '../../src/main/bundle'
+import { byteRange, clipPath, clipUrl, load, LoadError } from '../../src/main/bundle'
 import { fixture, ROOT } from '../e2e/app'
 
 const edit = (path: string, f: (s: string) => string) =>
@@ -140,4 +140,15 @@ test('a vanished cells.md and a half-written index.json are load errors', async 
   rmSync(join(b, 'cells.md'))
   expect(() => load(b)).toThrow(LoadError)
   expect(() => load(b)).toThrow(`${join(b, 'cells.md')}: ENOENT`)
+})
+
+test('byteRange answers what a video asks for', () => {
+  expect(byteRange(null, 100)).toBeNull()
+  expect(byteRange('bytes=0-', 100)).toEqual({ start: 0, end: 99 })
+  expect(byteRange('bytes=10-19', 100)).toEqual({ start: 10, end: 19 })
+  expect(byteRange('bytes=90-200', 100)).toEqual({ start: 90, end: 99 })
+  expect(byteRange('bytes=-30', 100)).toEqual({ start: 70, end: 99 })
+  expect(byteRange('bytes=100-', 100)).toBe('unsatisfiable')
+  expect(byteRange('bytes=20-10', 100)).toBeNull() // invalid: ignored, the whole file (RFC 9110)
+  expect(byteRange('bytes=0-1, 5-6', 100)).toBeNull() // multiple ranges: not served as such
 })

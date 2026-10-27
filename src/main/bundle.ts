@@ -62,6 +62,22 @@ export function clipPath(url: string, dirs: string[]): string | null {
     : null
 }
 
+// The bytes an HTTP Range header asks of a file of `size` bytes: null for the whole file (no header, or one this
+// does not parse: RFC 9110 says to ignore it), 'unsatisfiable' for a range that starts past the end.
+// <video> treats a clip as seekable only if its responses carry Content-Length and Accept-Ranges and ranges get 206.
+export function byteRange(
+  header: string | null,
+  size: number
+): { start: number; end: number } | null | 'unsatisfiable' {
+  const m = header === null ? null : /^bytes=(\d*)-(\d*)$/.exec(header)
+  if (!m || (m[1] === '' && m[2] === '')) return null
+  if (m[1] === '') return { start: Math.max(0, size - Number(m[2])), end: size - 1 }
+  const start = Number(m[1])
+  const end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1)
+  if (end < start) return null
+  return start < size ? { start, end } : 'unsatisfiable'
+}
+
 // The lesson, and the repo files its build read (main watches them for the stale alert).
 export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
   const text = read(join(dir, 'cells.md'), (t) => t)
