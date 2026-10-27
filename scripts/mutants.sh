@@ -129,14 +129,14 @@ leaving does not save%src/renderer/src/Editor.tsx%s/if \(!e.currentTarget.contai
 Esc saves%src/renderer/src/Editor.tsx%s/\{ key: 'Escape', run: \(\) => \(onCancel\(\), true\) \}/{ key: 'Escape', run: () => (onSave(), true) }/%e2e:edit.spec.ts:Esc discards the edit
 keys handled inside the editor%src/renderer/src/App.tsx%s/      if \(\(e.target as Element\).closest\?.\('.cm-editor'\)\) return \/\/ typing in a cell\n//%e2e:edit.spec.ts:keys typed in the editor stay in the editor
 paste role missing%src/main/index.ts%s/            \{ id: 'paste', role: 'paste' \},\n//%e2e:clipboard.spec.ts:paste works in the editor
-unresolved ref not red%src/renderer/src/atoms.ts%s/known\(h\) \? 'ref' : 'unresolved'/'ref'/%e2e:edit.spec.ts:an unknown ref is red
+unresolved ref not red%src/renderer/src/atoms.ts%s/\? 'ref' : 'unresolved'/? 'ref' : 'ref'/%e2e:edit.spec.ts:an unknown ref is red
 rendered text copied%src/renderer/src/copy.ts%s/(export function copySource\(e: ClipboardEvent, cells: Cell\[\]\): void \{)/$1\n  if (cells) return/%e2e:copy.spec.ts:copy across a formula, a bold word and a code span is the exact source
 no widening%src/renderer/src/copy.ts%s/const atom = atomOf\(el, md\)/const atom = null/%e2e:copy.spec.ts:a selection inside a formula is the whole formula
 display math unwrapped%src/renderer/src/stamp.ts%s/else if \(display && c.position\) parent/else if (false) parent/%e2e:copy.spec.ts:a selection inside a formula is the whole formula
 fence not an atom%src/renderer/src/stamp.ts%s/else if \(c.tagName === 'pre' && c.position\)/else if (false)/%e2e:copy.spec.ts:a selection inside a fenced code block is the whole block
 inexact treated as exact%src/renderer/src/stamp.ts%s/c.value === md.slice\(r.dataS, r.dataE\) \? \{ dataX: '' \} : \{\}/{ dataX: '' }/%e2e:copy.spec.ts:a selection inside an escaped run is its whole source
-ref not an atom%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, className/{ dataS: g.hit.start, dataE: g.hit.end, className/%e2e:copy.spec.ts:a selection inside a ref is the whole ref
-atom unstamped%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, className/{ dataAtom: '', className/%unit:grammar.spec.ts:atoms carry their source range
+ref not an atom%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, \.\.\.props\(g.hit\) \}/{ dataS: g.hit.start, dataE: g.hit.end, ...props(g.hit) }/%e2e:copy.spec.ts:a selection inside a ref is the whole ref
+atom unstamped%src/renderer/src/atoms.ts%s/\{ dataAtom: '', dataS: g.hit.start, dataE: g.hit.end, \.\.\.props\(g.hit\) \}/{ dataAtom: '', ...props(g.hit) }/%unit:grammar.spec.ts:atoms carry their source range
 cross-cell join without heads%src/renderer/src/copy.ts%s/return out \+ cells\[b.cell\].head \+ '\\n' \+ /return out + /%e2e:copy.spec.ts:copy across cells is the file between the two points
 container points not normalized%src/renderer/src/copy.ts%s/return l \? \{ cell: ci, off: num\(l, 'e'\) \} : prev\(\)/return l ? { cell: ci, off: num(l, 'e') } : null/%e2e:copy.spec.ts:a triple-clicked paragraph is its source
 an open edit replaced%src/renderer/src/App.tsx%s/if \(edit.current === null\)\n\s*setEditing/setEditing/%e2e:edit.spec.ts:double-clicking another cell keeps an edit with a conflict
