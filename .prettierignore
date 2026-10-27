@@ -1,0 +1,3 @@
+# Fixtures are data with exact bytes (line numbers, golden offsets): never reformatted.
+tests/fixtures/
+JOURNEY-explainers/

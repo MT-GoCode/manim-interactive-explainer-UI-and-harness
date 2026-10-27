@@ -6,7 +6,12 @@ import { clipPath } from './bundle'
 import { fileMenu, openDirs, openInitial, openPaths } from './windows'
 
 if (process.env.EX_USER_DATA) app.setPath('userData', process.env.EX_USER_DATA)
-if (process.env.EX_INVISIBLE) app.dock?.hide()
+if (process.env.EX_INVISIBLE) {
+  app.dock?.hide()
+  // Test windows are transparent and click-through, which macOS reports as occluded; Chromium would then stop
+  // presenting video frames (measured: no frame callbacks after a seek in the logged-in session).
+  app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
+}
 
 // One instance per userData: two would both rewrite session.json. A second launch hands its
 // bundles to the first and exits without running quit handlers (which would save a session).
