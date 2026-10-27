@@ -10,7 +10,9 @@ const ref = JSON.parse(readFileSync(FRAMES, 'utf8')) as {
   frames: number[][]
 }
 const { k, fps } = ref
-const PROBS = 4 // cell index of "probs"
+// Cell "divide": a formula moving across the frame. Frames must differ by motion, not only brightness (a fade):
+// Chromium's and FFmpeg's colour conversions differ slightly, so brightness alone does not name a frame.
+const DIVIDE = 3
 
 // Which decoded frame the video shows: its 64×36 canvas readback, nearest (L1) among all frames of the clip.
 const shown = (page: Page) =>
@@ -55,9 +57,9 @@ const seekedAfter = (page: Page, key: string) =>
     page.keyboard.press(key)
   ])
 
-async function onProbs(page: Page): Promise<void> {
-  for (let i = 0; i < PROBS; i++) await page.keyboard.press('ArrowDown')
-  await expect.poll(() => current(page)).toEqual({ i: PROBS, lit: 1 })
+async function onDivide(page: Page): Promise<void> {
+  for (let i = 0; i < DIVIDE; i++) await page.keyboard.press('ArrowDown')
+  await expect.poll(() => current(page)).toEqual({ i: DIVIDE, lit: 1 })
   await page.waitForFunction(() => document.querySelector('video')!.readyState >= 2)
 }
 
@@ -78,7 +80,7 @@ test('arrows and clicks light exactly one cell and play its clip', async ({ laun
 test('seek and step land on frames k and k+1', async ({ launch }, info) => {
   const app = await launch([fixture(info.outputDir)])
   const page = await firstLesson(app)
-  await onProbs(page)
+  await onDivide(page)
   await seek(page, (k + 0.5) / fps)
   expect(await shown(page)).toBe(k)
   await seekedAfter(page, '.')
@@ -90,7 +92,7 @@ test('seek and step land on frames k and k+1', async ({ launch }, info) => {
 test('r mid-clip rewinds and plays', async ({ launch }, info) => {
   const app = await launch([fixture(info.outputDir)])
   const page = await firstLesson(app)
-  await onProbs(page)
+  await onDivide(page)
   await seek(page, (k + 0.5) / fps)
   await page.keyboard.press('r')
   const v = await video(page)
@@ -102,7 +104,7 @@ test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
   const b = fixture(info.outputDir)
   const app = await launch([b])
   const page = await firstLesson(app)
-  await onProbs(page)
+  await onDivide(page)
   await page.evaluate(() => {
     const g = globalThis as unknown as { errors: number }
     g.errors = 0
@@ -110,11 +112,11 @@ test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
   })
   await seek(page, (k + 0.5) / fps)
   const before = await video(page)
-  // A new last animation in "probs": a new clip, whose earlier frames are the same bytes (per-animation partials).
+  // A new last animation in "divide": a new clip, whose earlier frames are the same bytes (per-animation partials).
   const lesson = join(b, 'lesson.py')
   const src = readFileSync(lesson, 'utf8')
-  const top = src.indexOf('        self.cell("top")')
-  writeFileSync(lesson, src.slice(0, top) + '        self.wait(0.5)\n' + src.slice(top))
+  const next = src.indexOf('        self.cell("probs")')
+  writeFileSync(lesson, src.slice(0, next) + '        self.wait(0.5)\n' + src.slice(next))
   execFileSync(join(ROOT, 'bin/explain-build'), [b])
   await expect.poll(async () => (await video(page)).src, { timeout: 30000 }).not.toBe(before.src)
   await page.waitForFunction(() => document.querySelector('video')!.readyState >= 2)
