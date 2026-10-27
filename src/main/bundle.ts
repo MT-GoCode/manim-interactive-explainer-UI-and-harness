@@ -6,7 +6,9 @@ import { pathToFileURL } from 'url'
 import Ajv2020 from 'ajv/dist/2020'
 import { readCells } from '../../tools/cells.mjs'
 import schema from '../../schema/index.schema.json'
+import type { Saved } from '../shared/ipc'
 import type { Alert, Lesson } from '../shared/lesson'
+import { atomicWrite } from './atomic'
 
 // Everything that can be wrong with a bundle on disk; shown to the reader, never thrown past main.
 export class LoadError extends Error {}
@@ -81,6 +83,46 @@ export function byteRange(
   return end < start ? null : { start, end }
 }
 
+// A section is its heading line and the cell's prose after it (a heading at the end of the file has no prose).
+function parts(section: string): { head: string; md: string } {
+  const nl = section.indexOf('\n')
+  return nl < 0
+    ? { head: section, md: '' }
+    : { head: section.slice(0, nl), md: section.slice(nl + 1) }
+}
+
+// Write one cell's prose, if that cell on disk is still what the edit began from (`base`). cells.md is re-read here,
+// so every other cell keeps whatever is on disk now. The section's trailing whitespace becomes exactly one newline,
+// plus one blank line before a following heading. Nothing is written unless the result has the same cells.
+export function saveSection(dir: string, slug: string, base: string, text: string): Saved {
+  const path = join(dir, 'cells.md')
+  let text0: string
+  try {
+    text0 = read(path, (t) => t)
+  } catch (e) {
+    return { t: 'invalid', message: (e as Error).message }
+  }
+  const found = readCells(text0)
+  if (found.errors.length) return { t: 'invalid', message: found.errors.join('\n') }
+  const i = found.sections.findIndex((s) => s.slug === slug)
+  if (i < 0) return { t: 'gone' }
+  const s = found.sections[i]
+  const { head, md } = parts(text0.slice(s.start, s.end))
+  if (md !== base) return { t: 'conflict', disk: md }
+  const last = i === found.sections.length - 1
+  const body = text.replace(/\s*$/, '\n') + (last ? '' : '\n')
+  const next = text0.slice(0, s.start) + head + '\n' + body + text0.slice(s.end)
+  const after = readCells(next)
+  const slugs = (r: typeof found) => r.sections.map((x) => x.slug).join(', ')
+  if (after.errors.length || slugs(after) !== slugs(found))
+    return {
+      t: 'invalid',
+      message: `This would change the cells (${after.errors.join('; ') || slugs(after)}); nothing was saved`
+    }
+  atomicWrite(path, next)
+  return { t: 'saved' }
+}
+
 // The lesson, and the repo files its build read (main watches them for the stale alert).
 export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
   const text = read(join(dir, 'cells.md'), (t) => t)
@@ -101,10 +143,11 @@ export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
   const clips = new Map(build?.cells.map((c) => [c.slug, c]))
   const cells = found.sections.map((s) => {
     const c = clips.get(s.slug)
-    const section = text.slice(s.start, s.end)
+    const { head, md } = parts(text.slice(s.start, s.end))
     return {
       slug: s.slug,
-      md: section.slice(section.indexOf('\n') + 1),
+      head,
+      md,
       clip: c
         ? { url: clipUrl(join(dir, 'build', c.clip)), frames: c.frames, fps: build!.fps }
         : null

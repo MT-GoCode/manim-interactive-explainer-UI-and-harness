@@ -102,9 +102,15 @@ if (primary)
         ...fileMenu(),
         {
           label: 'Edit',
+          // Roles carry ids so a test can click the item itself (a key event never reaches the menu).
           submenu: [
-            { role: 'copy' },
-            { role: 'selectAll' },
+            { id: 'undo', role: 'undo' },
+            { id: 'redo', role: 'redo' },
+            { type: 'separator' },
+            { id: 'cut', role: 'cut' },
+            { id: 'copy', role: 'copy' },
+            { id: 'paste', role: 'paste' },
+            { id: 'selectAll', role: 'selectAll' },
             { type: 'separator' },
             { id: 'find', label: 'Find…', accelerator: 'CmdOrCtrl+F', click: toWindow('find') },
             {

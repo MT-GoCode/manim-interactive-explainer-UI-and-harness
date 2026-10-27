@@ -111,3 +111,24 @@ body {
 ::highlight(find-active) {
   background-color: #9e6a03;
 }
+.unresolved {
+  color: #f48771;
+}
+.cell .editor {
+  flex: 1;
+  min-width: 0;
+}
+.cell .editor .problem,
+.editor .problem {
+  color: #f48771;
+  margin-top: 6px;
+}
+.editor .problem pre {
+  white-space: pre-wrap;
+  background: #1e1e1e;
+  color: #ccc;
+  padding: 4px 8px;
+}
+.editor .problem button {
+  font: inherit;
+}

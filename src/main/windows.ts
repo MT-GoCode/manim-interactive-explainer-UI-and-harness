@@ -11,7 +11,7 @@ import { existsSync, realpathSync, watch, type FSWatcher } from 'fs'
 import { basename, dirname, join, resolve } from 'path'
 import { CH, type Command } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
-import { load, LoadError } from './bundle'
+import { load, LoadError, saveSection } from './bundle'
 import { readSession, writeSession, type Entry } from './session'
 
 // Main is the single owner of window state and of everything read from disk.
@@ -51,6 +51,14 @@ function guarded(label: string, fn: () => unknown): void {
 ipcMain.handle(CH.init, (e) => {
   const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
   return { lesson: w.lesson, slug: w.slug }
+})
+// A saved cell is reloaded before the answer goes back (messages to one window keep their order), so the editor
+// closes onto the saved text; the watcher's later reload sends the same lesson again.
+ipcMain.handle(CH.save, (e, slug: string, base: string, text: string) => {
+  const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
+  const r = saveSection(w.dir, slug, base, text)
+  if (r.t === 'saved') reload(w)
+  return r
 })
 ipcMain.on(CH.at, (e, slug: string) => {
   const w = ofWin(BrowserWindow.fromWebContents(e.sender))!

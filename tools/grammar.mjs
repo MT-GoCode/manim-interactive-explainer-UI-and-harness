@@ -28,19 +28,20 @@ const nth = (s, needle, n) => {
 }
 const count = (s, needle) => s.split(needle).length - 1
 
-// Every value reference: [{ node, key, start, end, vstart, vend }]; start/end index `source`, vstart/vend index
-// node.value. Each literal `{key}` in a node's source, escaped or not, is exactly one `{key}` in its value (escapes,
-// entities and `> ` prefixes change lengths, not that count), so a hit's ordinal among them locates it in the value.
-export function refsIn(tree, source) {
+// Every match of RE (REF or LINK) in prose: [{ node, match, start, end, vstart, vend }]; start/end index `source`,
+// vstart/vend index node.value. Each literal match text in a node's source, escaped or not, is exactly one in its
+// value (escapes, entities and `> ` prefixes change lengths, not that count), so a hit's ordinal among them locates it
+// in the value.
+export function matchesIn(tree, source, re) {
   const out = []
   for (const { node, start, src } of textsIn(tree, source))
-    for (const m of src.matchAll(REF)) {
-      const lit = `{${m[1]}}`
-      // An entity-written brace (`&#123;x}`) is a `{x}` in the value that is not one in the source: the ordinals no
-      // longer line up, so the reference cannot be placed. It is the author's to fix, never a guess.
+    for (const m of src.matchAll(re)) {
+      const lit = m[0]
+      // An entity-written character (`&#123;x}`) makes a literal in the value that is not one in the source: the
+      // ordinals no longer line up, so the match cannot be placed. It is the author's to fix, never a guess.
       if (count(node.value, lit) !== count(src, lit))
         throw Object.assign(
-          new Error(`reference ${lit} beside a brace written as an entity; write it as {`),
+          new Error(`${lit} beside a character written as an entity; write it plainly`),
           {
             offset: start + m.index
           }
@@ -49,7 +50,7 @@ export function refsIn(tree, source) {
       const vstart = nth(node.value, lit, ordinal)
       out.push({
         node,
-        key: m[1],
+        match: m,
         start: start + m.index,
         end: start + m.index + lit.length,
         vstart,
@@ -58,3 +59,7 @@ export function refsIn(tree, source) {
     }
   return out
 }
+
+// Every value reference: matchesIn(REF) with its key ("p_top:.4f").
+export const refsIn = (tree, source) =>
+  matchesIn(tree, source, REF).map((h) => ({ ...h, key: h.match[1] }))

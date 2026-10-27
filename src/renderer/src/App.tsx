@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Command } from '../../shared/ipc'
 import type { Alert, Lesson } from '../../shared/lesson'
+import { Editor, type Problem } from './Editor'
 import { Find } from './Find'
 import { GoTo } from './GoTo'
 import { Player, type PlayerHandle } from './Player'
 import { Transcript } from './Transcript'
 
 type State = { lesson: Lesson; cur: number }
+// The one edit in progress: the cell, the text it began from, the text now, and what the last save answered.
+type Editing = { slug: string; base: string; buf: string; saving: boolean; problem: Problem | null }
 
 const banner = (lesson: Lesson): string[] => [
   ...(lesson.build === null ? ['Not built yet — run explain-build'] : []),
@@ -29,6 +32,17 @@ export function App() {
   const [finding, setFinding] = useState(0) // bumped by each ⌘F
   const [going, setGoing] = useState(0) // bumped by each ⌘G
   const player = useRef<PlayerHandle>(null)
+  const [editing, setEditingState] = useState<Editing | null>(null)
+  // The handlers below read the edit through this ref: an editor's focusout fired after Esc or a finished save
+  // (when it unmounts) finds no edit, or another one, and saves nothing.
+  const edit = useRef<Editing | null>(null)
+  const setEditing = useCallback((e: Editing | null) => {
+    edit.current = e
+    setEditingState(e)
+  }, [])
+  useLayoutEffect(() => {
+    edit.current = editing
+  }, [editing])
 
   useEffect(() => {
     window.api.init().then(({ lesson, slug }) =>
@@ -72,6 +86,7 @@ export function App() {
     // Captured before anything else; only a text input (Find, Go to) keeps its keys.
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement && e.target.type === 'text') return
+      if ((e.target as Element).closest?.('.cm-editor')) return // typing in a cell
       if (e.metaKey || e.ctrlKey || e.altKey) return
       const act: Record<string, () => void> = {
         ArrowUp: () => setS((o) => o && { ...o, cur: Math.max(0, o.cur - 1) }),
@@ -95,9 +110,55 @@ export function App() {
   // Stable, so a cell that did not change does not re-render (the transcript's cells are memoised on it).
   const setCur = useCallback((i: number) => setS((o) => o && { ...o, cur: i }), [])
 
+  const startEdit = useCallback(
+    (slug: string, md: string) =>
+      setEditing({ slug, base: md, buf: md, saving: false, problem: null }),
+    [setEditing]
+  )
+  const save = useCallback(
+    (base?: string) => {
+      const e = edit.current
+      if (!e || e.saving) return
+      const from = base ?? e.base
+      if (e.buf === from && base === undefined) return setEditing(null)
+      const sending = { ...e, base: from, saving: true, problem: null }
+      setEditing(sending)
+      window.api.save(e.slug, from, e.buf).then((r) => {
+        if (edit.current?.slug !== e.slug) return
+        if (r.t === 'saved') return setEditing(null)
+        // gone: the reload that dropped the heading already shows it (derived below)
+        setEditing({ ...sending, saving: false, problem: r.t === 'gone' ? null : r })
+      })
+    },
+    [setEditing]
+  )
+  const cancel = useCallback(() => setEditing(null), [setEditing])
+  const keepMine = useCallback(() => {
+    const p = edit.current?.problem
+    if (p?.t === 'conflict') save(p.disk)
+  }, [save])
+  const change = useCallback(
+    (buf: string) => edit.current && setEditing({ ...edit.current, buf }),
+    [setEditing]
+  )
+
   if (!s) return null
   const { lesson, cur } = s
   const lines = banner(lesson)
+  const gone = !!editing && !lesson.cells.some((c) => c.slug === editing.slug)
+  const editor = editing && (
+    <Editor
+      buf={editing.buf}
+      saving={editing.saving}
+      problem={editing.problem}
+      gone={gone}
+      onChange={change}
+      onSave={save}
+      onCancel={cancel}
+      onKeepMine={keepMine}
+      onBlurOut={save}
+    />
+  )
   return (
     <div className="app">
       {lines.length > 0 && (
@@ -108,7 +169,15 @@ export function App() {
         </div>
       )}
       <Player ref={player} slug={lesson.cells[cur].slug} clip={lesson.cells[cur].clip} />
-      <Transcript lesson={lesson} cur={cur} setCur={setCur} />
+      {gone && editor /* its cell is gone from cells.md: the edit stays, above the transcript */}
+      <Transcript
+        lesson={lesson}
+        cur={cur}
+        setCur={setCur}
+        editing={gone ? null : (editing?.slug ?? null)}
+        editor={gone ? null : editor}
+        startEdit={startEdit}
+      />
       {finding > 0 && (
         <Find ask={finding} lesson={lesson} setCur={setCur} close={() => setFinding(0)} />
       )}

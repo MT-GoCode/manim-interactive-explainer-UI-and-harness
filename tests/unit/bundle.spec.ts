@@ -12,7 +12,7 @@ import {
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { expect, test } from '@playwright/test'
-import { byteRange, clipPath, clipUrl, load, LoadError } from '../../src/main/bundle'
+import { byteRange, clipPath, clipUrl, load, LoadError, saveSection } from '../../src/main/bundle'
 import { fixture, ROOT } from '../e2e/app'
 
 const edit = (path: string, f: (s: string) => string) =>
@@ -78,7 +78,12 @@ test('a heading with no clip has a null clip', async ({}, info) => {
   const b = fixture(info.outputDir)
   appendFileSync(join(b, 'cells.md'), '\n## extra\nMore.\n')
   const { lesson } = load(b)
-  expect(lesson.cells.at(-1)).toEqual({ slug: 'extra', md: 'More.\n', clip: null })
+  expect(lesson.cells.at(-1)).toEqual({
+    slug: 'extra',
+    head: '## extra',
+    md: 'More.\n',
+    clip: null
+  })
   expect(lesson.alerts.map((a) => a.t)).toEqual(['order'])
 })
 
@@ -152,4 +157,50 @@ test('byteRange answers what a video asks for', () => {
   expect(byteRange('bytes=100-', 100)).toBe('unsatisfiable')
   expect(byteRange('bytes=20-10', 100)).toBeNull() // invalid: ignored, the whole file (RFC 9110)
   expect(byteRange('bytes=0-1, 5-6', 100)).toBeNull() // multiple ranges: not served as such
+})
+
+const cellsOf = (b: string) => readFileSync(join(b, 'cells.md'), 'utf8')
+const section = (b: string, slug: string) => load(b).lesson.cells.find((c) => c.slug === slug)!.md
+
+test('saveSection writes only its section', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  const before = cellsOf(b)
+  const base = section(b, 'sum')
+  expect(saveSection(b, 'sum', base, 'Sum them up.   \n\n\n')).toEqual({ t: 'saved' })
+  // one newline after the prose, then one blank line before the next heading
+  expect(cellsOf(b)).toBe(before.replace('## sum\n' + base, '## sum\nSum them up.\n\n'))
+  const last = section(b, 'top')
+  expect(saveSection(b, 'top', last, 'The end.')).toEqual({ t: 'saved' })
+  expect(cellsOf(b).endsWith('## top\nThe end.\n')).toBe(true) // the last cell: no blank line after it
+})
+
+test('saveSection answers conflict with the disk body', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  const base = section(b, 'sum')
+  writeFileSync(join(b, 'cells.md'), cellsOf(b).replace('Add them all', 'Add every one'))
+  const disk = cellsOf(b)
+  expect(saveSection(b, 'sum', base, 'Mine.')).toEqual({ t: 'conflict', disk: section(b, 'sum') })
+  expect(cellsOf(b)).toBe(disk)
+})
+
+test('saveSection answers gone', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  expect(saveSection(b, 'nope', '', 'x')).toEqual({ t: 'gone' })
+})
+
+test('saveSection refuses text that changes the cells', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  const before = cellsOf(b)
+  const r = saveSection(b, 'sum', section(b, 'sum'), 'Split.\n\n## extra\nNew.')
+  expect(r.t).toBe('invalid')
+  expect(cellsOf(b)).toBe(before)
+})
+
+test('saveSection reports an unreadable cells.md as invalid', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  rmSync(join(b, 'cells.md'))
+  expect(saveSection(b, 'sum', '', 'x')).toEqual({
+    t: 'invalid',
+    message: `${join(b, 'cells.md')}: ENOENT: no such file or directory, open '${join(b, 'cells.md')}'`
+  })
 })
