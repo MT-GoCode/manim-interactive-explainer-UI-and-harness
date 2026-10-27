@@ -50,21 +50,7 @@ const Cell = memo(function Cell(props: {
         window.api.openLink(lesson, cell)
       }}
     >
-      <span className="n">
-        {n}
-        {built && (
-          <button
-            className="add-comment"
-            title="Comment on this cell"
-            onClick={(e) => {
-              e.stopPropagation()
-              commentCell(slug, md)
-            }}
-          >
-            +
-          </button>
-        )}
-      </span>
+      <span className="n">{n}</span>
       {editor ?? (
         <div
           className="md"
@@ -78,6 +64,27 @@ const Cell = memo(function Cell(props: {
         </div>
       )}
       <Cards comments={comments} />
+      {built && (
+        <button
+          className="add-comment"
+          title="Comment on this cell"
+          onClick={(e) => {
+            e.stopPropagation()
+            commentCell(slug, md)
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.3"
+          >
+            <path d="M2.5 3h11v7.5h-6.5l-3 2.5v-2.5h-1.5z" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
     </section>
   )
 })

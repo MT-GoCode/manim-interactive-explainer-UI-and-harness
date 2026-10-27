@@ -182,12 +182,16 @@ body {
   cursor: pointer;
 }
 .cell .add-comment {
-  display: block;
+  flex: none;
+  align-self: flex-start;
   background: none;
   border: 0;
   color: #5a5a5a;
   cursor: pointer;
-  padding: 0;
+  padding: 2px 0 0;
+}
+.cell .add-comment:hover {
+  color: #cccccc;
 }
 .comment-sel {
   position: fixed;
