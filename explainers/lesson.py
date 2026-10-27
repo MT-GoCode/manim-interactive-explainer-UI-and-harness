@@ -1,12 +1,15 @@
 """The base classes every lesson's scene subclasses (Lesson, Lesson3D). One continuous Manim scene; self.cell(slug)
-marks where each cell starts. In a dry run (pass 1) it records what the build needs: cell boundaries, run times, and
-exactly what is drawn at each cell's end, where the camera draws it, with the lesson.py line that created each thing."""
+marks where each cell starts. In a dry run (pass 1) it records what the build needs: cell boundaries, run times, a
+digest of every frame each animation writes, and exactly what is drawn at each cell's end, where the camera draws it,
+with the lesson.py line that created each thing."""
 import sys
 from dataclasses import dataclass, field
 
 import numpy as np
 from manim import (Axes, DecimalNumber, Dot, Group, ImageMobject, MarkupText, Mobject, NumberPlane, Paragraph, Scene,
                    SingleStringMathTex, Text, ThreeDScene, VGroup, VMobject)
+
+from explainers.fingerprint import Recorder
 
 TEXT = (Text, MarkupText)                     # plain text units (minimum font size 32)
 LATEX = (SingleStringMathTex, DecimalNumber)  # TeX-set units: MathTex, Tex, numbers (minimum 40)
@@ -46,6 +49,7 @@ class CellRec:
     cuttable: bool = True  # nothing on screen at this cell's start has a time-based updater, so a render chunk may
     #                        start here (fast-forwarding runs such updaters once with dt = run_time, not per frame)
     run_times: list[float] = field(default_factory=list)
+    drawn: list[str] = field(default_factory=list)  # per animation: the digest of the frames it writes (fingerprint.py)
     end: list[Unit] | None = None
 
 
@@ -128,12 +132,16 @@ class Lesson(Scene):
         super().__init__(*args, **kwargs)
         self._cells: list[CellRec] = []
         self._anchors: list[Mobject] = []  # everything attached to stays alive, so its id is never reused
+        if self.RECORDING:
+            self._recorder = Recorder(self)
 
     def play(self, *args, **kwargs):
         if not self._cells:
             raise LessonError(f"animation before the first self.cell() (lesson.py:{_lesson_line(self.SOURCE)})")
         super().play(*args, **kwargs)
         self._cells[-1].run_times.append(self.duration)  # the play's exact run time (the clock accumulates float error)
+        if self.RECORDING:
+            self._cells[-1].drawn.append(self._recorder.play_digest())
 
     def cell(self, slug: str):
         if self._cells:

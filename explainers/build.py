@@ -61,10 +61,12 @@ def format_refs(refs, namespace: dict) -> tuple[dict[str, str], list[str]]:
 
 
 def manim_config(bundle: Path) -> dict:
-    """Settings both passes share: the same random numbers, the warm TeX and text caches, every partial kept."""
+    """Settings both passes share: the same frames (size and rate) and random numbers, the warm TeX and text caches,
+    every partial kept."""
+    from explainers.render import FPS, HEIGHT, WIDTH
     build = bundle / "build"
-    return {"seed": 0, "tex_dir": str(build / ".tex"), "text_dir": str(build / ".text"), "max_files_cached": -1,
-            "verbosity": "ERROR", "progress_bar": "none"}
+    return {"pixel_width": WIDTH, "pixel_height": HEIGHT, "frame_rate": FPS, "seed": 0, "tex_dir": str(build / ".tex"),
+            "text_dir": str(build / ".text"), "max_files_cached": -1, "verbosity": "ERROR", "progress_bar": "none"}
 
 
 def exec_lesson(bundle: Path, src: bytes):
@@ -96,6 +98,19 @@ def _inputs(bundle: Path, modules: set[str], opened: set[Path]) -> dict[str, dic
         elif p.is_relative_to(PICTURE_CODE):
             out["repo"][str(p.relative_to(REPO))] = sha256(p.read_bytes())
     return out
+
+
+def fingerprints(drawn: list[list[str]], inputs: dict) -> list[str]:
+    """Per cell: its frames as pass 1 recorded them (per animation), and everything after the frames that shapes the
+    clip's bytes: the picture code and bundle files it ran with, how frames are digested (fingerprint.py), how they
+    are encoded and joined (render.py: encoder, size, rate), and the drawing and encoding libraries."""
+    import cairo
+    from importlib.metadata import version
+    after = json.dumps({"inputs": inputs,
+                        "code": {n: sha256((PICTURE_CODE / n).read_bytes()) for n in ("fingerprint.py", "render.py")},
+                        "versions": {d: version(d) for d in ("manim", "pycairo", "av", "pillow")}
+                        | {"cairo": cairo.cairo_version_string()}}, sort_keys=True)
+    return [sha256(json.dumps([after, d]).encode()) for d in drawn]
 
 
 def check(bundle: Path) -> dict:
@@ -151,9 +166,10 @@ def check(bundle: Path) -> dict:
         raise BuildError(1, errs + ref_errs)
     if errs := geometry(scene._cells, *frame, WIDTH):
         raise BuildError(1, errs)
-    return {"lock": lock, "lesson_sha": sha256(src), "cells": scene._cells, "refs": refs,
-            "inputs": _inputs(bundle, set(sys.modules) - before - {"lesson"} | {"explainers.lesson"}, opened),
-            "manim_version": manim_version, "repo_root": str(REPO)}
+    inputs = _inputs(bundle, set(sys.modules) - before - {"lesson"} | {"explainers.lesson"}, opened)
+    return {"lock": lock, "lesson_sha": sha256(src), "cells": scene._cells, "refs": refs, "inputs": inputs,
+            "fingerprints": fingerprints([c.drawn for c in scene._cells], inputs), "manim_version": manim_version,
+            "repo_root": str(REPO)}
 
 
 def report(bundle: Path, rec: dict) -> str:
@@ -170,23 +186,41 @@ def report(bundle: Path, rec: dict) -> str:
     return "\n".join(out)
 
 
-def commit(bundle: Path, rec: dict, parts: dict[int, Path]) -> Path:
-    """Write each cell's clip under its content hash, then index.json last and atomically: a reader always sees a
-    whole old build or a whole new one. Clips of neither the new nor the previous build are deleted."""
+def previous_index(bundle: Path) -> dict:
+    path = bundle / "build" / "index.json"
+    return json.loads(path.read_text()) if path.exists() else {"cells": []}
+
+
+def reusable(bundle: Path, fingerprints: list[str], previous: dict) -> dict[int, dict]:
+    """{cell: the previous build's cell} where the fingerprints are equal and its clip is still on disk. A previous
+    cell without a fingerprint is never reusable."""
+    old = {c["fingerprint"]: c for c in previous["cells"] if "fingerprint" in c}
+    return {n: old[f] for n, f in enumerate(fingerprints) if f in old and (bundle / "build" / old[f]["clip"]).is_file()}
+
+
+def commit(bundle: Path, rec: dict, parts: dict[int, Path], reused: dict[int, dict], previous: dict) -> Path:
+    """Write each rendered cell's clip under its content hash (a reused cell keeps its previous clip), then index.json
+    last and atomically: a reader always sees a whole old build or a whole new one. Clips of neither the new nor the
+    previous build are deleted."""
     import jsonschema
     from explainers.render import FPS, frames_sha, join
     build = bundle / "build"
     clips = build / "clips"
     clips.mkdir(exist_ok=True)
     index_path = build / "index.json"
-    previous = json.loads(index_path.read_text()) if index_path.exists() else {"cells": []}
     cells = []
-    for n, c in enumerate(rec["cells"]):
+    for n, (c, fingerprint) in enumerate(zip(rec["cells"], rec["fingerprints"])):
+        if n in reused:
+            old = reused[n]
+            cells.append({"slug": c.slug, "clip": old["clip"], "frames_sha": old["frames_sha"], "frames": old["frames"],
+                          "fingerprint": fingerprint})
+            continue
         tmp = clips / f".tmp-{n}.mp4"
         frames = join([parts[i] for i in range(c.first_anim, c.first_anim + len(c.run_times))], tmp)
         sha = frames_sha(tmp)
         os.replace(tmp, clips / f"{sha}.mp4")
-        cells.append({"slug": c.slug, "clip": f"clips/{sha}.mp4", "frames_sha": sha, "frames": frames})
+        cells.append({"slug": c.slug, "clip": f"clips/{sha}.mp4", "frames_sha": sha, "frames": frames,
+                      "fingerprint": fingerprint})
     index = {"format": "explainer", "version": 1, "lesson_sha": rec["lesson_sha"], "inputs": rec["inputs"],
              "repo_root": rec["repo_root"], "manim_version": rec["manim_version"], "fps": FPS, "refs": rec["refs"],
              "cells": cells}
@@ -201,19 +235,25 @@ def commit(bundle: Path, rec: dict, parts: dict[int, Path]) -> Path:
     return index_path
 
 
-def build(bundle: Path) -> tuple[dict, Path]:
+def build(bundle: Path, k: int | None = None) -> tuple[dict, Path]:
+    """Check, render the cells whose fingerprints changed in k chunks (default: as many as half the machine holds),
+    commit."""
     import shutil
     import time
-    from explainers.render import render, width
+    from explainers.render import render, to_render, width
     t = [time.monotonic()]
     rec = check(bundle)
     t.append(time.monotonic())
     try:
-        k = width(os.cpu_count(), _ram(), len(rec["cells"]))
-        parts, groups = render(bundle, rec["lock"].fileno(), rec["cells"], k)
-        rec["chunks"] = groups
+        previous = previous_index(bundle)
+        reused = reusable(bundle, rec["fingerprints"], previous)
+        todo = to_render(set(reused), [c.cuttable for c in rec["cells"]])
+        reused = {n: c for n, c in reused.items() if n not in todo}
+        k = k or width(os.cpu_count(), _ram(), len(todo))
+        parts, rec["chunks"] = render(bundle, rec["lock"].fileno(), rec["cells"], todo, k) if todo else ({}, [])
+        rec["rendered"] = todo
         t.append(time.monotonic())
-        index = commit(bundle, rec, parts)
+        index = commit(bundle, rec, parts, reused, previous)
         t.append(time.monotonic())
         rec["timing"] = [b - a for a, b in zip(t, t[1:])]
         return rec, index
@@ -223,6 +263,17 @@ def build(bundle: Path) -> tuple[dict, Path]:
 
 def _ram() -> int:
     return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+
+
+def render_line(rec: dict) -> str:
+    """e.g. "render: 3 cells (4–5, 9) in 2 chunks · 27 reused"; cells numbered from 1."""
+    from explainers.render import runs
+    todo, k = rec["rendered"], len(rec["chunks"])
+    reused = f" · {len(rec['cells']) - len(todo)} reused"
+    if not todo:
+        return "render: 0 cells" + reused
+    spans = ", ".join(f"{r[0] + 1}–{r[-1] + 1}" if len(r) > 1 else f"{r[0] + 1}" for r in runs(todo))
+    return f"render: {len(todo)} cell{'s' * (len(todo) != 1)} ({spans}) in {k} chunk{'s' * (k != 1)}" + reused
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -237,8 +288,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(f"error: {l}" for l in e.lines), file=sys.stderr)
         return e.code
     print(report(bundle, rec))
-    runs = ", ".join(f"{g[0] + 1}–{g[-1] + 1}" if len(g) > 1 else f"{g[0] + 1}" for g in rec["chunks"])
-    print(f"render: {len(rec['chunks'])} chunk{'s' * (len(rec['chunks']) != 1)} (cells {runs})")
+    print(render_line(rec))
     print("timing: check {:.2f} s · render {:.2f} s · commit {:.2f} s".format(*rec["timing"]))
     print(f"built  {index}")
     return 0
