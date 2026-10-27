@@ -71,7 +71,10 @@ export function byteRange(
 ): { start: number; end: number } | null | 'unsatisfiable' {
   const m = header === null ? null : /^bytes=(\d*)-(\d*)$/.exec(header)
   if (!m || (m[1] === '' && m[2] === '')) return null
-  if (m[1] === '') return { start: Math.max(0, size - Number(m[2])), end: size - 1 }
+  if (m[1] === '') {
+    const n = Number(m[2]) // the last n bytes
+    return n === 0 || size === 0 ? 'unsatisfiable' : { start: Math.max(0, size - n), end: size - 1 }
+  }
   const start = Number(m[1])
   const end = m[2] === '' ? size - 1 : Math.min(Number(m[2]), size - 1)
   if (start >= size) return 'unsatisfiable'

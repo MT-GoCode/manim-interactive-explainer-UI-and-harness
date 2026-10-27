@@ -1,4 +1,5 @@
 import { execFileSync } from 'child_process'
+import { resolve } from 'path'
 import { pathToFileURL } from 'url'
 import { expect, firstLesson, fixture, test } from './app'
 
@@ -7,17 +8,17 @@ import { expect, firstLesson, fixture, test } from './app'
 // launched that way waits on Gatekeeper's first-launch check, which an unattended machine never answers (measured).
 test.skip(!process.env.EX_EXECUTABLE, 'needs EX_EXECUTABLE (a packaged, registered Explainers.app)')
 
-const ID = 'com.mtgocode.explainers'
 const osa = (js: string) =>
   execFileSync('osascript', ['-l', 'JavaScript', '-e', js], { encoding: 'utf8' }).trim()
 
 test('Finder opens a bundle with this app, as one document', async ({}, info) => {
   const b = fixture(info.outputDir)
-  // The app LaunchServices picks to open the bundle: what a Finder double-click would launch.
+  // The app LaunchServices picks to open the bundle (what a Finder double-click would launch) is this very copy:
+  // ./test registers only it for the run, so a broken build cannot pass on another registered copy's record.
   const handler = osa(
-    `ObjC.import('AppKit'); const u = $.NSWorkspace.sharedWorkspace.URLForApplicationToOpenURL($.NSURL.URLWithString(${JSON.stringify(pathToFileURL(b).href)})); $.NSBundle.bundleWithURL(u).bundleIdentifier.js`
+    `ObjC.import('AppKit'); $.NSWorkspace.sharedWorkspace.URLForApplicationToOpenURL($.NSURL.URLWithString(${JSON.stringify(pathToFileURL(b).href)})).path.js`
   )
-  expect(handler).toBe(ID)
+  expect(handler).toBe(resolve(process.env.EX_EXECUTABLE!, '../../..'))
   // Typed as our exported UTI, which conforms to a package: Finder shows the folder as one file.
   const types = execFileSync('mdls', ['-raw', '-name', 'kMDItemContentTypeTree', b], {
     encoding: 'utf8'

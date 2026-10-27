@@ -34,6 +34,20 @@ test('Open… opens the bundle in one window titled by its name', async ({ launc
   expect((await windows(app)).length).toBe(1)
 })
 
+test('a bundle handed over by Finder (open-file) opens in its own window', async ({
+  launch
+}, info) => {
+  const b = fixture(info.outputDir)
+  const app = await launch()
+  // What macOS delivers to a running app on a Finder double-click (the live delivery is checked by hand).
+  await Promise.all([
+    app.waitForEvent('window'),
+    app.evaluate(({ app }, p) => app.emit('open-file', { preventDefault: () => undefined }, p), b)
+  ])
+  await firstLesson(app)
+  expect((await windows(app)).map((w) => w.title)).toEqual(['softmax'])
+})
+
 test('relaunch restores window, bounds and cell', async ({ launch }, info) => {
   const b = fixture(info.outputDir)
   const userData = info.outputPath('userdata')

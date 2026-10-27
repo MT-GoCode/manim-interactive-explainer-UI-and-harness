@@ -39,7 +39,10 @@ if run packaged; then
   lsr=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
   copy=~/Applications/"Explainers Test.app"
   if npm run -s dist >/dev/null; then
-    rm -rf "$copy" && ditto dist/mac-arm64/Explainers.app "$copy" && "$lsr" -f "$copy"
+    rm -rf "$copy" && ditto dist/mac-arm64/Explainers.app "$copy"
+    # Only the copy under test is registered for the run: another copy's record must not answer for it.
+    "$lsr" -u dist/mac-arm64/Explainers.app; [ -d ~/Applications/Explainers.app ] && "$lsr" -u ~/Applications/Explainers.app
+    "$lsr" -f "$copy"
     exe="$copy/Contents/MacOS/Explainers"
     EX_PROJECT=packaged-e2e EX_EXECUTABLE=$exe playwright e2e "$@" || status=1
     EX_EXECUTABLE=$exe playwright packaged "$@" || status=1

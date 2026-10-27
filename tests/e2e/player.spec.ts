@@ -10,10 +10,24 @@ const index = JSON.parse(readFileSync(join(BUILT, 'build', 'index.json'), 'utf8'
 const fps: number = index.fps
 const k = Math.floor(index.cells[DIVIDE].frames / 2)
 
-// The player's contract: a seek or a step lands exactly on frame k's centre, (k + 0.5)/fps, the time that names
-// frame k (Chromium shows frame k there: probed, DECISIONS). The tests check that time, which the player sets.
-const at = async (page: Page) => (await video(page)).t
-const centre = (k: number) => (k + 0.5) / fps
+// The frame the video presents, as its decoder names it: requestVideoFrameCallback reports each presented frame's
+// media time. The loop runs on the one <video> element, which a new clip (a new src) keeps. (Measured in the logged-in
+// session's transparent test window: a paused seek to frame k presents exactly frame k.)
+const watchFrames = (page: Page) =>
+  page.evaluate(() => {
+    const v = document.querySelector('video')!
+    const g = globalThis as unknown as { presented: number }
+    const tick = (_now: number, m: VideoFrameCallbackMetadata) => {
+      g.presented = m.mediaTime
+      v.requestVideoFrameCallback(tick)
+    }
+    v.requestVideoFrameCallback(tick)
+  })
+const shown = (page: Page) =>
+  page.evaluate(
+    (fps) => Math.round((globalThis as unknown as { presented: number }).presented * fps),
+    fps
+  )
 
 const video = (page: Page) =>
   page.evaluate(() => {
@@ -49,6 +63,7 @@ async function onDivide(page: Page): Promise<void> {
   await expect.poll(() => current(page)).toEqual({ i: DIVIDE, lit: 1 })
   await settled(page)
   await page.waitForFunction(() => !document.querySelector('video')!.paused) // a new cell plays its clip
+  await watchFrames(page)
 }
 
 // The player is done with its own loading and seeking, so a test's seek is the only one in flight.
@@ -77,11 +92,11 @@ test('seek and step land on frames k and k+1', async ({ launch }, info) => {
   const page = await firstLesson(app)
   await onDivide(page)
   await seek(page, (k + 0.5) / fps)
-  expect(await at(page)).toBeCloseTo(centre(k), 5)
+  await expect.poll(() => shown(page)).toBe(k)
   await seekedAfter(page, '.')
-  expect(await at(page)).toBeCloseTo(centre(k + 1), 5)
+  await expect.poll(() => shown(page)).toBe(k + 1)
   await seekedAfter(page, ',')
-  expect(await at(page)).toBeCloseTo(centre(k), 5)
+  await expect.poll(() => shown(page)).toBe(k)
 })
 
 test('r mid-clip rewinds and plays', async ({ launch }, info) => {
@@ -125,7 +140,7 @@ test('a rebuild while paused keeps the frame', async ({ launch }, info) => {
   await countErrors(page)
   await seek(page, (k + 0.5) / fps)
   await rebuildDivide(page, b)
-  expect(await at(page)).toBeCloseTo(centre(k), 5)
+  await expect.poll(() => shown(page)).toBe(k)
   expect((await video(page)).paused).toBe(true)
   expect(await errors(page)).toBe(0)
 })
