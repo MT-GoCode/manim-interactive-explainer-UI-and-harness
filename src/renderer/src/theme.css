@@ -132,3 +132,8 @@ body {
 .editor .problem button {
   font: inherit;
 }
+.link {
+  color: #4daafc;
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -21,7 +21,7 @@ export const test = base.extend<{
   launch: (
     files?: string[],
     userData?: string,
-    opts?: { stubErrorBox?: boolean }
+    opts?: { stubErrorBox?: boolean; env?: Record<string, string> }
   ) => Promise<ElectronApplication>
 }>({
   launch: async ({}, use, info) => {
@@ -40,7 +40,7 @@ export const test = base.extend<{
                 join(ROOT, 'out/main/index.js'),
                 ...files
               ],
-          env: { ...process.env, EX_INVISIBLE: '1', EX_USER_DATA: userData }
+          env: { ...process.env, EX_INVISIBLE: '1', EX_USER_DATA: userData, ...opts.env }
         })
         apps.push(app)
         app.on('close', () => exited.add(app))

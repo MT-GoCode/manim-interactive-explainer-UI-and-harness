@@ -68,6 +68,12 @@ export function App() {
           return setFinding((n) => n + 1)
         case 'goto':
           return setGoing((n) => n + 1)
+        case 'show':
+          // main checked the cell exists; a reload that dropped it since leaves the reader where they are
+          return setS((o) => {
+            const i = o ? o.lesson.cells.findIndex((x) => x.slug === c.slug) : -1
+            return o && i >= 0 ? { ...o, cur: i } : o
+          })
         default:
           return c satisfies never
       }

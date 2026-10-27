@@ -142,6 +142,11 @@ container points not normalized%src/renderer/src/copy.ts%s/return l \? \{ cell: 
 an open edit replaced%src/renderer/src/App.tsx%s/if \(edit.current === null\)\n\s*setEditing/setEditing/%e2e:edit.spec.ts:double-clicking another cell keeps an edit with a conflict
 saving unfocuses the editor%src/renderer/src/Editor.tsx%s/EditorState.readOnly.of\(saving\)/EditorView.editable.of(!saving)/%e2e:edit.spec.ts:editing cell 3 while cell 3 changes shows the conflict and writes nothing
 a failed write escapes%src/main/bundle.ts%s/  try \{\n    atomicWrite\(path, next\)\n  \} catch \(e\) \{\n    return \{ t: 'invalid', message: `\$\{path\}: \$\{\(e as Error\).message\}; nothing was saved` \}\n  \}/  atomicWrite(path, next)/%unit:bundle.spec.ts:saveSection reports a failed write as invalid and writes nothing
+link not opened%src/renderer/src/Transcript.tsx%s/const link = \(e.target as Element\).closest\('\[data-link\]'\)/const link = null/%e2e:link.spec.ts:a link into this bundle moves to its cell
+lessons folder ignored%src/main/windows.ts%s/const LESSONS = process.env.EX_LESSONS \?\? /const LESSONS = /%e2e:link.spec.ts:a link to another bundle opens it at its cell
+an open target is focused but not moved%src/main/windows.ts%s/    send\(open, \{ t: 'show', slug: cell \}\)\n//%e2e:link.spec.ts:a link to another bundle opens it at its cell
+missing cell silent%src/main/windows.ts%s/if \(!lesson.cells.some\(\(c\) => c.slug === cell\)\) throw/if (false) throw/%e2e:link.spec.ts:a link to a missing cell says so
+links carry no target%src/renderer/src/atoms.ts%s/\{ dataLink: h.link, className: \['link'\] \}/{ className: ['link'] }/%unit:grammar.spec.ts:links are atoms with their target
 EOF
 )
 

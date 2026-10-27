@@ -8,6 +8,7 @@ import {
   type Rectangle
 } from 'electron'
 import { existsSync, realpathSync, watch, type FSWatcher } from 'fs'
+import { homedir } from 'os'
 import { basename, dirname, join, resolve } from 'path'
 import { CH, type Command } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
@@ -60,6 +61,24 @@ ipcMain.handle(CH.save, (e, slug: string, base: string, text: string) => {
   if (r.t === 'saved') reload(w)
   return r
 })
+// Lessons live in one folder; a link names a lesson by its slug there. EX_LESSONS points tests at their own folder.
+const LESSONS = process.env.EX_LESSONS ?? join(homedir(), 'Documents', 'explainers')
+
+// [[slug#cell]]: the lesson in LESSONS, at that cell. Whether the cell exists is decided here, where the target's
+// lesson is known whether or not it is open; a missing lesson or cell is said, and nothing moves.
+ipcMain.on(CH.openLink, (_e, slug: string, cell: string) => {
+  const dir = join(LESSONS, slug + '.explainer')
+  guarded(`Cannot open [[${slug}#${cell}]]`, () => {
+    if (!existsSync(dir)) throw new Error(`No lesson ${slug} in ${LESSONS}`)
+    const open = [...wins.values()].find((w) => w.real === realpathSync(dir))
+    const lesson = open ? open.lesson : load(dir).lesson
+    if (!lesson.cells.some((c) => c.slug === cell)) throw new Error(`No cell "${cell}" in ${slug}`)
+    if (!open) return openEntry({ dir, slug: cell })
+    open.win.focus()
+    send(open, { t: 'show', slug: cell })
+  })
+})
+
 ipcMain.on(CH.at, (e, slug: string) => {
   const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
   w.slug = slug

@@ -35,14 +35,19 @@ const Cell = memo(function Cell(props: {
       ref={el}
       className={'cell' + (current ? ' current' : '')}
       data-slug={slug}
-      onClick={() => select(n - 1)}
+      onClick={(e) => {
+        const link = (e.target as Element).closest('[data-link]')
+        if (!link) return select(n - 1)
+        const [lesson, cell] = link.getAttribute('data-link')!.split('#')
+        window.api.openLink(lesson, cell)
+      }}
     >
       <span className="n">{n}</span>
       {editor ?? (
         <div
           className="md"
           onDoubleClick={(e) => {
-            if (!(e.target as Element).closest('a')) startEdit(slug, md)
+            if (!(e.target as Element).closest('a, [data-link]')) startEdit(slug, md)
           }}
         >
           <Markdown remarkPlugins={plugins.remark} rehypePlugins={plugins.rehype}>

@@ -4,11 +4,16 @@ export const CH = {
   init: 'ex:init',
   at: 'ex:at',
   save: 'ex:save',
+  openLink: 'ex:openLink',
   command: 'ex:command'
 } as const
 
 // main → renderer
-export type Command = { t: 'lesson'; lesson: Lesson } | { t: 'find' } | { t: 'goto' }
+export type Command =
+  | { t: 'lesson'; lesson: Lesson }
+  | { t: 'find' }
+  | { t: 'goto' } // open the ⌘G box
+  | { t: 'show'; slug: string } // a link landed here: make this cell current
 
 // What a save of one cell came to: written, or why not (nothing was written then).
 export type Saved =
@@ -22,5 +27,6 @@ export interface Api {
   init(): Promise<{ lesson: Lesson; slug: string | null }>
   at(slug: string): void
   save(slug: string, base: string, text: string): Promise<Saved>
+  openLink(slug: string, cell: string): void
   onCommand(fn: (c: Command) => void): void
 }

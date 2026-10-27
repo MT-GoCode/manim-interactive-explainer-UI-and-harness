@@ -88,3 +88,30 @@ test('matchesIn finds links in prose only', () => {
     matchesIn(tree, md, LINK).map((h) => [h.match[1], h.match[2], md.slice(h.start, h.end)])
   ).toEqual([['a', 'b', '[[a#b]]']])
 })
+
+test('links are atoms with their target', async () => {
+  const links = async (md: string) => {
+    const p = unified()
+      .use(remarkParse)
+      .use(remarkGfm)
+      .use(remarkMath)
+      .use(atoms({}))
+      .use(remarkRehype)
+      .use(stamp)
+    const file = new VFile(md)
+    const out: [string, string | null][] = []
+    visit(await p.run(p.parse(file), file), 'element', (e: Element) => {
+      if (e.properties.dataLink !== undefined)
+        out.push([
+          String(e.properties.dataLink),
+          e.properties.dataS === undefined
+            ? null
+            : md.slice(Number(e.properties.dataS), Number(e.properties.dataE))
+        ])
+    })
+    return out
+  }
+  expect(await links('see [[a#b]] now\n')).toEqual([['a#b', '[[a#b]]']])
+  // inside escaped text the whole run is one atom, and the link inside it still knows its target
+  expect(await links('a \\* b [[a#b]]\n')).toEqual([['a#b', null]])
+})
