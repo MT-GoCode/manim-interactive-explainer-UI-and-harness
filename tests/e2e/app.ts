@@ -67,13 +67,14 @@ export async function firstLesson(app: ElectronApplication): Promise<Page> {
 export const winId = async (app: ElectronApplication, page: Page) =>
   (await app.browserWindow(page)).evaluate((w) => w.id)
 
-// Clicks an app-menu item as if from window `id` (menu handlers act on the window they are given).
+// Clicks an app-menu item as if from window `id` (menu handlers act on the window they are given; role items like
+// paste act on the webContents given, since the invisible test window is never the focused one).
 export const click = (app: ElectronApplication, item: string, id?: number) =>
   app.evaluate(
-    ({ BrowserWindow, Menu }, [item, id]) =>
-      Menu.getApplicationMenu()!
-        .getMenuItemById(item)!
-        .click(undefined, id === undefined ? undefined : BrowserWindow.fromId(id)!),
+    ({ BrowserWindow, Menu }, [item, id]) => {
+      const win = id === undefined ? undefined : BrowserWindow.fromId(id)!
+      Menu.getApplicationMenu()!.getMenuItemById(item)!.click(undefined, win, win?.webContents)
+    },
     [item, id] as const
   )
 

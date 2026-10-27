@@ -14,7 +14,11 @@ async function open(
 ) {
   const b = fixture(dir)
   const md = join(b, 'cells.md')
-  writeFileSync(md, readFileSync(md, 'utf8').replace(/## divide\n[^#]*/, `## divide\n${PROSE}`))
+  // a replacer function: in a replacement string, `$$` would mean a literal `$`
+  writeFileSync(
+    md,
+    readFileSync(md, 'utf8').replace(/## divide\n[^#]*/, () => `## divide\n${PROSE}`)
+  )
   const app = await launch([b])
   const page = await firstLesson(app)
   await expect(page.locator('.cell').nth(DIVIDE).locator('.katex-display')).toHaveCount(1)

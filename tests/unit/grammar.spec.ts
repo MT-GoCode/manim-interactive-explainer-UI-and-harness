@@ -69,7 +69,7 @@ test('atoms carry their source range', async () => {
     ['[l](http://a.b)', 'l'],
     ['$m$', 'm']
   ])
-  expect(r.exact).toEqual(['Top ', ' and ', ' done, ', ' ', ' ', '.'])
+  expect(r.exact).toEqual(['Top ', ' and ', ' done, ', ' ', 'l', ' ', '.']) // a link's text is exact (copy widens to the link)
   // escaped text cannot map one to one: the whole run is one atom
   expect((await stamped('a \\* b {p}\n', { p: '0.5' })).atomsFound).toEqual([
     ['a \\* b {p}', 'a * b 0.5']
