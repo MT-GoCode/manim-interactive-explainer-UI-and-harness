@@ -1,13 +1,14 @@
 // Reads one bundle into a Lesson snapshot. Pure Node (no Electron), so the unit suite runs it directly.
-import { createHash } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { existsSync, readFileSync, realpathSync } from 'fs'
 import { basename, join, resolve, sep } from 'path'
 import { pathToFileURL } from 'url'
 import Ajv2020 from 'ajv/dist/2020'
 import { readCells } from '../../tools/cells.mjs'
 import schema from '../../schema/index.schema.json'
+import commentsSchema from '../../schema/comments.schema.json'
 import type { Saved } from '../shared/ipc'
-import type { Alert, Lesson } from '../shared/lesson'
+import type { Alert, Cell, Comment, Lesson } from '../shared/lesson'
 import { atomicWrite } from './atomic'
 
 // Everything that can be wrong with a bundle on disk; shown to the reader, never thrown past main.
@@ -19,10 +20,25 @@ type Index = {
   repo_root: string
   fps: number
   refs: Record<string, string>
-  cells: { slug: string; clip: string; frames: number }[]
+  cells: { slug: string; clip: string; frames: number; frames_sha: string }[]
+}
+// A comment as comments.json stores it (schema/comments.schema.json).
+type Stored = {
+  id: string
+  cell: string
+  span: [number, number] | null
+  text: string
+  created: string
+  fingerprint: { section_sha: string; frames_sha: string }
 }
 
-const validate = new Ajv2020({ allErrors: true }).compile<Index>(schema)
+const ajv = new Ajv2020({ allErrors: true })
+const validate = ajv.compile<Index>(schema)
+const validateComments = ajv.compile<{ comments: Stored[] }>(commentsSchema)
+const schemaError = (path: string, errors: typeof validate.errors) =>
+  new LoadError(
+    `${path}: ` + errors!.map((e) => `${e.instancePath || '/'} ${e.message}`).join('; ')
+  )
 // null for a file that is gone or cannot be read (mid-save, a directory now): not what the build read, so stale.
 const sha = (path: string): string | null => {
   try {
@@ -128,7 +144,11 @@ export function saveSection(dir: string, slug: string, base: string, text: strin
 }
 
 // The lesson, and the repo files its build read (main watches them for the stale alert).
-export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
+export function load(dir: string): {
+  lesson: Lesson
+  repoFiles: string[]
+  comments: { kept: Stored[]; dropped: number }
+} {
   const text = read(join(dir, 'cells.md'), (t) => t)
   const found = readCells(text)
   if (found.errors.length) throw new LoadError(found.errors.join('\n'))
@@ -138,11 +158,7 @@ export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
   if (dup) throw new LoadError(`cells.md has "## ${dup}" twice; a slug names one cell`)
   const indexPath = join(dir, 'build', 'index.json')
   const index = existsSync(indexPath) ? read(indexPath, (t) => JSON.parse(t) as unknown) : null
-  if (index !== null && !validate(index))
-    throw new LoadError(
-      `${indexPath}: ` +
-        validate.errors!.map((e) => `${e.instancePath || '/'} ${e.message}`).join('; ')
-    )
+  if (index !== null && !validate(index)) throw schemaError(indexPath, validate.errors)
   const build = index as Index | null
   const clips = new Map(build?.cells.map((c) => [c.slug, c]))
   const cells = found.sections.map((s) => {
@@ -153,7 +169,12 @@ export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
       head,
       md,
       clip: c
-        ? { url: clipUrl(join(dir, 'build', c.clip)), frames: c.frames, fps: build!.fps }
+        ? {
+            url: clipUrl(join(dir, 'build', c.clip)),
+            frames: c.frames,
+            fps: build!.fps,
+            frames_sha: c.frames_sha
+          }
         : null
     }
   })
@@ -173,14 +194,102 @@ export function load(dir: string): { lesson: Lesson; repoFiles: string[] } {
     if (slugs.join('\n') !== built.join('\n'))
       alerts.push({ t: 'order', prose: slugs, build: built })
   }
+  const stored = readComments(dir)
+  const { kept, dropped } = prune(cells, stored)
   return {
     lesson: {
       dir,
       title: basename(dir, '.explainer'),
       cells,
       alerts,
-      build: build && { refs: build.refs }
+      build: build && { refs: build.refs },
+      comments: kept.map((c) => mark(c, cells)),
+      pinging: existsSync(join(dir, 'ping'))
     },
-    repoFiles: build ? Object.keys(build.inputs.repo).map((rel) => join(build.repo_root, rel)) : []
+    repoFiles: build ? Object.keys(build.inputs.repo).map((rel) => join(build.repo_root, rel)) : [],
+    comments: { kept, dropped }
   }
+}
+
+// What a comment is pinned to: the cell's prose and its picture. Only a built cell has one.
+const fingerprint = (cell: Cell) => ({
+  section_sha: createHash('sha256').update(cell.md).digest('hex'),
+  frames_sha: cell.clip!.frames_sha
+})
+
+function readComments(dir: string): Stored[] {
+  const path = join(dir, 'comments.json')
+  if (!existsSync(path)) return []
+  const file = read(path, (t) => JSON.parse(t) as unknown)
+  if (!validateComments(file)) throw schemaError(path, validateComments.errors)
+  return file.comments
+}
+
+// The one place staleness is decided: a comment whose cell's prose or picture changed is dropped. A comment on a
+// cell that is gone is kept (an orphan, Minh's to resolve); one on a cell with no clip cannot be judged, so it stays.
+export function prune(cells: Cell[], stored: Stored[]): { kept: Stored[]; dropped: number } {
+  const bySlug = new Map(cells.map((c) => [c.slug, c]))
+  const kept = stored.filter((c) => {
+    const cell = bySlug.get(c.cell)
+    if (!cell || !cell.clip) return true
+    const f = fingerprint(cell)
+    return f.section_sha === c.fingerprint.section_sha && f.frames_sha === c.fingerprint.frames_sha
+  })
+  return { kept, dropped: stored.length - kept.length }
+}
+
+function mark(c: Stored, cells: Cell[]): Comment {
+  const cell = cells.find((x) => x.slug === c.cell)
+  const base = { id: c.id, cell: c.cell, text: c.text }
+  if (!cell) return { ...base, on: 'orphan', span: c.span }
+  if (c.span === null) return { ...base, on: 'cell' }
+  return { ...base, on: 'span', span: c.span, quote: cell.md.slice(...c.span) }
+}
+
+export function writeComments(dir: string, comments: Stored[]): void {
+  atomicWrite(
+    join(dir, 'comments.json'),
+    JSON.stringify({ format: 'explainer-comments', version: 1, comments }, null, 1) + '\n'
+  )
+}
+
+// A new comment on a built cell, pinned to the prose the span was measured on (`base`): if the cell changed since,
+// nothing is written. Every write re-reads the file, so other comments stay as they are on disk.
+export function addComment(
+  dir: string,
+  slug: string,
+  base: string,
+  span: [number, number] | null,
+  text: string
+): void {
+  const { lesson, comments } = load(dir)
+  const cell = lesson.cells.find((c) => c.slug === slug)
+  if (!cell || !cell.clip)
+    throw new Error(`Cell "${slug}" is not built; comments are on built cells`)
+  if (cell.md !== base) throw new Error('This cell changed while you were commenting; select again')
+  if (span && !(0 <= span[0] && span[0] < span[1] && span[1] <= base.length))
+    throw new Error(`No such span ${span[0]}–${span[1]} in this cell`)
+  if (!text.trim()) throw new Error('A comment needs text')
+  const ids = new Set(comments.kept.map((c) => c.id))
+  let id: string
+  do id = randomBytes(4).toString('hex')
+  while (ids.has(id))
+  const fresh = {
+    id,
+    cell: slug,
+    span,
+    text,
+    created: new Date().toISOString(),
+    fingerprint: fingerprint(cell)
+  }
+  writeComments(dir, [...comments.kept, fresh])
+}
+
+export function resolveComment(dir: string, id: string): void {
+  const { comments } = load(dir)
+  if (!comments.kept.some((c) => c.id === id)) throw new Error(`No comment ${id}`)
+  writeComments(
+    dir,
+    comments.kept.filter((c) => c.id !== id)
+  )
 }

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Command } from '../../shared/ipc'
 import type { Alert, Lesson } from '../../shared/lesson'
+import { CommentBox, Orphans, PingButton } from './Comments'
+import { useSelectionDraft, type Draft } from './selection'
 import { Editor, type Problem } from './Editor'
 import { Find } from './Find'
 import { GoTo } from './GoTo'
@@ -33,6 +35,7 @@ export function App() {
   const [going, setGoing] = useState(0) // bumped by each ⌘G
   const player = useRef<PlayerHandle>(null)
   const [editing, setEditingState] = useState<Editing | null>(null)
+  const [draft, setDraft] = useState<Draft | null>(null) // a comment being written
   // The handlers below read the edit through this ref: an editor's focusout fired after Esc or a finished save
   // (when it unmounts) finds no edit, or another one, and saves nothing.
   const edit = useRef<Editing | null>(null)
@@ -149,6 +152,12 @@ export function App() {
     [setEditing]
   )
 
+  const selection = useSelectionDraft(s?.lesson.cells ?? [])
+  const commentCell = useCallback(
+    (slug: string, md: string) => setDraft({ cell: slug, base: md, span: null, quote: null }),
+    []
+  )
+
   if (!s) return null
   const { lesson, cur } = s
   const lines = banner(lesson)
@@ -177,6 +186,7 @@ export function App() {
       )}
       <Player ref={player} slug={lesson.cells[cur].slug} clip={lesson.cells[cur].clip} />
       {gone && editor /* its cell is gone from cells.md: the edit stays, above the transcript */}
+      <Orphans comments={lesson.comments.filter((c) => c.on === 'orphan')} />
       <Transcript
         lesson={lesson}
         cur={cur}
@@ -184,7 +194,20 @@ export function App() {
         editing={gone ? null : (editing?.slug ?? null)}
         editor={gone ? null : editor}
         startEdit={startEdit}
+        commentCell={commentCell}
       />
+      {selection && !draft && (
+        <button
+          className="comment-sel"
+          style={{ top: selection.at.bottom + 4, left: selection.at.left }}
+          onMouseDown={(e) => e.preventDefault() /* keep the selection */}
+          onClick={() => setDraft(selection.draft)}
+        >
+          Comment
+        </button>
+      )}
+      {draft && <CommentBox draft={draft} close={() => setDraft(null)} />}
+      <PingButton pinging={lesson.pinging} />
       {finding > 0 && (
         <Find ask={finding} lesson={lesson} setCur={setCur} close={() => setFinding(0)} />
       )}

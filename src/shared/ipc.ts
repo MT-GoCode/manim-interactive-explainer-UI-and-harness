@@ -5,6 +5,9 @@ export const CH = {
   at: 'ex:at',
   save: 'ex:save',
   openLink: 'ex:openLink',
+  comment: 'ex:comment',
+  resolve: 'ex:resolve',
+  ping: 'ex:ping',
   command: 'ex:command'
 } as const
 
@@ -28,5 +31,9 @@ export interface Api {
   at(slug: string): void
   save(slug: string, base: string, text: string): Promise<Saved>
   openLink(slug: string, cell: string): void
+  // base: the prose the span was measured on (main refuses if the cell changed since)
+  comment(cell: string, base: string, span: [number, number] | null, text: string): void
+  resolve(id: string): void
+  ping(): void
   onCommand(fn: (c: Command) => void): void
 }

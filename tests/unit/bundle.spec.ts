@@ -1,6 +1,7 @@
 import { execFileSync } from 'child_process'
 import {
   appendFileSync,
+  existsSync,
   chmodSync,
   cpSync,
   mkdirSync,
@@ -10,10 +11,20 @@ import {
   symlinkSync,
   writeFileSync
 } from 'fs'
+import { createHash } from 'crypto'
 import { join } from 'path'
 import { pathToFileURL } from 'url'
 import { expect, test } from '@playwright/test'
-import { byteRange, clipPath, clipUrl, load, LoadError, saveSection } from '../../src/main/bundle'
+import {
+  addComment,
+  byteRange,
+  clipPath,
+  clipUrl,
+  load,
+  LoadError,
+  resolveComment,
+  saveSection
+} from '../../src/main/bundle'
 import { fixture, ROOT } from '../e2e/app'
 
 const edit = (path: string, f: (s: string) => string) =>
@@ -217,4 +228,113 @@ test('saveSection reports a failed write as invalid and writes nothing', async (
     chmodSync(b, 0o755)
   }
   expect(cellsOf(b)).toBe(before)
+})
+
+// Comments, written as the app would; fingerprints computed here from the files, independently of bundle.ts.
+const prose = (b: string, slug: string) => section(b, slug)
+const framesSha = (b: string, slug: string) =>
+  JSON.parse(readFileSync(index(b), 'utf8')).cells.find((c: { slug: string }) => c.slug === slug)
+    .frames_sha
+const comment = (b: string, id: string, cell: string, span: [number, number] | null = null) => ({
+  id,
+  cell,
+  span,
+  text: `about ${cell}`,
+  created: '2026-10-27T00:00:00.000Z',
+  fingerprint: {
+    section_sha: createHash('sha256').update(prose(b, cell)).digest('hex'),
+    frames_sha: framesSha(b, cell)
+  }
+})
+const writeStored = (b: string, comments: object[]) =>
+  writeFileSync(
+    join(b, 'comments.json'),
+    JSON.stringify({ format: 'explainer-comments', version: 1, comments })
+  )
+const storedIds = (b: string) =>
+  (JSON.parse(readFileSync(join(b, 'comments.json'), 'utf8')).comments as { id: string }[]).map(
+    (c) => c.id
+  )
+
+test('a changed section drops only its comments', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  writeStored(b, [comment(b, 'aaaaaaa1', 'sum'), comment(b, 'aaaaaaa2', 'probs')])
+  edit(join(b, 'cells.md'), (s) => s.replace('Add them all', 'Add every one'))
+  const { comments, lesson } = load(b)
+  expect(comments.kept.map((c) => c.id)).toEqual(['aaaaaaa2'])
+  expect(comments.dropped).toBe(1)
+  expect(lesson.comments.map((c) => [c.id, c.on])).toEqual([['aaaaaaa2', 'cell']])
+})
+
+test("a changed frames_sha drops only that cell's", async ({}, info) => {
+  const b = fixture(info.outputDir)
+  writeStored(b, [comment(b, 'aaaaaaa1', 'sum'), comment(b, 'aaaaaaa2', 'probs')])
+  edit(index(b), (s) => {
+    const ix = JSON.parse(s)
+    ix.cells.find((c: { slug: string }) => c.slug === 'sum').frames_sha = 'f'.repeat(64)
+    return JSON.stringify(ix)
+  })
+  expect(load(b).comments.kept.map((c) => c.id)).toEqual(['aaaaaaa2'])
+})
+
+test('a renamed heading keeps its comments as orphans', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  writeStored(b, [comment(b, 'aaaaaaa1', 'sum', [0, 3])])
+  edit(join(b, 'cells.md'), (s) => s.replace('## sum\n', '## total\n'))
+  const { comments, lesson } = load(b)
+  expect(comments.dropped).toBe(0)
+  expect(lesson.comments).toEqual([
+    { id: 'aaaaaaa1', cell: 'sum', text: 'about sum', on: 'orphan', span: [0, 3] }
+  ])
+})
+
+test('an unbuilt bundle keeps its comments', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  writeStored(b, [comment(b, 'aaaaaaa1', 'sum', [0, 3])])
+  rmSync(index(b))
+  const { comments, lesson } = load(b)
+  expect(comments.dropped).toBe(0)
+  expect(lesson.comments).toEqual([
+    { id: 'aaaaaaa1', cell: 'sum', text: 'about sum', on: 'span', span: [0, 3], quote: 'Add' }
+  ])
+})
+
+test('an invalid comments.json is a LoadError naming the schema path', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  writeStored(b, [{ ...comment(b, 'aaaaaaa1', 'sum'), id: 'nothex!!' }])
+  expect(() => load(b)).toThrow(`${join(b, 'comments.json')}: /comments/0/id must match pattern`)
+})
+
+test('addComment writes a schema-valid comment with its fingerprint', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  addComment(b, 'sum', prose(b, 'sum'), [0, 3], 'Why add?')
+  const [c] = JSON.parse(readFileSync(join(b, 'comments.json'), 'utf8')).comments
+  expect(c).toMatchObject({
+    cell: 'sum',
+    span: [0, 3],
+    text: 'Why add?',
+    fingerprint: comment(b, 'x', 'sum').fingerprint
+  })
+  expect(c.id).toMatch(/^[0-9a-f]{8}$/)
+  expect(Number.isNaN(Date.parse(c.created))).toBe(false)
+  expect(load(b).lesson.comments).toEqual([
+    { id: c.id, cell: 'sum', text: 'Why add?', on: 'span', span: [0, 3], quote: 'Add' }
+  ])
+})
+
+test('resolve removes exactly that comment', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  writeStored(b, [comment(b, 'aaaaaaa1', 'sum'), comment(b, 'aaaaaaa2', 'probs')])
+  resolveComment(b, 'aaaaaaa1')
+  expect(storedIds(b)).toEqual(['aaaaaaa2'])
+})
+
+test('addComment refuses a span measured on older prose', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  const old = prose(b, 'sum')
+  edit(join(b, 'cells.md'), (s) => s.replace('Add them all', 'Add every one'))
+  expect(() => addComment(b, 'sum', old, [0, 3], 'x')).toThrow(
+    'This cell changed while you were commenting'
+  )
+  expect(existsSync(join(b, 'comments.json'))).toBe(false)
 })

@@ -3,10 +3,13 @@ import Markdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import type { Lesson } from '../../shared/lesson'
+import type { Comment, Lesson } from '../../shared/lesson'
+import { Cards } from './Comments'
 import { atoms } from './atoms'
 import { copySource } from './copy'
 import { stamp } from './stamp'
+
+const NONE: Comment[] = []
 
 type Plugins = {
   remark: Parameters<typeof Markdown>[0]['remarkPlugins']
@@ -22,10 +25,14 @@ const Cell = memo(function Cell(props: {
   current: boolean
   plugins: Plugins
   editor: ReactNode | null
+  built: boolean
+  comments: Comment[]
   select: (i: number) => void
   startEdit: (slug: string, md: string) => void
+  commentCell: (slug: string, md: string) => void
 }) {
-  const { n, slug, md, current, plugins, editor, select, startEdit } = props
+  const { n, slug, md, current, plugins, editor, built, comments, select, startEdit, commentCell } =
+    props
   const el = useRef<HTMLElement>(null)
   useEffect(() => {
     if (current) void el.current!.scrollIntoView({ block: 'nearest' }) // a Promise here: never an effect cleanup
@@ -43,7 +50,21 @@ const Cell = memo(function Cell(props: {
         window.api.openLink(lesson, cell)
       }}
     >
-      <span className="n">{n}</span>
+      <span className="n">
+        {n}
+        {built && (
+          <button
+            className="add-comment"
+            title="Comment on this cell"
+            onClick={(e) => {
+              e.stopPropagation()
+              commentCell(slug, md)
+            }}
+          >
+            +
+          </button>
+        )}
+      </span>
       {editor ?? (
         <div
           className="md"
@@ -56,6 +77,7 @@ const Cell = memo(function Cell(props: {
           </Markdown>
         </div>
       )}
+      <Cards comments={comments} />
     </section>
   )
 })
@@ -67,8 +89,16 @@ export function Transcript(props: {
   editing: string | null
   editor: ReactNode | null
   startEdit: (slug: string, md: string) => void
+  commentCell: (slug: string, md: string) => void
 }) {
-  const { lesson, cur, setCur, editing, editor, startEdit } = props
+  const { lesson, cur, setCur, editing, editor, startEdit, commentCell } = props
+  // Each cell's comments, as stable arrays: a cell re-renders only when its own change.
+  const byCell = useMemo(() => {
+    const m = new Map<string, Comment[]>()
+    for (const c of lesson.comments)
+      if (c.on !== 'orphan') m.set(c.cell, [...(m.get(c.cell) ?? []), c])
+    return m
+  }, [lesson.comments])
   const values = lesson.build?.refs // unbuilt: no values yet, every reference stays literal
   const plugins = useMemo(
     () => ({
@@ -88,8 +118,11 @@ export function Transcript(props: {
           current={i === cur}
           plugins={plugins}
           editor={c.slug === editing ? editor : null}
+          built={c.clip !== null}
+          comments={byCell.get(c.slug) ?? NONE}
           select={setCur}
           startEdit={startEdit}
+          commentCell={commentCell}
         />
       ))}
     </div>

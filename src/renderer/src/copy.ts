@@ -20,7 +20,7 @@ const leaves = (md: Element) =>
     (el) => atomOf(el.parentElement, md) === null
   )
 
-function bound(node: Node, offset: number, side: 'start' | 'end', cells: Cell[]): Pt | null {
+export function bound(node: Node, offset: number, side: 'start' | 'end', cells: Cell[]): Pt | null {
   const els = cellEls()
   const before = (el: Element) =>
     el.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING

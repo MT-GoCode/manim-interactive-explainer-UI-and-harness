@@ -109,6 +109,7 @@ dependencies = [
     { name = "manim" },
     { name = "numpy" },
     { name = "pillow" },
+    { name = "watchdog" },
 ]
 
 [package.dev-dependencies]
@@ -124,6 +125,7 @@ requires-dist = [
     { name = "manim", specifier = "==0.22.0" },
     { name = "numpy" },
     { name = "pillow", specifier = "<13" },
+    { name = "watchdog" },
 ]
 
 [package.metadata.requires-dev]

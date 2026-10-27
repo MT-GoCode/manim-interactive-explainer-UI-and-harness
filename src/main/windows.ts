@@ -7,12 +7,12 @@ import {
   type MenuItemConstructorOptions,
   type Rectangle
 } from 'electron'
-import { existsSync, realpathSync, watch, type FSWatcher } from 'fs'
+import { existsSync, realpathSync, watch, writeFileSync, type FSWatcher } from 'fs'
 import { homedir } from 'os'
 import { basename, dirname, join, resolve } from 'path'
 import { CH, type Command } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
-import { load, LoadError, saveSection } from './bundle'
+import { addComment, load, LoadError, resolveComment, saveSection, writeComments } from './bundle'
 import { readSession, writeSession, type Entry } from './session'
 
 // Main is the single owner of window state and of everything read from disk.
@@ -79,6 +79,30 @@ ipcMain.on(CH.openLink, (_e, slug: string, cell: string) => {
   })
 })
 
+// The one route that loads a bundle for a window, opening or reloading: comments whose cell changed are dropped
+// from the file here (so a bundle edited while the app was closed is pruned when it opens).
+function loadAndPrune(dir: string): ReturnType<typeof load> {
+  const r = load(dir)
+  if (r.comments.dropped) writeComments(dir, r.comments.kept)
+  return r
+}
+
+// Comments and Ping: main writes, then reloads the window, whose next lesson carries the result.
+const writing = (label: string, f: (w: W) => void) => (e: Electron.IpcMainEvent) => {
+  const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
+  guarded(label, () => f(w))
+  reload(w)
+}
+ipcMain.on(
+  CH.comment,
+  (e, cell: string, base: string, span: [number, number] | null, text: string) =>
+    writing('Cannot comment', (w) => addComment(w.dir, cell, base, span, text))(e)
+)
+ipcMain.on(CH.resolve, (e, id: string) =>
+  writing('Cannot resolve the comment', (w) => resolveComment(w.dir, id))(e)
+)
+ipcMain.on(CH.ping, (e) => writing('Cannot ping', (w) => writeFileSync(join(w.dir, 'ping'), ''))(e))
+
 ipcMain.on(CH.at, (e, slug: string) => {
   const w = ofWin(BrowserWindow.fromWebContents(e.sender))!
   w.slug = slug
@@ -101,7 +125,7 @@ const relevant = (rel: string | null): boolean =>
 function reload(w: W): void {
   if (!wins.has(w.win.id)) return // a watch event queued before its window closed
   try {
-    const { lesson, repoFiles } = load(w.dir)
+    const { lesson, repoFiles } = loadAndPrune(w.dir)
     w.lesson = lesson
     watchRepo(w, repoFiles)
   } catch (e) {
@@ -123,7 +147,7 @@ function watchRepo(w: W, files: string[]): void {
 }
 
 function createWindow(dir: string, slug: string | null, bounds?: Rectangle): void {
-  const { lesson, repoFiles } = load(dir)
+  const { lesson, repoFiles } = loadAndPrune(dir)
   const real = realpathSync(dir) // before the window exists: nothing is left behind if it throws
   // 1280 wide: a 16:9 player 1260 px wide is 709 px tall, leaving ~250 px of transcript in a 1000 px window.
   const win = new BrowserWindow({
