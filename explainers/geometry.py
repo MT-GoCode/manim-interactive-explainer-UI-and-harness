@@ -8,6 +8,7 @@ import math
 import numpy as np
 
 MIN_TEXT, MIN_LATEX = 32, 40  # Minh's picks from size-ladder.png (DECISIONS)
+SIZE_EPS = 1e-6  # font size is read back from height; moving text perturbs it by ~1e-14 (32 → 31.999999999999957)
 
 
 def _boxes(b) -> np.ndarray:
@@ -119,9 +120,9 @@ def check(cells, frame_width: float, frame_height: float, pixel_width: int) -> l
             if over[edge] > s:
                 errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} is off frame by "  # moving in by it clears
                             f"{math.ceil((over[edge] - s) * 100) / 100:.2f} ({edge})")
-            if u.text_size is not None and u.text_size < MIN_TEXT:
+            if u.text_size is not None and u.text_size < MIN_TEXT - SIZE_EPS:
                 errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} font size {u.text_size:.1f} < {MIN_TEXT}")
-            if u.latex_size is not None and u.latex_size < MIN_LATEX:
+            if u.latex_size is not None and u.latex_size < MIN_LATEX - SIZE_EPS:
                 errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} LaTeX font size {u.latex_size:.1f} < {MIN_LATEX}")
             if u.transient_cell == n:
                 errs.append(f"{cell.slug} · lesson.py:{u.line} · {nu} was made transient in this cell and is still on "

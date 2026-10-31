@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # The one entry point: every test category, results in test-results/<category>/, counts in test-results/summary.txt.
 #   ./test            everything        ./test py -k grammar     one category, extra args passed through
+#   ./test py,unit,e2e   several categories (CI)
 # Categories run in this order: py, unit, e2e, perf (alone: it measures the machine), packaged.
 set -uo pipefail
 cd "$(dirname "$0")"
@@ -22,7 +23,7 @@ sys.exit(n['tests'] == n['skipped'])
 " "test-results/$1/junit.xml" 2>/dev/null) || { status=1; counts="${counts:-no results} · NOTHING RAN"; }
   summary "$1 $counts"
 }
-run() { [ "$want" = all ] || [ "$want" = "$1" ]; }
+run() { [ "$want" = all ] || [[ ",$want," == *",$1,"* ]]; }
 playwright() {  # project [args]: the app's Playwright project, against out/ or EX_EXECUTABLE; results under
   # test-results/$EX_PROJECT (default: the project's name)
   EX_PROJECT=${EX_PROJECT:-$1} npx playwright test --project "$1" --workers "${JOBS:-2}" "${@:2}"

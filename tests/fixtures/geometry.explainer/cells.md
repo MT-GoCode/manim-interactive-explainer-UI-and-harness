@@ -97,3 +97,6 @@ Case.
 ## number-line-moved-as-told
 Case.
 
+
+## latex-at-the-minimum-moved
+Case.

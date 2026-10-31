@@ -95,3 +95,5 @@ class Geometry(Lesson):
         self.show("number-line-moved-as-told",
                   NumberLine(x_range=[-4, 4, 1], length=8, include_numbers=True, font_size=40).shift(UP * 0.30),
                   Text("here", font_size=40).move_to([1, -0.3, 0]))
+        # a moved MathTex reads back 39.99999999999999 from its height: at the minimum, not under it
+        self.show("latex-at-the-minimum-moved", MathTex("x", font_size=40).shift(RIGHT * 0.1 + UP * 0.21))
