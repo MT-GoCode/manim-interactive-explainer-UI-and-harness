@@ -4,9 +4,11 @@ import sys
 
 from tokenizers import Tokenizer
 
+REVISION = "b5968e9190ef611bbf34a7229255be88a0e937c1"  # a commit: cached after the first run, no network after
+
 
 def main() -> int:
-    tok, (limit, *paths) = Tokenizer.from_pretrained("deepseek-ai/DeepSeek-V4-Pro"), sys.argv[1:]
+    tok, (limit, *paths) = Tokenizer.from_pretrained("deepseek-ai/DeepSeek-V4-Pro", revision=REVISION), sys.argv[1:]
     over = 0
     for f in (p if p.endswith(".md") else f"{p}/cells.md" for p in paths):
         for slug, body in re.findall(r"^## (\S+)\n(.*?)(?=^## |\Z)", open(f).read(), re.M | re.S):
