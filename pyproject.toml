@@ -7,11 +7,13 @@ dependencies = [
     "pillow<13",  # manim 0.22 draws images with Image.fromarray(..., mode=), which Pillow 13 removed
     "numpy",
     "jsonschema",
+    "tokenizers",
 ]
 
 [project.scripts]
 explain-build = "explainers.build:main"
 fetch-comments = "explainers.comments:main"
+cells-tokens = "explainers.tokens:main"
 
 [dependency-groups]
 dev = ["pytest", "pytest-xdist", "psutil"]
