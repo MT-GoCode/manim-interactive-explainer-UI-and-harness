@@ -201,7 +201,8 @@ no reach back to a cuttable cell%explainers/render.py%s/            todo.add\(n\
 reach back stops one cell early%explainers/render.py%s/while n > 0 and not cuttable\[n\]:/while n > 0 and not cuttable[n - 1]:/%tests/py/test_schedule.py::test_to_render_reaches_back_to_the_last_cell_a_chunk_may_start_at
 pulled-in cells not reported%explainers/build.py%s/    spans \+= f"; \{pulled\} pulled in by a live updater" \* \(pulled > 0\)\n//%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
 output format not pinned%explainers/render.py%s/"video_encoder_options": ENCODER, \*\*OUTPUT\}/"video_encoder_options": ENCODER}/%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
-size tolerance removed%explainers/geometry.py%s/u.latex_size < MIN_LATEX - SIZE_EPS:/u.latex_size < MIN_LATEX:/%tests/py/test_geometry.py::test_cell_end_geometry[latex-at-the-minimum-moved]
+LaTeX size tolerance removed%explainers/geometry.py%s/u.latex_size < MIN_LATEX - SIZE_EPS:/u.latex_size < MIN_LATEX:/%tests/py/test_geometry.py::test_cell_end_geometry[latex-at-the-minimum-moved]
+text size tolerance removed%explainers/geometry.py%s/u.text_size < MIN_TEXT - SIZE_EPS:/u.text_size < MIN_TEXT:/%tests/py/test_geometry.py::test_cell_end_geometry[text-at-the-minimum-moved]
 EOF
 )
 

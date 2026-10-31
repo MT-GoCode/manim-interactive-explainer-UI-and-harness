@@ -88,7 +88,7 @@ def test_an_edit_inside_one_cell_changes_only_that_cells_clip_and_old_clips_last
 
 
 def test_killed_build_keeps_the_previous_build_and_leaves_no_worker(bundle):
-    b = bundle()
+    b = bundle().resolve()  # the build names its bundle resolved (/var is a link to /private/var on macOS)
     assert explain_build(b).returncode == 0
     before = (b / "build" / "index.json").read_text()
     clips = sorted((b / "build" / "clips").iterdir())

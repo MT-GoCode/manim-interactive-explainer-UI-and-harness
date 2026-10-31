@@ -1,14 +1,12 @@
 name: CI
-on:
-  push:
-  pull_request:
-concurrency:  # a newer push supersedes a running check of the same branch
+on: push
+concurrency:  # a newer push supersedes a running check of the same branch; every push to main is checked to the end
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   test:
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 30  # the first run took 9m47s with a cold cache
     env:
       PYTHONUNBUFFERED: "1"
       EXPLAINERS_NICE: "1"  # ./test otherwise re-runs itself at background priority, for a laptop in use
@@ -29,7 +27,9 @@ jobs:
             ~/Library/Caches/electron
           key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: ./setup.sh --no-links
-      - run: ./test py,unit,e2e  # perf measures the machine it runs on; packaged registers an app with LaunchServices
+      # e2e, perf and packaged run locally (the pre-push hook): the runner's 1024x768 screen is smaller than the
+      # windows the e2e tests restore, perf measures the machine it runs on, packaged registers an app.
+      - run: ./test py,unit
       - uses: actions/upload-artifact@v4
         if: always()
         with:

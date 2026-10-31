@@ -24,6 +24,9 @@ sys.exit(n['tests'] == n['skipped'])
   summary "$1 $counts"
 }
 run() { [ "$want" = all ] || [[ ",$want," == *",$1,"* ]]; }
+for c in ${want//,/ }; do  # a mistyped category must not pass as "nothing failed"
+  case $c in all|py|unit|e2e|perf|packaged) ;; *) echo "test: unknown category $c" >&2; exit 2 ;; esac
+done
 playwright() {  # project [args]: the app's Playwright project, against out/ or EX_EXECUTABLE; results under
   # test-results/$EX_PROJECT (default: the project's name)
   EX_PROJECT=${EX_PROJECT:-$1} npx playwright test --project "$1" --workers "${JOBS:-2}" "${@:2}"

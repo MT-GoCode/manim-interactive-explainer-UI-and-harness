@@ -46,6 +46,7 @@ GEOMETRY = {
                                "move NumberLine by (+0.00, +0.30)"],
     "number-line-moved-as-told": [],  # exactly the move printed for number-line-under-text
     "latex-at-the-minimum-moved": [],
+    "text-at-the-minimum-moved": [],
 }
 GEOMETRY3D = {
     "apart-in-the-world": ["lesson.py:14 · Dot at (1.00, 0.00) × Dot at (1.04, 0.00) (lesson.py:14) · "

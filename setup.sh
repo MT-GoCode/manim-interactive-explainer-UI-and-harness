@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# One-time setup, idempotent: repo-local TeX (Manim's MathTex), the Python env, Node deps, the explain-build /
-# fetch-comments commands on PATH, and the pre-push hook that runs ./test.
+# One-time setup, idempotent: Homebrew deps, repo-local TeX (Manim's MathTex), the Python env, Node deps, the
+# commands in bin/ (explain-build, fetch-comments, cells-tokens) on PATH, and the pre-push hook that runs ./test.
 #   ./setup.sh               install
 #   ./setup.sh --no-links    no commands on PATH and no git hook (CI)
 set -euo pipefail
