@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# cells-tokens <max tokens> <bundle or cells.md>...: list every cell over <max tokens> (tools/tokens.mjs says how) and
+# every file it could not check. Exit 0: all within; 1: something over or unreadable; 2: bad usage.
+set -euo pipefail
+usage() { echo "usage: cells-tokens <max tokens> <bundle or cells.md>..." >&2; exit 2; }
+[ $# -ge 2 ] && [[ $1 =~ ^[0-9]+$ ]] || usage
+limit=$1; shift
+files=()
+for p in "$@"; do [ -d "$p" ] && files+=("$p/cells.md") || files+=("$p"); done
+exec node "$(dirname "$(realpath "$0")")/../tools/tokens.mjs" "$limit" "${files[@]}"

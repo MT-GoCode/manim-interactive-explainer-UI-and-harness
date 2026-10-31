@@ -9,6 +9,8 @@ Read this before making or editing a lesson.
 3. Meanwhile, write `cells.md` and `lesson.py` in parallel: one `## slug` section per `self.cell("slug")`, same order.
 4. Build with `explain-build <bundle>`; it renders all cells in parallel. Fix each error at the `lesson.py` line it
    names, and rebuild until it prints `built`.
+   When Minh gives a length limit, run `cells-tokens <limit> <bundle>`: it lists each cell over that many tokens
+   (the whole cell: prose, math and code as written). Shorten each cell it lists.
 5. Minh opens the lesson in the Explainers app, comments, and presses Ping, which sends you a message. Then run
    `fetch-comments <bundle>`: it prints each open comment. Answer them directly, and do not edit cells and lessons -- unless asked to in comments or explicitly messaged to.
 6. When the user asks for a link between lessons, write `[[lesson#cell]]` in cells.md: `lesson` is the lesson's folder
