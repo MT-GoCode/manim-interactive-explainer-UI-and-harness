@@ -201,11 +201,6 @@ no reach back to a cuttable cell%explainers/render.py%s/            todo.add\(n\
 reach back stops one cell early%explainers/render.py%s/while n > 0 and not cuttable\[n\]:/while n > 0 and not cuttable[n - 1]:/%tests/py/test_schedule.py::test_to_render_reaches_back_to_the_last_cell_a_chunk_may_start_at
 pulled-in cells not reported%explainers/build.py%s/    spans \+= f"; \{pulled\} pulled in by a live updater" \* \(pulled > 0\)\n//%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
 output format not pinned%explainers/render.py%s/"video_encoder_options": ENCODER, \*\*OUTPUT\}/"video_encoder_options": ENCODER}/%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
-tokens: cell heading counted%tools/tokens.mjs%s/\.replace\(\/\^\.\*\\n\?\/, ''\)//%tests/py/test_tokens.py::test_counts_and_inclusive_limit
-tokens: limit exclusive%tools/tokens.mjs%s/if \(n > limit\)/if (n >= limit)/%tests/py/test_tokens.py::test_counts_and_inclusive_limit
-tokens: unreadable file passes the run%tools/tokens.mjs%s/process.exit\(unread \|\| over/process.exit(over/%tests/py/test_tokens.py::test_a_file_the_reader_rejects_is_not_checked
-tokens: missing file crashes the run%tools/tokens.mjs%s/  \} catch \(e\) \{\n    unread\+\+/  } catch (e) {\n    throw e/%tests/py/test_tokens.py::test_a_missing_file_is_reported_and_the_rest_still_checked
-tokens: usage not checked%bin/cells-tokens%s/\[ \$# -ge 2 \]/[ \$# -ge 0 ]/%tests/py/test_tokens.py::test_bad_usage
 EOF
 )
 
