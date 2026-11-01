@@ -1,22 +1,16 @@
 """Pass 1 records what each frame draws, never pixels: a pair of cells records equal frames exactly when the two cells
 draw the same thing (tests/fixtures/frames.explainer: cells <case>-a and <case>-b)."""
-import json
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES
+from conftest import FIXTURES, records
 from explainers.fingerprint import _Context
 
 
 def drawn(bundle: Path) -> dict[str, list[str]]:
-    r = subprocess.run([sys.executable, str(Path(__file__).parent / "pass1_records.py"), str(bundle)],
-                       capture_output=True, text=True)
-    assert r.returncode == 0, r.stderr
-    return {c["slug"]: c["drawn"] for c in json.loads(r.stdout)["cells"]}
+    return {c["slug"]: c["drawn"] for c in records(bundle)["cells"]}
 
 
 @pytest.fixture(scope="module")

@@ -94,6 +94,16 @@
     "fps": {
       "type": "integer",
       "minimum": 1
+    },
+    "worker_peak": {
+      "description": "The largest peak RSS (bytes) and cores (CPU seconds over wall seconds) of any render worker in the last build that rendered.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rss", "cores"],
+      "properties": {
+        "rss": {"type": "integer", "minimum": 0},
+        "cores": {"type": "number", "minimum": 0}
+      }
     }
   },
   "$defs": {

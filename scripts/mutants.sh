@@ -25,41 +25,38 @@ CR endings accepted%tools/cells.mjs%s/if \(text.includes\('\\r'\)\)/if (false)/%
 preamble accepted%tools/cells.mjs%s/if \(pre.trim\(\)\)\n    errors.push/if (false)\n    errors.push/%tests/py/test_grammar.py::test_reader_matches_golden[preamble-is-error]
 order not checked%explainers/build.py%s/if not errs and heads != calls:/if False:/%tests/py/test_pairing.py::test_reordered
 duplicates not reported%explainers/build.py%s/if s\[\"slug\"\] in seen:/if False:/%tests/py/test_pairing.py::test_duplicates_come_first
-unknown ref not reported%explainers/build.py%s/if name not in namespace:\n            errs.append\(f\"unknown ref \{\{\{r\['key'\]\}\}\} \(cells.md:\{r\['line'\]\}\)\"\)\n            continue\n//%tests/py/test_cli.py::test_unknown_ref_counts_but_a_ref_in_code_does_not
-bad format swallowed%explainers/build.py%s/errs.append\(f\"bad format/pass  # errs.append(f\"bad format/%tests/py/test_cli.py::test_bad_format
-format spec ignored%explainers/build.py%s/format\(namespace\[name\], fmt\)/format(namespace[name], \"\")/%tests/py/test_cli.py::test_report_from_outside_the_repo_without_tex_on_path
+unknown ref not reported%explainers/pass1.py%s/        if name not in namespace:\n            errs.append\(f"unknown ref \{\{\{r\['key'\]\}\}\} \(cells.md:\{r\['line'\]\}\)"\)\n            continue\n//%tests/py/test_cli.py::test_unknown_ref_counts_but_a_ref_in_code_does_not
+bad format swallowed%explainers/pass1.py%s/errs.append\(f"bad format/pass  # errs.append(f"bad format/%tests/py/test_cli.py::test_bad_format
+format spec ignored%explainers/pass1.py%s/format\(namespace\[name\], fmt\)/format(namespace[name], "")/%tests/py/test_cli.py::test_report_from_outside_the_repo_without_tex_on_path
 lock not taken%explainers/build.py%s/fcntl.flock\(lock, fcntl.LOCK_EX \| fcntl.LOCK_NB\)/pass/%tests/py/test_cli.py::test_second_build_on_the_same_bundle_is_refused
-TeX not put on PATH%explainers/build.py%s/os.environ\[\"PATH\"\] = /_unused = /%tests/py/test_cli.py::test_report_from_outside_the_repo_without_tex_on_path
-scene built outside the dry-run config%explainers/build.py%s/            scene = cls\(\)\n            scene.render\(\)/            scene.render()/; s/    try:\n        # The scene is constructed/    scene = cls()\n    try:\n        # The scene is constructed/%tests/py/test_cli.py::test_report_from_outside_the_repo_without_tex_on_path
+TeX not put on PATH%explainers/build.py%s/child_env\(tex \+ os.pathsep \+ os.environ\["PATH"\]\)/child_env(os.environ["PATH"])/%tests/py/test_cli.py::test_report_from_outside_the_repo_without_tex_on_path
 missing files not checked%explainers/build.py%s/    if missing:\n        raise BuildError\(2/    if False:\n        raise BuildError(2/%tests/py/test_cli.py::test_missing_files
-class filter counts imported subclasses%explainers/build.py%s/ and v.__module__ == \"lesson\"//%tests/py/test_cli.py::test_exactly_one_lesson_class_counting_only_lesson_py
-opened files not inputs%explainers/build.py%s/ \| opened\n/\n/%tests/py/test_pass1.py::test_inputs_are_the_files_the_lesson_used
-build dir files become inputs%explainers/build.py%s/        if p.is_relative_to\(bundle\) and not p.is_relative_to\(bundle \/ "build"\):/        if p.is_relative_to(bundle):/%tests/py/test_pass1.py::test_inputs_are_the_files_the_lesson_used
-stale bytecode becomes an input%explainers/build.py%s/ and p.suffix != \".pyc\"//%tests/py/test_pass1.py::test_stale_bytecode_in_the_bundle_is_not_an_input
-lesson.py listed as its own input%explainers/build.py%s/ - before - \{\"lesson\"\} \|/ - before |/%tests/py/test_pass1.py::test_inputs_are_the_files_the_lesson_used
-bytecode written into bundle%explainers/build.py%s/sys.dont_write_bytecode = True/sys.dont_write_bytecode = False/%tests/py/test_pass1.py::test_nothing_written_into_the_bundle_but_build
+class filter counts imported subclasses%explainers/lesson.py%s/ and v.__module__ == "lesson"//%tests/py/test_cli.py::test_exactly_one_lesson_class_counting_only_lesson_py
+opened files not inputs%explainers/pass1.py%s/self.note\(p, listed=event != "open"\)/event != "open" and self.note(p, listed=True)/%tests/py/test_pass1.py::test_inputs_are_the_files_the_lesson_used
+lesson.py listed as its own input%explainers/build.py%s/ and p != "lesson.py"//%tests/py/test_pass1.py::test_inputs_are_the_files_the_lesson_used
+bytecode written into the snapshot%explainers/lesson.py%s/sys.dont_write_bytecode = True/sys.dont_write_bytecode = False/%tests/py/test_guard.py::test_pass_1_writes_no_bytecode_into_its_snapshot
 cells errors ignored%explainers/build.py%s/    if cells.errors:  # known before the scene runs: fail fast\n        raise BuildError\(1, cells.errors\)\n//%tests/py/test_cli.py::test_text_before_first_heading
 no-cell lesson accepted%explainers/lesson.py%s/raise LessonError\(\"no self.cell\(\) in the lesson\"\)/pass/%tests/py/test_cli.py::test_no_cell_at_all
 animation before first cell accepted%explainers/lesson.py%s/        if not self._cells:\n            raise LessonError\(f\"animation before/        if False:\n            raise LessonError(f\"animation before/%tests/py/test_cli.py::test_animation_before_first_cell
 plain group not opened%explainers/lesson.py%s/if type\(m\) in \(VGroup, Group\):/if False:/%tests/py/test_pass1.py::test_plain_group_is_opened_into_its_numbers
 copy keeps original line%explainers/lesson.py%s/        for x in c.get_family\(\):\n            x._born = line\n//%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
-run time from the clock%explainers/lesson.py%s/        super\(\).play\(\*args, \*\*kwargs\)\n        self._cells\[-1\].run_times.append\(self.duration\)/        t0 = self.renderer.time\n        super().play(*args, **kwargs)\n        self._cells[-1].run_times.append(self.renderer.time - t0)/%tests/py/test_pass1.py::test_cells_and_exact_run_times
+run time from the clock%explainers/lesson.py%s/        super\(\).play\(\*args, \*\*kwargs\)\n        self._cells\[-1\].run_times.append\(float\(self.duration\)\)/        t0 = self.renderer.time\n        super().play(*args, **kwargs)\n        self._cells[-1].run_times.append(self.renderer.time - t0)/%tests/py/test_pass1.py::test_cells_and_exact_run_times
 outermost lesson frame%explainers/lesson.py%s/while f is not None and f.f_code.co_filename != source:\n        f = f.f_back\n    return f.f_lineno if f is not None else None/hit = None\n    while f is not None:\n        hit = f if f.f_code.co_filename == source else hit\n        f = f.f_back\n    return hit.f_lineno if hit is not None else None/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
-partials pruned past 100%explainers/build.py%s/"max_files_cached": -1,/"max_files_cached": 100,/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
+partials pruned past 100%explainers/config.py%s/"max_files_cached": -1,/"max_files_cached": 100,/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 chunk renders one animation too many%explainers/render.py%s/starts\[r\[-1\] \+ 1\] - 1\) for r in runs/starts[r[-1] + 1]) for r in runs/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 join drops a cell's first partial%explainers/build.py%s/join\(\[parts\[i\] for i in range\(c.first_anim, /join([parts[i] for i in range(c.first_anim + 1, /%tests/py/test_render.py::test_clips_equal_a_one_pass_render_cut_at_cells
 previous build's clips deleted%explainers/build.py%s/keep = \{c\["clip"\] for c in cells \+ previous\["cells"\]\}/keep = {c["clip"] for c in cells}/%tests/py/test_render.py::test_an_edit_inside_one_cell_changes_only_that_cells_clip_and_old_clips_last_one_rebuild
 width ignores cores%explainers/render.py%s/return max\(1, min\(floor\(0.5 \* cores \/ WORKER_CORES\), /return max(1, min(/%tests/py/test_schedule.py::test_width_is_bound_by_cpu_ram_and_cells
-seed not fixed%explainers/build.py%s/"seed": 0, //%tests/py/test_parallel.py::test_chunked_equals_one_chunk
-encoder threads not pinned%explainers/render.py%s/ENCODER = \{"threads": "1", /ENCODER = {"threads": "0", /%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
-keyframe interval changed%explainers/render.py%s/"g": "6"/"g": "12"/%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
-stale media not cleared%explainers/render.py%s/    shutil.rmtree\(media, ignore_errors=True\)\n    groups/    groups/%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
-worker outlives the build%explainers/render.py%s/if __name__ == \"__main__\":\n    _watch_parent\(\)\n/if __name__ == \"__main__\":\n/%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
-no-animation cell accepted%explainers/build.py%s/errs = \[f'cell \"\{c.slug\}\" has no animation \(lesson.py:\{c.line\}\)' for c in scene._cells if not c.run_times\]/errs = []/%tests/py/test_render.py::test_a_cell_with_no_animation_is_an_error
+seed not fixed%explainers/config.py%s/"seed": SEED, //%tests/py/test_parallel.py::test_chunked_equals_one_chunk
+encoder threads not pinned%explainers/config.py%s/ENCODER = \{"threads": "1", /ENCODER = {"threads": "0", /%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
+keyframe interval changed%explainers/config.py%s/"g": "6"/"g": "12"/%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
+stale media not cleared%explainers/build.py%s/    shutil.rmtree\(media, ignore_errors=True\)\n    shutil.copytree/    shutil.copytree/%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
+worker outlives the build%explainers/render.py%s/    watch_parent\(\)  # before the import: a build killed during it still ends this worker\n//%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
+no-animation cell accepted%explainers/build.py%s/errs = \[f'cell "\{c.slug\}" has no animation \(lesson.py:\{c.line\}\)' for c in recs.cells if not c.run_times\]/errs = []/%tests/py/test_render.py::test_a_cell_with_no_animation_is_an_error
 chunk starts under a live updater%explainers/render.py%s/allowed = \[i for i in range\(len\(sums\) - 1\) if cuttable\[i \+ 1\]\]/allowed = list(range(len(sums) - 1))/%tests/py/test_schedule.py::test_chunks_never_start_where_a_time_based_updater_is_live
 chunk cut not nearest%explainers/render.py%s/i = min\(allowed, key=lambda i: \(abs\(sums\[i\] - target\), i\)\)/i = max(i for i in allowed if sums[i] <= target) if any(sums[i] <= target for i in allowed) else allowed[0]/%tests/py/test_schedule.py::test_chunks_golden
 clip named by something else%explainers/render.py%s/return hashlib.sha256\(path.read_bytes\(\)\).hexdigest\(\)/return hashlib.sha256(str(path).encode()).hexdigest()/%tests/py/test_render.py::test_index_validates_and_clips_are_named_by_content
-frame stretched to the pixels%explainers/build.py%s/"frame_width": 8.0 \* WIDTH \/ HEIGHT, //%tests/py/test_render.py::test_clips_equal_a_one_pass_render_cut_at_cells
+frame stretched to the pixels%explainers/config.py%s/"frame_width": 8.0 \* WIDTH \/ HEIGHT, //%tests/py/test_render.py::test_clips_equal_a_one_pass_render_cut_at_cells
 font size from constructor%explainers/lesson.py%s/return float\(m.font_size\), None/return float(m._font_size), None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
 LaTeX sized as plain text%explainers/lesson.py%s/return None, float\(m.font_size\)/return float(m.font_size), None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
 container text not measured%explainers/lesson.py%s/found = \[_sizes\(c\) for c in m.submobjects\]/found = []/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
@@ -184,13 +181,13 @@ frame repeats ignored%explainers/fingerprint.py%s/\(frame.digest, repeat\)/(fram
 animation boundaries lost%explainers/lesson.py%s/        if self.RECORDING:\n            self._cells\[-1\].drawn.append\(self._recorder.play_digest\(\)\)\n//; s/        c.end = self._end_state\(\)/        c.drawn.append(self._recorder.play_digest())\n        c.end = self._end_state()/%tests/py/test_frames.py::test_each_animation_records_its_own_digest
 background ignored%explainers/fingerprint.py%s/self._canvas = self._array\(self._cam.background\)/self._canvas = b""/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[background]
 background image ignored%explainers/fingerprint.py%s/self._ops \+= \[\("background-image"/_ = [("background-image"/%tests/py/test_frames.py::test_a_different_picture_records_different_frames[backimage]
-pass 1 not at the render's rate%explainers/build.py%s/"frame_rate": FPS,//%tests/py/test_frames.py::test_the_same_picture_records_the_same_frames[rate]
+render not at the fixed rate%explainers/config.py%s/\n          "frame_rate": FPS, /\n          /%tests/py/test_frames.py::test_the_same_picture_records_the_same_frames[rate]
 world-to-pixel matrix not recorded%explainers/fingerprint.py%s/self._ops.append\(\("matrix", /(lambda *_: None)(("matrix", /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[centre]
 world-to-pixel scale not recorded%explainers/fingerprint.py%s/\*map\(float, \(sx, -sy, /*map(float, (0.0, 0.0, /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[width]
 recording context answers any query%explainers/fingerprint.py%s/if name not in self.DRAWING:/if False:/%tests/py/test_frames.py::test_the_recording_context_refuses_what_it_cannot_answer
-pass 1 hashes animations%explainers/build.py%s/"disable_caching": True, //%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
+animations hashed%explainers/config.py%s/"disable_caching": True, //%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
 numpy version not fingerprinted%explainers/build.py%s/"manim", "numpy", /"manim", /%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
-encoder code not fingerprinted%explainers/build.py%s/ *"code": \{n: sha256\(\(PICTURE_CODE \/ n\).read_bytes\(\)\) for n in \("fingerprint.py", "render.py"\)\},\n//%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
+encoder code not fingerprinted%explainers/build.py%s/ *"code": \{n: sha256.*?"config.py"\)\},\n//s%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
 inputs not fingerprinted%explainers/build.py%s/after = json.dumps\(\{"inputs": inputs,/after = json.dumps({/%tests/py/test_incremental.py::test_an_edit_to_a_helper_module_renders_every_cell
 one fingerprint for the whole lesson%explainers/build.py%s/json.dumps\(\[after, d\]\)/json.dumps([after, drawn])/%tests/py/test_incremental.py::test_an_edit_inside_one_cell_renders_that_cell
 only the first changed cell rendered%explainers/render.py%s/    todo = set\(range\(len\(cuttable\)\)\) - reusable\n/    todo = set(range(len(cuttable))) - reusable\n    todo = set(sorted(todo)[:1]) if reusable else todo\n/%tests/py/test_incremental.py::test_an_edit_whose_effect_persists_renders_every_cell_it_reaches
@@ -200,10 +197,84 @@ reused clip checked by existence only%explainers/build.py%s/ and frames_sha\(cli
 no reach back to a cuttable cell%explainers/render.py%s/            todo.add\(n\)/            pass/%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
 reach back stops one cell early%explainers/render.py%s/while n > 0 and not cuttable\[n\]:/while n > 0 and not cuttable[n - 1]:/%tests/py/test_schedule.py::test_to_render_reaches_back_to_the_last_cell_a_chunk_may_start_at
 pulled-in cells not reported%explainers/build.py%s/    spans \+= f"; \{pulled\} pulled in by a live updater" \* \(pulled > 0\)\n//%tests/py/test_incremental.py::test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact
-output format not pinned%explainers/render.py%s/"video_encoder_options": ENCODER, \*\*OUTPUT\}/"video_encoder_options": ENCODER}/%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
+output format not pinned%explainers/config.py%s/"video_encoder_options": ENCODER, \*\*OUTPUT\}/"video_encoder_options": ENCODER}/%tests/py/test_render.py::test_a_render_config_change_fails_the_build[worker]
 LaTeX size tolerance removed%explainers/geometry.py%s/u.latex_size < MIN_LATEX - SIZE_EPS:/u.latex_size < MIN_LATEX:/%tests/py/test_geometry.py::test_cell_end_geometry[latex-at-the-minimum-moved]
 text size tolerance removed%explainers/geometry.py%s/u.text_size < MIN_TEXT - SIZE_EPS:/u.text_size < MIN_TEXT:/%tests/py/test_geometry.py::test_cell_end_geometry[text-at-the-minimum-moved]
 chunk cut under a live updater on a first build%explainers/render.py%s/allowed = \[i for i in range\(len\(sums\) - 1\) if cuttable\[i \+ 1\]\]/allowed = list(range(len(sums) - 1))/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
+snapshot holds build/%explainers/build.py%s/n in \("build", "comments.json"\)/n in ("comments.json",)/%tests/py/test_render.py::test_a_stale_build_is_not_in_the_snapshot
+snapshot holds comments%explainers/build.py%s/n in \("build", "comments.json"\)/n in ("build",)/%tests/py/test_render.py::test_a_stale_build_is_not_in_the_snapshot
+snapshot keeps bytecode%explainers/build.py%s/n == "__pycache__" or //%tests/py/test_pass1.py::test_stale_bytecode_in_the_bundle_is_not_an_input
+workers read the live bundle%explainers/render.py%s/\[str\(snapshot\), str\(cache\)/[str(snapshot.parent.parent.parent), str(cache)/%tests/py/test_render.py::test_an_edit_while_pass_1_runs_reaches_nothing_of_that_build
+pass 1 reads the live bundle%explainers/build.py%s/\[str\(snap\), str\(private\)/[str(snap.parent.parent.parent), str(private)/%tests/py/test_render.py::test_an_edit_while_pass_1_runs_reaches_nothing_of_that_build
+worker not in the snapshot%explainers/render.py%s/if __name__ == "__main__":\n    os.chdir\(sys.argv\[1\]\)\n//%tests/py/test_render.py::test_a_worker_reads_relative_paths_in_the_snapshot
+pass 1 not in the snapshot%explainers/pass1.py%s/if __name__ == "__main__":\n    os.chdir\(sys.argv\[1\]\)\n//%tests/py/test_render.py::test_a_broken_manim_cfg_where_the_build_runs_is_never_read
+caller's environment reaches a worker%explainers/children.py%s/\*\*\{k: os.environ\[k\] for k in CHILD_ENV if k in os.environ\}/**os.environ/%tests/py/test_render.py::test_no_variable_of_the_callers_environment_reaches_a_worker
+caller's environment reaches pass 1%explainers/children.py%s/\*\*\{k: os.environ\[k\] for k in CHILD_ENV if k in os.environ\}/**os.environ/%tests/py/test_render.py::test_no_variable_of_the_callers_environment_reaches_pass_1
+defaults not reset%explainers/config.py%s/    config.update\(ManimConfig\(\).digest_parser\(parser\)\)\n//%tests/py/test_render.py::test_a_manim_cfg_in_the_bundle_does_not_change_the_clips
+peak not measured%explainers/build.py%s/max\(d.rss for d in done\)/0/%tests/py/test_render.py::test_worker_peak_is_measured_and_kept
+worker keeps a manim.cfg%explainers/render.py%s/    render_config\(\)\n/    from explainers.config import RENDER\n    config.update(RENDER)\n/; s/    check_render_config\(\)\n//%tests/py/test_render.py::test_a_manim_cfg_in_the_bundle_does_not_change_the_clips
+cwd manim.cfg reaches a worker%explainers/render.py%s/if __name__ == "__main__":\n    os.chdir\(sys.argv\[1\]\)\n//; s/    render_config\(\)\n/    from explainers.config import RENDER\n    config.update(RENDER)\n/; s/    check_render_config\(\)\n//%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
+pass 1 keeps a manim.cfg%explainers/pass1.py%s/    render_config\(\)\n//; s/    check_render_config\(\)\n//%tests/py/test_render.py::test_a_manim_cfg_in_the_bundle_does_not_change_the_clips
+worker config not checked%explainers/render.py%s/    check_render_config\(\)\n//%tests/py/test_render.py::test_a_render_config_change_fails_the_build[worker]
+pass 1 config not checked%explainers/pass1.py%s/    check_render_config\(\)\n//%tests/py/test_render.py::test_a_render_config_change_fails_the_build[pass-1]
+package imports manim%explainers/__init__.py%s/^/from explainers.lesson import Lesson\n/%tests/py/test_render.py::test_importing_the_build_does_not_import_manim
+broken cwd manim.cfg read%explainers/__init__.py%s/^/from explainers.lesson import Lesson\n/%tests/py/test_render.py::test_a_broken_manim_cfg_where_the_build_runs_is_never_read
+children import from the cwd%explainers/children.py%s/"-P", //%tests/py/test_render.py::test_a_module_in_the_callers_cwd_is_never_imported
+hash seed not fixed%explainers/children.py%s/, "PYTHONHASHSEED": "0"//%tests/py/test_render.py::test_the_hash_seed_is_fixed
+worker imports the lesson outside its cache%explainers/render.py%s/    config.update\(\{"tex_dir": str\(out \/ "tex"\), "text_dir": str\(out \/ "text"\)\}\)\n//; s/"media_dir": str\(out \/ f"range-\{j\}"\)\}/"media_dir": str(out \/ f"range-{j}"), "tex_dir": str(out \/ "tex"), "text_dir": str(out \/ "text")}/%tests/py/test_render.py::test_a_tex_object_made_at_import_time_builds
+pass 1 starts cold%explainers/build.py%s/shutil.copytree\(shared, private\)/private.mkdir(parents=True)/%tests/py/test_render.py::test_a_second_build_starts_pass_1_with_the_cache_warm
+cache id ignores TeX%explainers/build.py%s/,\n             sha256\(\(REPO \/ ".tinytex" \/ "TinyTeX" \/ "tlpkg" \/ "texlive.tlpdb"\).read_bytes\(\)\)\]/]/%tests/py/test_incremental.py::test_the_cache_id_covers_the_tools_that_fill_it
+old caches kept%explainers/build.py%s/            if other != shared:\n                shutil.rmtree\(other\) if other.is_dir\(\) else other.unlink\(\)/            if False:\n                pass/%tests/py/test_render.py::test_a_changed_cache_id_starts_a_fresh_cache
+cache merge skipped%explainers/build.py%s/    merge_cache\(private, shared\)\n//%tests/py/test_render.py::test_an_unused_cache_entry_is_pruned_and_a_used_one_kept
+prune skipped%explainers/build.py%s/        prune_cache\(shared, rec\["cache_entries"\]\)\n//%tests/py/test_render.py::test_an_unused_cache_entry_is_pruned_and_a_used_one_kept
+pass 1 outlives the build%explainers/pass1.py%s/    watch_parent\(\)  # before the import: a build killed during it still ends this process\n//%tests/py/test_render.py::test_a_killed_build_during_pass_1_leaves_no_pass_1
+lock not inherited%explainers/build.py%s/    os.set_inheritable\(lock.fileno\(\), True\)  # every child holds the build lock until it exits\n//%tests/py/test_render.py::test_a_second_build_is_refused_while_a_killed_builds_worker_lives
+siblings not killed%explainers/children.py%s/os.killpg\(pid, signal.SIGKILL\)/pass/%tests/py/test_render.py::test_a_failed_worker_kills_its_siblings
+peak not kept%explainers/build.py%s/rec\["worker_peak"\] or previous.get\("worker_peak"\)/rec["worker_peak"]/%tests/py/test_render.py::test_worker_peak_is_measured_and_kept
+guard not active%explainers/pass1.py%s/guard.active = True/guard.active = False/%tests/py/test_guard.py::test_a_read_outside_the_bundle_fails_at_its_line
+repo root allowed%explainers/pass1.py%s/for p in \(snapshot, PACKAGE, sys.prefix/for p in (snapshot, REPO, sys.prefix/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[read-in-the-repo]
+violation arm removed%explainers/pass1.py%s/    if guard.violations:  # whether or not lesson code caught the PermissionError\n        return errors\(out, list\(dict.fromkeys\(guard.violations\)\)\)\n//%tests/py/test_guard.py::test_a_caught_violation_still_fails
+violation not routed first%explainers/pass1.py%s/    if guard.violations:  # whether or not lesson code caught the PermissionError\n        return errors\(out, list\(dict.fromkeys\(guard.violations\)\)\)\n    if isinstance\(failure, LessonError\):\n        return errors\(out, \[str\(failure\)\]\)\n/    if isinstance(failure, LessonError):\n        return errors(out, [str(failure)])\n    if guard.violations:\n        return errors(out, list(dict.fromkeys(guard.violations)))\n/%tests/py/test_guard.py::test_a_violation_routes_before_a_lesson_error
+Popen allowed%explainers/pass1.py%s/        if event == "subprocess.Popen":.*?\n            self.started\(args\[0\] or args\[1\]\[0\]\)\n            return\n//s%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[subprocess]
+spawn guard off%explainers/pass1.py%s/SPAWN_EVENTS = frozenset\(\{"os.posix_spawn", "os.exec"\}\)/SPAWN_EVENTS = frozenset()/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[posix-spawn]
+shell allowed%explainers/pass1.py%s/, "os.system"\}\)/})/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[shell]
+listings unguarded%explainers/pass1.py%s/READ_EVENTS = frozenset\(\{"open", "os.listdir", /READ_EVENTS = frozenset({"open", /%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[listing]
+temp files refused%explainers/pass1.py%s/return flags \& os.O_ACCMODE == os.O_WRONLY or flags \& EXCLUSIVE_CREATE == EXCLUSIVE_CREATE/return False/%tests/py/test_guard.py::test_a_temporary_file_is_allowed
+fork_exec wrapper off%explainers/pass1.py%s/    _posixsubprocess.fork_exec = guard.fork_exec\(_posixsubprocess.fork_exec\)\n//%tests/py/test_guard.py::test_a_python_child_fails_at_its_line[spawn-context]
+tracker allowance matches any -c%explainers/pass1.py%s/TRACKER.fullmatch\(tail\[1\]\) is not None/True/%tests/py/test_guard.py::test_a_python_child_fails_at_its_line[named-like-the-tracker]
+cells.md counted as read%explainers/pass1.py%s/sorted\(guard.inputs\)/sorted(guard.inputs | {"cells.md"})/%tests/py/test_guard.py::test_the_inputs_are_what_the_lesson_read
+lesson stderr becomes errors%explainers/build.py%s/if \(pass1 \/ "errors.json"\).exists\(\):/if False:/%tests/py/test_guard.py::test_a_lesson_printing_to_stderr_shows_only_its_error
+suppressed time not subtracted%explainers/pass1.py%s/cost.append\(clock\(\) - start - suppressed\[0\]\)/cost.append(clock() - start)/%tests/py/test_guard.py::test_the_cost_clock_subtracts_what_fast_forward_suppresses
+lesson crash not raised%explainers/pass1.py%s/    if failure is not None:\n        raise failure\n//%tests/py/test_guard.py::test_a_lesson_that_crashes_shows_its_own_error_and_line
+tracker allowance is a prefix%explainers/pass1.py%s/TRACKER.fullmatch/TRACKER.match/; s/main;main\\\(\\d\+\\\)"/main;"/%tests/py/test_guard.py::test_a_python_child_fails_at_its_line[starts-like-the-tracker]
+exit with no result not named%explainers/build.py%s/if not \(pass1 \/ "records.json"\).exists\(\):/if False:/%tests/py/test_guard.py::test_a_lesson_that_exits_is_named_as_the_cause
+stray file in the cache stops the build%explainers/build.py%s/shutil.rmtree\(other\) if other.is_dir\(\) else other.unlink\(\)/shutil.rmtree(other)/%tests/py/test_render.py::test_a_changed_cache_id_starts_a_fresh_cache
+exit code dropped%explainers/build.py%s/failed: exit code \{e.code\}"/failed:"/%tests/py/test_render.py::test_a_child_killed_by_a_signal_names_its_exit_code[worker]
+watcher leaves the group alive%explainers/children.py%s/os.killpg\(0, signal.SIGKILL\)/os._exit(1)/%tests/py/test_render.py::test_a_killed_build_takes_a_workers_own_children_with_it
+width not kept%explainers/children.py%s/while pending and len\(alive\) < width:/while pending:/%tests/py/test_render.py::test_run_all_keeps_to_its_width
+range config leaks%explainers/render.py%s/with tempconfig\(\{/config.update({/; s/"range-\{j\}"\)\}\):  # what a lesson sets mid-scene ends with its range\n            cls\(\).render\(\)\n            check_render_config\(\)/"range-{j}")})\n        cls().render()\n        check_render_config()/%tests/py/test_render.py::test_a_config_a_lesson_sets_ends_with_its_range
+exit routes before a violation%explainers/pass1.py%s/except \(Exception, SystemExit\) as e:/except Exception as e:/%tests/py/test_guard.py::test_a_violation_routes_before_a_lesson_exit
+bare listing not guarded%explainers/pass1.py%s/path = "." if args\[0\] is None else args\[0\]/path = args[0]/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[bare-listing]
+stat not noted%explainers/pass1.py%s/os.stat, os.lstat, os.access = guard.stat\(os.stat\), /os.stat, os.lstat, os.access = os.stat, /%tests/py/test_guard.py::test_a_stat_and_a_listing_are_inputs
+listing not marked as a folder%explainers/pass1.py%s/rel \+ "\/" if listed else rel/rel/%tests/py/test_guard.py::test_a_stat_and_a_listing_are_inputs
+write_frame not on the cost clock%explainers/pass1.py%s/timed\(renderer.file_writer.write_frame\)/renderer.file_writer.write_frame/%tests/py/test_guard.py::test_the_cost_clock_subtracts_what_fast_forward_suppresses
+blank error line%explainers/build.py%s/ \* bool\(stderr\)//%tests/py/test_render.py::test_a_child_killed_by_a_signal_names_its_exit_code[pass-1]
+network allowed%explainers/pass1.py%s/if event.startswith\("socket."\):/if False:/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[network-lookup]
+fork allowed%explainers/pass1.py%s/\{"os.fork", /{/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[fork]
+exec allowed%explainers/pass1.py%s/, "os.exec"\}/}/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[exec]
+listing allowed under a path entry%explainers/pass1.py%s/listed_entry = event != "open" and p in self.listing_roots/listed_entry = event != "open" and any(p == r or p.startswith(r + os.sep) for r in self.listing_roots)/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[listing-under-a-path-entry]
+tempfile folder refused%explainers/pass1.py%s/tempdir = event == "open" and p == self.tempdir/tempdir = False/%tests/py/test_guard.py::test_a_temporary_file_is_allowed
+pass 1 draws%explainers/pass1.py%s/"dry_run": True, //%tests/py/test_guard.py::test_pass_1_draws_nothing
+lesson_sha from the live bundle%explainers/build.py%s/"lesson_sha": sha256\(\(snap \/ "lesson.py"\)/"lesson_sha": sha256((snap.parent.parent.parent \/ "lesson.py")/%tests/py/test_render.py::test_an_edit_while_pass_1_runs_reaches_nothing_of_that_build
+cells.md from the live bundle%explainers/build.py%s/read_cells\(snap \/ "cells.md"\)/read_cells(snap.parent.parent.parent \/ "cells.md")/%tests/py/test_render.py::test_the_check_reads_cells_md_from_the_snapshot
+scandir unguarded%explainers/pass1.py%s/"os.scandir", //%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[walk]
+numpy run time not converted%explainers/lesson.py%s/append\(float\(self.duration\)\)/append(self.duration)/%tests/py/test_guard.py::test_a_numpy_run_time_is_recorded
+lstat not noted%explainers/pass1.py%s/guard.stat\(os.lstat\)/os.lstat/%tests/py/test_guard.py::test_a_stat_and_a_listing_are_inputs
+access not noted%explainers/pass1.py%s/guard.stat\(os.access\)/os.access/%tests/py/test_guard.py::test_a_stat_and_a_listing_are_inputs
+written file noted as an input%explainers/pass1.py%s/        if event == "open":\n            if p.startswith\(self.cache/        self.note(p, listed=event != "open")\n        if event == "open":\n            if p.startswith(self.cache/%tests/py/test_guard.py::test_a_file_the_lesson_only_writes_is_not_an_input
+write beside a bundle file refused%explainers/pass1.py%s/        if event == "open":\n            if p.startswith\(self.cache/        if event == "open" and args[2] \& os.O_WRONLY and p.startswith(self.snapshot + os.sep):\n            raise PermissionError(p)\n        if event == "open":\n            if p.startswith(self.cache/%tests/py/test_guard.py::test_an_svg_in_the_bundle_passes_the_guard
+dangling link stops the build%explainers/build.py%s/\n        or not os.path.exists\(os.path.join\(d, n\)\)\]\)/])/%tests/py/test_render.py::test_a_dangling_link_in_the_bundle_does_not_stop_the_build
+valid link dropped%explainers/build.py%s/\n        or not os.path.exists\(os.path.join\(d, n\)\)\]\)/], ignore_dangling_symlinks=True)/%tests/py/test_render.py::test_a_relative_link_in_the_bundle_is_in_the_snapshot
 EOF
 )
 
@@ -214,6 +285,8 @@ run() {  # name file expr test-id: killed only if that exact test FAILS (an impo
   cp "$dir/$file" "$dir/.orig"
   perl -0pi -e "$expr" "$dir/$file"
   if cmp -s "$dir/$file" "$dir/.orig"; then echo "NOT APPLIED: $name"; return 1; fi
+  if [[ "$file" == *.py ]] && ! "$root/.venv/bin/python" -c 'import sys; compile(open(sys.argv[1]).read(), sys.argv[1], "exec")' "$dir/$file" 2>/dev/null; then
+    echo "BROKE (syntax error, not a bug): $name"; return 1; fi
   suite "$dir" "$test" >/dev/null 2>&1
   if python3 - "$dir/junit.xml" <<'PY'
 import sys, xml.etree.ElementTree as E

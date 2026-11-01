@@ -1,6 +1,9 @@
+import json
 import os
 import shutil
 import subprocess
+import sys
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -25,3 +28,23 @@ def explain_build(*args, cwd=None):
     path = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if p != TEX_BIN)
     return subprocess.run([str(REPO / "bin" / "explain-build"), *map(str, args)], capture_output=True, text=True,
                           cwd=cwd, env={**os.environ, "PATH": path})
+
+
+def run_pass1(bundle, keys="[]"):
+    """Pass 1 alone, as the build runs it: on a snapshot kept for the caller, with a fresh cache and TeX on PATH. Returns
+    (the process, its out folder, the snapshot)."""
+    work = Path(tempfile.mkdtemp(dir=bundle.parent))
+    snapshot, cache, out = work / "src", work / "cache", work / "out"
+    shutil.copytree(bundle, snapshot, ignore=shutil.ignore_patterns("build", "__pycache__"))
+    cache.mkdir()
+    out.mkdir()
+    env = {**os.environ, "EXPLAINERS_BUILD_PID": str(os.getpid()), "PATH": TEX_BIN + os.pathsep + os.environ["PATH"]}
+    r = subprocess.run([sys.executable, "-P", "-m", "explainers.pass1", str(snapshot), str(cache), str(out), keys],
+                       capture_output=True, text=True, env=env, start_new_session=True)
+    return r, out, snapshot
+
+
+def records(bundle) -> dict:
+    r, out, _ = run_pass1(bundle)
+    assert r.returncode == 0, r.stderr
+    return json.loads((out / "records.json").read_text())

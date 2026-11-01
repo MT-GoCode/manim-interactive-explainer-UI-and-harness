@@ -3,13 +3,15 @@ marks where each cell starts. In a dry run (pass 1) it records what the build ne
 digest of every frame each animation writes, and exactly what is drawn at each cell's end, where the camera draws it,
 with the lesson.py line that created each thing."""
 import sys
-from dataclasses import dataclass, field
+import types
+from pathlib import Path
 
 import numpy as np
 from manim import (Axes, DecimalNumber, Dot, Group, ImageMobject, MarkupText, Mobject, NumberPlane, Paragraph, Scene,
                    SingleStringMathTex, Text, ThreeDScene, VGroup, VMobject)
 
 from explainers.fingerprint import Recorder
+from explainers.records import CellRec, Unit
 
 TEXT = (Text, MarkupText)                     # plain text units (minimum font size 32)
 LATEX = (SingleStringMathTex, DecimalNumber)  # TeX-set units: MathTex, Tex, numbers (minimum 40)
@@ -23,34 +25,6 @@ _BERNSTEIN = np.stack([(1 - _T) ** 3, 3 * (1 - _T) ** 2 * _T, 3 * (1 - _T) * _T 
 
 class LessonError(Exception):
     pass
-
-
-@dataclass
-class Unit:
-    """One thing drawn at a cell's end, as the geometry check sees it; coordinates are where the camera draws them."""
-    kind: str
-    line: int                      # lesson.py line that created it (a helper's import-time objects: the import line)
-    owners: list[int]              # ids of its whole family and of the plain groups it was opened from
-    attached_to: int | None        # id of the object it was attached to (self.attach)
-    transient_cell: int | None     # index of the cell it was made transient in (self.transient)
-    text_size: float | None        # smallest plain-text font size in it, if any
-    latex_size: float | None       # smallest TeX font size in it (MathTex, numbers, a Matrix's entries), if any
-    glyphs: list[list[float]]      # boxes [x0, y0, x1, y1] of letters and symbols
-    markers: list[list[float]]     # boxes of dots: placed on paths by intent, so they meet glyphs and dots only
-    strokes: list[list[list[float]]]  # polylines [[x, y], ...], one per subpath
-    fills: list[list[float]]       # boxes of fill-only shapes and images (off frame only)
-
-
-@dataclass
-class CellRec:
-    slug: str
-    line: int | None
-    first_anim: int
-    cuttable: bool = True  # nothing on screen at this cell's start has a time-based updater, so a render chunk may
-    #                        start here (fast-forwarding runs such updaters once with dt = run_time, not per frame)
-    run_times: list[float] = field(default_factory=list)
-    drawn: list[str] = field(default_factory=list)  # per animation: the digest of the frames it writes (fingerprint.py)
-    end: list[Unit] | None = None
 
 
 def _lesson_line(source: str) -> int | None:
@@ -125,7 +99,7 @@ def _sizes(m) -> tuple[float | None, float | None]:
 
 
 class Lesson(Scene):
-    SOURCE: str = ""     # the path lesson.py is compiled under; set by explain-build
+    SOURCE: str = ""     # the path lesson.py is compiled under; set by exec_lesson
     RECORDING = False    # pass 1 (the check) records each cell's end state; render workers do not
 
     def __init__(self, *args, **kwargs):
@@ -139,7 +113,7 @@ class Lesson(Scene):
         if not self._cells:
             raise LessonError(f"animation before the first self.cell() (lesson.py:{_lesson_line(self.SOURCE)})")
         super().play(*args, **kwargs)
-        self._cells[-1].run_times.append(self.duration)  # the play's exact run time (the clock accumulates float error)
+        self._cells[-1].run_times.append(float(self.duration))  # the play's exact run time (the clock accumulates float error)
         if self.RECORDING:
             self._cells[-1].drawn.append(self._recorder.play_digest())
 
@@ -220,3 +194,21 @@ class Lesson3D(Lesson, ThreeDScene):
         c = self.camera
         return [float(c.get_phi()), float(c.get_theta()), float(c.get_gamma()), float(c.get_focal_distance()),
                 float(c.get_zoom()), *map(float, c.frame_center)]
+
+
+def exec_lesson(bundle: Path, src: bytes):
+    """Compile lesson.py's bytes (read once) under its own path, so lines and tracebacks point at lesson.py."""
+    sys.dont_write_bytecode = True  # importing bundle helpers must not write __pycache__ into the snapshot
+    path = str(bundle / "lesson.py")
+    sys.path.insert(0, str(bundle))
+    module = types.ModuleType("lesson")
+    module.__file__ = path
+    sys.modules["lesson"] = module
+    exec(compile(src, path, "exec"), module.__dict__)
+    found = [v for v in vars(module).values()
+             if isinstance(v, type) and issubclass(v, Lesson) and v.__module__ == "lesson"]
+    if len(found) != 1:
+        raise LessonError(f"lesson.py must define exactly one Lesson subclass; found "
+                          f"{[c.__name__ for c in found] or 'none'}")
+    found[0].SOURCE = path
+    return module, found[0]

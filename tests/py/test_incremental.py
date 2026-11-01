@@ -105,7 +105,7 @@ def test_fingerprints_cover_everything_after_the_frames(monkeypatch, tmp_path):
     with monkeypatch.context() as m:
         m.setattr(cairo, "cairo_version_string", lambda: "0")
         changed.append(B.fingerprints([["a"], ["b"]], inputs))
-    for name in ("fingerprint.py", "render.py"):
+    for name in ("fingerprint.py", "render.py", "config.py"):
         code = tmp_path / name.partition(".")[0]
         shutil.copytree(B.PICTURE_CODE, code)
         (code / name).write_text((code / name).read_text() + "\n")
@@ -113,6 +113,21 @@ def test_fingerprints_cover_everything_after_the_frames(monkeypatch, tmp_path):
             m.setattr(B, "PICTURE_CODE", code)
             changed.append(B.fingerprints([["a"], ["b"]], inputs))
     assert all(f[0] != base[0] and f[1] != base[1] for f in changed)
+
+
+def test_the_cache_id_covers_the_tools_that_fill_it(monkeypatch, tmp_path):
+    import manimpango
+    base, changed = B.cache_id(), []
+    with monkeypatch.context() as m:
+        m.setattr(manimpango, "pango_version", lambda: "0")
+        changed.append(B.cache_id())
+    tlpdb = tmp_path / ".tinytex" / "TinyTeX" / "tlpkg" / "texlive.tlpdb"
+    tlpdb.parent.mkdir(parents=True)
+    tlpdb.write_text("another TeX")
+    with monkeypatch.context() as m:
+        m.setattr(B, "REPO", tmp_path)
+        changed.append(B.cache_id())
+    assert all(c != base for c in changed)
 
 
 LONG_EDIT = ("self.play(FadeOut(v), run_time=0.3)", "self.play(FadeOut(v), run_time=0.3 + 0.1 * (k in EDITED))")

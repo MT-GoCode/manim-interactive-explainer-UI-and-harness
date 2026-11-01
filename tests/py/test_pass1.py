@@ -9,21 +9,10 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, REPO
+from conftest import FIXTURES, REPO, explain_build, records, run_pass1
 
 SRC = (FIXTURES / "softmax.explainer" / "lesson.py").read_text().splitlines()
 LINE = {m[1]: i for i, l in enumerate(SRC, 1) if (m := re.search(r"# L:([\w-]+)", l))}
-
-
-def run_pass1(bundle: Path) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, str(Path(__file__).parent / "pass1_records.py"), str(bundle)],
-                          capture_output=True, text=True)
-
-
-def records(bundle: Path) -> dict:
-    r = run_pass1(bundle)
-    assert r.returncode == 0, r.stderr
-    return json.loads(r.stdout)
 
 
 @pytest.fixture(scope="module")
@@ -35,9 +24,15 @@ def built(tmp_path_factory):
 
 def ok(built) -> dict:
     """Called first in each test (not in a fixture), so a crashing build is a test failure, not a fixture error."""
-    bundle, r = built
+    bundle, (r, out, _) = built
     assert r.returncode == 0, r.stderr
-    return {**json.loads(r.stdout), "bundle": bundle}
+    return {**json.loads((out / "records.json").read_text()), "bundle": bundle}
+
+
+def built_index(b: Path) -> dict:
+    r = explain_build(b)
+    assert r.returncode == 0, r.stderr
+    return json.loads((b / "build" / "index.json").read_text())
 
 
 def units(rec, i):
@@ -81,8 +76,9 @@ def test_faded_out_object_is_gone_at_cell_end(built):
     assert all(u["line"] != LINE["label-helper"] for u in rec["cells"][4]["end"])
 
 
-def test_inputs_are_the_files_the_lesson_used(built):
-    rec = ok(built)
+@pytest.mark.xdist_group("render")  # a full build
+def test_inputs_are_the_files_the_lesson_used(bundle):
+    rec = built_index(bundle())
     b = FIXTURES / "softmax.explainer"
     assert rec["inputs"]["bundle"] == {n: hashlib.sha256((b / n).read_bytes()).hexdigest()
                                       for n in ("helpers.py", "scores.csv")}
@@ -90,17 +86,19 @@ def test_inputs_are_the_files_the_lesson_used(built):
     assert rec["repo_root"] == str(REPO)
 
 
-def test_nothing_written_into_the_bundle_but_build(built):
-    rec = ok(built)
-    assert sorted(p.name for p in rec["bundle"].iterdir()) == ["build", "cells.md", "helpers.py", "lesson.py",
-                                                                 "scores.csv"]
+@pytest.mark.xdist_group("render")  # a full build
+def test_nothing_written_into_the_bundle_but_build(bundle):
+    b = bundle()
+    built_index(b)
+    assert sorted(p.name for p in b.iterdir()) == ["build", "cells.md", "helpers.py", "lesson.py", "scores.csv"]
 
 
+@pytest.mark.xdist_group("render")  # a full build
 def test_stale_bytecode_in_the_bundle_is_not_an_input(bundle):
     b = bundle()
     subprocess.run([sys.executable, "-c", "import helpers"], cwd=b, check=True)  # leaves __pycache__/helpers.*.pyc
     assert any((b / "__pycache__").iterdir())
-    assert set(records(b)["inputs"]["bundle"]) == {"helpers.py", "scores.csv"}
+    assert set(built_index(b)["inputs"]["bundle"]) == {"helpers.py", "scores.csv"}
 
 
 def test_object_made_at_helper_import_time_reports_the_import_line(bundle):
