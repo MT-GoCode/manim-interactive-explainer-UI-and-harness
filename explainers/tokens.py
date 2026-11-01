@@ -1,4 +1,4 @@
-"""cells-tokens <max tokens> <bundle or cells.md>...: print each cell over <max tokens> (DeepSeek-V4 tokenizer)."""
+"""cells-tokens <max tokens> <bundle>...: print each cell over <max tokens> (DeepSeek-V4 tokenizer)."""
 import sys
 from pathlib import Path
 
@@ -11,10 +11,10 @@ REVISION = "b5968e9190ef611bbf34a7229255be88a0e937c1"  # a commit: cached after 
 
 def main() -> int:
     if len(sys.argv) < 3 or not sys.argv[1].isdigit():
-        sys.exit("usage: cells-tokens <max tokens> <bundle or cells.md>...")
+        sys.exit("usage: cells-tokens <max tokens> <bundle>...")
     tok = Tokenizer.from_pretrained("deepseek-ai/DeepSeek-V4-Pro", revision=REVISION)
     limit, over = int(sys.argv[1]), 0
-    for f in (Path(p) if p.endswith(".md") else Path(p) / "cells.md" for p in sys.argv[2:]):
+    for f in (Path(p) / "cells.md" for p in sys.argv[2:]):
         cells = read_cells(f)
         if cells.errors:  # what explain-build refuses is never counted
             sys.exit(f"{f}:\n" + "\n".join(cells.errors))

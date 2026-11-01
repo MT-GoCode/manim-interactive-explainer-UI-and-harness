@@ -203,6 +203,7 @@ pulled-in cells not reported%explainers/build.py%s/    spans \+= f"; \{pulled\} 
 output format not pinned%explainers/render.py%s/"video_encoder_options": ENCODER, \*\*OUTPUT\}/"video_encoder_options": ENCODER}/%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
 LaTeX size tolerance removed%explainers/geometry.py%s/u.latex_size < MIN_LATEX - SIZE_EPS:/u.latex_size < MIN_LATEX:/%tests/py/test_geometry.py::test_cell_end_geometry[latex-at-the-minimum-moved]
 text size tolerance removed%explainers/geometry.py%s/u.text_size < MIN_TEXT - SIZE_EPS:/u.text_size < MIN_TEXT:/%tests/py/test_geometry.py::test_cell_end_geometry[text-at-the-minimum-moved]
+chunk cut under a live updater on a first build%explainers/render.py%s/allowed = \[i for i in range\(len\(sums\) - 1\) if cuttable\[i \+ 1\]\]/allowed = list(range(len(sums) - 1))/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 EOF
 )
 

@@ -22,7 +22,7 @@ def shas(bundle, k):
 
 
 def test_chunked_equals_one_chunk(tmp_path):
-    k = 2  # the fewest workers that cut the lesson: a property of chunking, not of this machine's width
+    k = 4  # forced, not this machine's width; at 2 the only cut lands past the spinner, so the check below could not fail
     a, b = tmp_path / "a" / "long.explainer", tmp_path / "b" / "long.explainer"
     for d in (a, b):
         shutil.copytree(FIXTURES / "long.explainer", d)

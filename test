@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 # The one entry point: every test category, results in test-results/<category>/, counts in test-results/summary.txt.
 #   ./test            everything        ./test py -k grammar     one category, extra args passed through
-#   ./test py,unit,e2e   several categories (CI)
+#   ./test py,unit       several categories (CI)
 # Categories run in this order: py, unit, e2e, perf (alone: it measures the machine), packaged.
 set -uo pipefail
 cd "$(dirname "$0")"
 # Lowest priority and macOS background QoS, so the person using this machine never waits on the tests.
 [ -z "${EXPLAINERS_NICE:-}" ] && EXPLAINERS_NICE=1 exec nice -n 19 taskpolicy -b "$0" "$@"
 want=${1:-all}; [ $# -gt 0 ] && shift
-for c in ${want//,/ }; do  # a mistyped category must not pass as "nothing failed"
-  case $c in all|py|unit|e2e|perf|packaged) ;; *) echo "test: unknown category $c" >&2; exit 2 ;; esac
-done
+[[ $want =~ ^(all|(py|unit|e2e|perf|packaged)(,(py|unit|e2e|perf|packaged))*)$ ]] || { echo "test: unknown category $want" >&2; exit 2; }
 rm -rf test-results && mkdir -p test-results
 status=0
 summary() { echo "$1" >> test-results/summary.txt; }
