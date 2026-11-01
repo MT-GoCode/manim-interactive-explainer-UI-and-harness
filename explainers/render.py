@@ -22,7 +22,7 @@ from pathlib import Path
 from explainers.children import Job, child_env, run_all, watch_parent
 from explainers.config import check_render_config, render_config
 
-WORKER_CORES, WORKER_RAM = 1.22, 0.59 * 2**30  # one worker's measured peaks, until a build has measured its own (DECISIONS)
+WORKER_CORES, WORKER_RAM = 1.22, 0.59 * 2**30  # one worker's measured peaks, until a build has measured its own
 
 
 def to_render(reusable: set[int], n: int) -> list[int]:
@@ -69,7 +69,7 @@ def worker(snapshot: Path, cache: Path, out: Path, first: int, last: int) -> Non
     check_render_config()
     digests, partials = [d for c in scene._cells for d in c.drawn], hooks.partial_files(scene)
     (out / "report.json").write_text(json.dumps({
-        "first": first, "fast_forward_s": forwarded[0],
+        "fast_forward_s": forwarded[0],
         "plays": [{"anim": n, "digest": digests[n], "partial": str(partials[n]), "render_s": times[n]} for n in sorted(times)]}))
 
 

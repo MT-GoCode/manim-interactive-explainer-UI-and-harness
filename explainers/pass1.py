@@ -176,7 +176,7 @@ def format_refs(refs: list[dict], namespace: dict) -> tuple[dict[str, str], list
 def install_cost_clock(scene: Any, clock: Any = time.monotonic, tex: Any = None) -> list[float]:
     """Per play, the seconds since the scene began minus the time in exactly the calls exact fast-forward suppresses, and in TeX,
     which a worker never pays because it reads the warm cache: the build's estimate of what a fast-forward to that play costs
-    (1.18-1.22x the real one, probes/p6.out)."""
+    (1.18-1.22x the real one, measured on postmortem)."""
     suppressed, cost = [0.0], []
 
     def timed(f: Any) -> Any:

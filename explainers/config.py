@@ -6,7 +6,7 @@ import configparser
 from pathlib import Path
 from typing import Any
 
-ENCODER = {"threads": "1", "g": "6", "crf": "18", "preset": "veryfast"}  # g 6: worst seek 9.7 ms (DECISIONS)
+ENCODER = {"threads": "1", "g": "6", "crf": "18", "preset": "veryfast"}  # g 6: worst seek 9.7 ms
 # What Manim's "auto" picks for an opaque mp4, pinned: a manim.cfg (cwd or user) must not change the clips' bytes.
 OUTPUT = {"format": "mp4", "transparent": False, "video_codec": "libx264", "pixel_format": "yuv420p"}
 FPS, WIDTH, HEIGHT = 30, 2160, 1080  # 2:1: the app shows the player full width over three quarters of the window

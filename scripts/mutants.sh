@@ -328,6 +328,7 @@ stored before the commit%explainers/build.py%s/        index = commit\(bundle, r
 pairing skipped on a reuse%explainers/build.py%s/    errs \+= pairing\(cells.sections, recs.cells\)\n/    errs += pairing(cells.sections, recs.cells) if ran else []\n/%tests/py/test_pass1_reuse.py::test_a_heading_edit_is_paired_fresh
 code read again at the store%explainers/build.py%s/pass1_base\(rec\["code"\], rec\["ref_keys"\]/pass1_base(pass1_code(), rec["ref_keys"]/%tests/py/test_pass1_reuse.py::test_an_engine_edit_during_a_build_is_not_stored_as_the_new_engine
 identity not in the key%explainers/build.py%s/return \[engine_code\(\), library_code\(\), identity\(\)\]/return [engine_code(), library_code()]/%tests/py/test_pass1_reuse.py::test_each_part_moves_the_code
+TeX on the cost clock%explainers/pass1.py%s/        tex.compile_tex, tex.convert_to_svg = timed\(tex.compile_tex\), timed\(tex.convert_to_svg\)\n/        pass\n/%tests/py/test_guard.py::test_the_cost_clock_subtracts_what_fast_forward_suppresses
 EOF
 )
 

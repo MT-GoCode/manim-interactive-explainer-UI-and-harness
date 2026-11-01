@@ -194,12 +194,15 @@ def test_the_cost_clock_subtracts_what_fast_forward_suppresses():
         scene.camera.set_frame_to_background()
         scene.renderer.get_frame()
         scene.renderer.file_writer.write_frame()
+        tex.compile_tex()
+        tex.convert_to_svg()
 
     scene = SimpleNamespace(
         camera=SimpleNamespace(capture_mobjects=suppressed_call, reset=suppressed_call, set_frame_to_background=suppressed_call),
         renderer=SimpleNamespace(get_frame=suppressed_call, file_writer=SimpleNamespace(write_frame=suppressed_call)),
         play=play)
-    cost = install_cost_clock(scene, clock)
+    tex = SimpleNamespace(compile_tex=suppressed_call, convert_to_svg=suppressed_call)
+    cost = install_cost_clock(scene, clock, tex)
     scene.play()
     scene.play()
     scene.play()

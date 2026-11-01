@@ -230,6 +230,7 @@ def store_pass1(store: Path, rec: dict, snap: Path, shared: Path) -> None:
     base = pass1_base(rec["code"], rec["ref_keys"], shared, rec["env"])
     (tmp / "base").write_text(base)
     (tmp / "key").write_text(pass1_key(base, snap, load(tmp / "records.json").inputs))
+    (store / "base").unlink(missing_ok=True)  # first: a store a kill leaves part-deleted must not pass as whole
     shutil.rmtree(store, ignore_errors=True)
     os.replace(tmp, store)
 

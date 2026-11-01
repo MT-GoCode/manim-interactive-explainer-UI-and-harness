@@ -103,6 +103,12 @@ def test_a_removed_cache_runs_pass_1(b):
     assert pass1(b) == "pass 1: ran"
 
 
+def test_a_part_deleted_store_runs_pass_1(b):
+    for name in ("base", "key"):
+        (b / "build" / "pass1" / name).unlink()
+    assert pass1(b) == "pass 1: ran"
+
+
 def test_a_store_from_another_engine_is_not_read(b, tmp_path):
     records = b / "build" / "pass1" / "records.json"
     records.write_text(json.dumps({**json.loads(records.read_text()), "a_field_this_engine_has_not": 1}))

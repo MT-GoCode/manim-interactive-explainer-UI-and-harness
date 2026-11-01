@@ -1,12 +1,12 @@
 """Where render work is cut into chunks: a pure function of the plays to render and the measured costs, never of the machine's
 load. A chunk never spans a gap, so it is one contiguous range of one run and pays exactly one fast-forward, to its first play."""
 
-# Measured on postmortem with the frame check on (DECISIONS): a play's seconds per video second on a first build, and what
+# Measured on postmortem with the frame check on: a play's seconds per video second on a first build, and what
 # starting one more worker costs. A split that saves less than a start costs CPU and RAM for nothing.
 SEED_S_PER_VIDEO_S = 0.5277
 START_COST_S = 0.89
 # How much of a forward estimate a cut charges. Full weight assumes each worker forwards at its solo speed; in fact the early,
-# short chunks finish and free the fast cores for the late ones. Swept on postmortem at 8 workers, 0 to 1: best at 0.5 (DECISIONS).
+# short chunks finish and free the fast cores for the late ones. Swept on postmortem at 8 workers, 0 to 1: best at 0.5.
 FORWARD_WEIGHT = 0.5
 
 

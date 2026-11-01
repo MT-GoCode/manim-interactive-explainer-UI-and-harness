@@ -7,7 +7,7 @@ Read this before making or editing a lesson.
 2. If the lesson needs numbers, write a script that computes them (e.g. `helpers.py`, imported by `lesson.py`). Prose
    never types a number: it writes `{name}` or `{name:.3f}`, filled in from `lesson.py` at build time.
 3. Meanwhile, write `cells.md` and `lesson.py` in parallel: one `## slug` section per `self.cell("slug")`, same order.
-4. Build with `explain-build <bundle>`; it renders all cells in parallel. Fix each error at the `lesson.py` line it
+4. Build with `explain-build <bundle>`; it renders the cells whose frames changed, in parallel. Fix each error at the `lesson.py` line it
    names, and rebuild until it prints `built`.
    When Minh gives a length limit, run `cells-tokens <limit> <bundle>`: it lists each cell over that many tokens
    (the whole cell: prose, math and code as written). Shorten each cell it lists.
@@ -17,6 +17,27 @@ Read this before making or editing a lesson.
    name in `~/Documents/explainers` without `.explainer`, `cell` is one of its `## slug` headings (both required, e.g.
    `[[postmortem#bf16]]`). In the app, clicking it opens that lesson at that cell.
 7. Follow the heuristics below.
+
+# What `explain-build` prints
+
+A build prints, in this order:
+- `machine: phase=render ...`: the exact inputs of the width below, for tests.
+- `render width: 8 (idle 17.4 cores, 25 GB free) · 0.59 GB per job est`: how many workers run at once, up to 75% of what is free. `explain-build <bundle> --workers N` sets it exactly.
+- `render: 40/193 animations`: progress, while workers draw.
+- One line per cell, the refs, and the inputs.
+- `pass 1: reused` or `pass 1: ran`. It runs only when something it read changed: a prose edit reuses it, and an edit to `lesson.py`, a helper or a data file it read, or a new `{ref}` runs it, and so does a build from a shell with a different PATH or locale.
+- `render: 3 cells (4–5, 9) in 2 chunks · 27 reused`: only cells whose frames changed render.
+- `timing:` and `built`.
+
+Each error names what to fix:
+- `lesson.py:N read <path>, outside the bundle`: copy the file into the bundle. A lesson also starts no program but TeX and reaches no network.
+- `animation N drew different frames in its worker than in pass 1` or `ran in only one of pass 1 and its worker`: the lesson is nondeterministic. No clock reads, no sets of mobjects, no random draws outside `construct`.
+- `the camera moved in cell`: set the camera once, before the first `self.cell()`.
+- `a lesson may not read the camera's pixels`: remove the `camera.get_image()` call.
+- `one render job needs ... GB`: close something, or pass `--workers 1`.
+- `render failed` or `pass 1 failed`, with an exit code: read the traceback below it. A line in it is the lesson's line.
+
+A lesson does not write into its own folder: the workers would see that file, and you would not.
 
 # Minh's lesson heuristics (binding for every lesson)
 

@@ -7,7 +7,7 @@ import math
 
 import numpy as np
 
-MIN_TEXT, MIN_LATEX = 32, 40  # Minh's picks from size-ladder.png (DECISIONS)
+MIN_TEXT, MIN_LATEX = 32, 40  # Minh's picks from a ladder of sizes
 SIZE_EPS = 1e-6  # font size is read back from height; moving text perturbs it by ~1e-14 (32 → 31.999999999999957)
 
 
