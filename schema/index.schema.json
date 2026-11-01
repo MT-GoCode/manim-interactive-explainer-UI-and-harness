@@ -87,6 +87,11 @@
           "fingerprint": {
             "$ref": "#/$defs/sha",
             "description": "what the cell's frames draw and everything after them that shapes its clip; equal fingerprints, equal clips"
+          },
+          "render_s": {
+            "description": "Seconds its worker spent on each of the cell's plays, in order; a reused cell keeps the values from the build that rendered it.",
+            "type": "array",
+            "items": {"type": "number", "minimum": 0}
           }
         }
       }
@@ -94,6 +99,11 @@
     "fps": {
       "type": "integer",
       "minimum": 1
+    },
+    "fast_forward_s": {
+      "description": "Per range of the last build that rendered: [its first play, seconds its worker spent forwarding to it].",
+      "type": "array",
+      "items": {"type": "array", "prefixItems": [{"type": "integer", "minimum": 0}, {"type": "number", "minimum": 0}], "minItems": 2, "maxItems": 2}
     },
     "worker_peak": {
       "description": "The largest peak RSS (bytes) and cores (CPU seconds over wall seconds) of any render worker in the last build that rendered.",

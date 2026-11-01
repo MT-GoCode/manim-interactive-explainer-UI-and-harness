@@ -14,14 +14,16 @@ if __name__ == "__main__":
 
 import hashlib
 import io
+import json
 import shutil
+import time
 from math import floor
 from pathlib import Path
 
 from explainers.children import Job, child_env, run_all, watch_parent
 from explainers.config import check_render_config, render_config
 
-WORKER_CORES, WORKER_RAM = 1.1, 0.7 * 2**30  # measured peaks of one worker (DECISIONS)
+WORKER_CORES, WORKER_RAM = 1.22, 0.59 * 2**30  # measured peaks of one worker with the tee (DECISIONS)
 
 
 def width(cores: int, ram: int, cells: int) -> int:
@@ -50,15 +52,8 @@ def chunks(durations: list[float], k: int, cuttable: list[bool]) -> list[list[in
     return [list(range(a + 1, b + 1)) for a, b in zip(bounds, bounds[1:])]
 
 
-def to_render(reusable: set[int], cuttable: list[bool]) -> list[int]:
-    """The cells to render: those not reusable, and for each, every cell back to the nearest one a chunk may start at
-    (fast-forwarding into a cell with a live time-based updater would not reproduce its frames)."""
-    todo = set(range(len(cuttable))) - reusable
-    for n in list(todo):
-        while n > 0 and not cuttable[n]:
-            n -= 1
-            todo.add(n)
-    return sorted(todo)
+def to_render(reusable: set[int], n: int) -> list[int]:
+    return sorted(set(range(n)) - reusable)
 
 
 def worker(snapshot: Path, cache: Path, out: Path, ranges: list[tuple[int, int]]) -> None:
@@ -68,6 +63,8 @@ def worker(snapshot: Path, cache: Path, out: Path, ranges: list[tuple[int, int]]
     watch_parent()  # before the import: a build killed during it still ends this worker
     from manim import config, tempconfig
 
+    from explainers import hooks
+    from explainers.fingerprint import Tee
     from explainers.lesson import exec_lesson
     render_config()
     for name in ("tex", "text"):
@@ -75,11 +72,33 @@ def worker(snapshot: Path, cache: Path, out: Path, ranges: list[tuple[int, int]]
             shutil.copytree(cache / name, out / name)
     config.update({"tex_dir": str(out / "tex"), "text_dir": str(out / "text")})
     _, cls = exec_lesson(snapshot, (snapshot / "lesson.py").read_bytes())
+    cls.RECORDER = Tee
+    report = []
     for j, (first, last) in enumerate(ranges):
         with tempconfig({"from_animation_number": first, "upto_animation_number": last,
                          "media_dir": str(out / f"range-{j}")}):  # what a lesson sets mid-scene ends with its range
-            cls().render()
+            scene = cls()
+            hooks.exact_fast_forward(scene)
+            play, started, forwarded, times = scene.play, time.monotonic(), [None], {}
+
+            def stamped(*a, **k):
+                n, t = scene.renderer.num_plays, time.monotonic()
+                if n == first:
+                    forwarded[0] = t - started
+                try:
+                    return play(*a, **k)
+                finally:
+                    if first <= n <= last:
+                        times[n] = time.monotonic() - t
+
+            scene.play = stamped
+            scene.render()
             check_render_config()
+        digests, partials = [d for c in scene._cells for d in c.drawn], hooks.partial_files(scene)
+        report.append({"first": first, "fast_forward_s": forwarded[0],
+                       "plays": [{"anim": n, "digest": digests[n], "partial": str(partials[n]), "render_s": times[n]}
+                                 for n in sorted(times)]})
+    (out / "report.json").write_text(json.dumps({"ranges": report}))
 
 
 def runs(cells: list[int]) -> list[list[int]]:
@@ -94,24 +113,18 @@ def runs(cells: list[int]) -> list[list[int]]:
 
 
 def render(snapshot: Path, cache: Path, cells, todo: list[int], k: int):
-    """Render the animations of the cells in todo; returns ({global animation index: partial file}, the chunks of cell
-    indices, each worker's peaks)."""
+    """Render the animations of the cells in todo; returns each chunk's report, the chunks of cell indices, and each
+    worker's peaks. A worker that exited 0 with no report has an empty one: the build's verify names its first missing play."""
     media = snapshot.parent
-    groups = [[todo[i] for i in g] for g in chunks([sum(cells[n].run_times) for n in todo], k,
-                                                    [cells[n].cuttable for n in todo])]
+    groups = [[todo[i] for i in g] for g in chunks([sum(cells[n].run_times) for n in todo], k, [True] * len(todo))]
     starts = [c.first_anim for c in cells] + [cells[-1].first_anim + len(cells[-1].run_times)]
     ranges = [[(starts[r[0]], starts[r[-1] + 1] - 1) for r in runs(g)] for g in groups]
     jobs = [Job("explainers.render", [str(snapshot), str(cache), str(media / f"chunk-{n}"), *(f"{a}-{b}" for a, b in rs)],
                 media / f"chunk-{n}") for n, rs in enumerate(ranges)]
     path = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if ".tinytex" not in p)
     done = run_all(jobs, k, child_env(path))
-    parts: dict[int, Path] = {}
-    for job, rs in zip(jobs, ranges):
-        found = {int(f.name[9:14]): f for f in job.out.rglob("uncached_*.mp4")}
-        want = {i for a, b in rs for i in range(a, b + 1)}
-        assert set(found) == want, f"chunk {rs} produced {sorted(found)}"
-        parts.update(found)
-    return parts, groups, done
+    paths = [job.out / "report.json" for job in jobs]
+    return [json.loads(p.read_text()) if p.exists() else {"ranges": []} for p in paths], groups, done
 
 
 def join(paths: list[Path], out: Path) -> int:

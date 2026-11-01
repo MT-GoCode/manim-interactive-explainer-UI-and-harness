@@ -10,7 +10,6 @@ import numpy as np
 from manim import (Axes, DecimalNumber, Dot, Group, ImageMobject, MarkupText, Mobject, NumberPlane, Paragraph, Scene,
                    SingleStringMathTex, Text, ThreeDScene, VGroup, VMobject)
 
-from explainers.fingerprint import Recorder
 from explainers.records import CellRec, Unit
 
 TEXT = (Text, MarkupText)                     # plain text units (minimum font size 32)
@@ -101,29 +100,33 @@ def _sizes(m) -> tuple[float | None, float | None]:
 class Lesson(Scene):
     SOURCE: str = ""     # the path lesson.py is compiled under; set by exec_lesson
     RECORDING = False    # pass 1 (the check) records each cell's end state; render workers do not
+    RECORDER: type | None = None  # the recorder this process installs: Recorder in pass 1, Tee in a worker
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._cells: list[CellRec] = []
         self._anchors: list[Mobject] = []  # everything attached to stays alive, so its id is never reused
+        self._recorder = self.RECORDER(self) if self.RECORDER else None
         if self.RECORDING:
-            self._recorder = Recorder(self)
+            self._guard_camera()
 
     def play(self, *args, **kwargs):
         if not self._cells:
             raise LessonError(f"animation before the first self.cell() (lesson.py:{_lesson_line(self.SOURCE)})")
         super().play(*args, **kwargs)
-        self._cells[-1].run_times.append(float(self.duration))  # the play's exact run time (the clock accumulates float error)
-        if self.RECORDING:
-            self._cells[-1].drawn.append(self._recorder.play_digest())
+        cell = self._cells[-1]
+        cell.run_times.append(float(self.duration))  # the play's exact run time (the clock accumulates float error)
+        if self._recorder:
+            digest, frames = self._recorder.play_digest()
+            cell.drawn.append(digest)
+            cell.frames.append(frames)
 
     def cell(self, slug: str):
         if self._cells:
             self._close()
         else:
             self._camera = self._camera_state()
-        live = any(x.has_time_based_updater() for m in self.mobjects for x in m.get_family())
-        self._cells.append(CellRec(slug, _lesson_line(self.SOURCE), self.renderer.num_plays, cuttable=not live))
+        self._cells.append(CellRec(slug, _lesson_line(self.SOURCE), self.renderer.num_plays))
 
     def tear_down(self):
         if not self._cells:
@@ -132,15 +135,37 @@ class Lesson(Scene):
         super().tear_down()
 
     def _close(self):
-        """End the current cell: in pass 1, record what is on screen; the camera must not have moved (checked at
-        cell ends: a move that returns within one cell is not seen)."""
+        """End the current cell: in pass 1, record what is on screen."""
         if not self.RECORDING:
             return
-        c = self._cells[-1]
+        self._check_camera()
+        self._cells[-1].end = self._end_state()
+
+    def _check_camera(self):
         if self._camera_state() != self._camera:
+            c = self._cells[-1]
             raise LessonError(f'the camera moved in cell "{c.slug}" (lesson.py:{c.line}); the camera is static: '
                               "set it before the first self.cell()")
-        c.end = self._end_state()
+
+    def _guard_camera(self):
+        """Pass 1 refuses what would make a clip depend on where its chunk starts. Manim fixes the Cairo matrix at a pixel
+        array's first draw and the digest records the camera's fields, so a move is refused at the draw. Pass 1 and
+        fast-forward never hold the frame in the pixel array, so a read of the current frame is refused too; Manim's own
+        background-image drawing passes an array."""
+        cam = self.camera
+        capture, get_image = cam.capture_mobjects, cam.get_image
+
+        def capture_checked(*args, **kwargs):
+            if self._cells:
+                self._check_camera()
+            return capture(*args, **kwargs)
+
+        def get_image_refused(pixel_array=None):
+            if pixel_array is None:
+                raise LessonError(f"a lesson may not read the camera's pixels (lesson.py:{_lesson_line(self.SOURCE)})")
+            return get_image(pixel_array)
+
+        cam.capture_mobjects, cam.get_image = capture_checked, get_image_refused
 
     def attach(self, child, to):
         """Mark child as meant to sit on `to` or any part of it (a label on its arrow, a number in its cell): they
@@ -157,8 +182,9 @@ class Lesson(Scene):
             m._transient_cell = len(self._cells) - 1
         return mobs[0] if len(mobs) == 1 else mobs
 
-    def _camera_state(self) -> list[float] | None:
-        return None  # a 2D Scene's camera cannot move
+    def _camera_state(self) -> list[float]:
+        c = self.camera  # the five fields Camera.get_cairo_context reads
+        return [*map(float, c.frame_center), float(c.frame_width), float(c.frame_height), float(c.pixel_width), float(c.pixel_height)]
 
     def _end_state(self) -> list[Unit]:
         units: list[Unit] = []
@@ -193,7 +219,12 @@ class Lesson3D(Lesson, ThreeDScene):
     def _camera_state(self) -> list[float]:
         c = self.camera
         return [float(c.get_phi()), float(c.get_theta()), float(c.get_gamma()), float(c.get_focal_distance()),
-                float(c.get_zoom()), *map(float, c.frame_center)]
+                float(c.get_zoom()), *super()._camera_state()]
+
+    def cell(self, slug: str):
+        if not self._cells:  # fast-forward suppresses capture_mobjects, which refreshes this matrix; project_point reads it
+            self.camera.reset_rotation_matrix()
+        super().cell(slug)
 
 
 def exec_lesson(bundle: Path, src: bytes):

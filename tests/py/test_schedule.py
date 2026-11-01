@@ -5,8 +5,8 @@ GiB = 2**30
 
 
 def test_width_is_bound_by_cpu_ram_and_cells():
-    assert width(cores=16, ram=128 * GiB, cells=30) == 7      # ⌊8 / 1.1⌋
-    assert width(cores=64, ram=4 * GiB, cells=30) == 2        # ⌊2 GiB / 0.7 GiB⌋
+    assert width(cores=16, ram=128 * GiB, cells=30) == 6      # ⌊8 / 1.22⌋
+    assert width(cores=64, ram=4 * GiB, cells=30) == 3        # ⌊2 GiB / 0.59 GiB⌋
     assert width(cores=16, ram=128 * GiB, cells=3) == 3
     assert width(cores=1, ram=1 * GiB, cells=10) == 1         # always at least one
 
@@ -29,10 +29,5 @@ def test_chunks_never_start_where_a_time_based_updater_is_live():
     assert chunks([1, 1, 1, 1], 4, [True, False, False, False]) == [[0, 1, 2, 3]]  # nowhere to cut: one chunk
 
 
-def test_to_render_reaches_back_to_the_last_cell_a_chunk_may_start_at():
-    cuttable = [True, False, False, True, False]
-    assert to_render({0, 1, 2, 3, 4}, cuttable) == []
-    assert to_render({0, 1, 3, 4}, cuttable) == [0, 1, 2]
-    assert to_render({0, 1, 2, 3}, cuttable) == [3, 4]
-    assert to_render({0, 2, 3, 4}, cuttable) == [0, 1]
-    assert to_render(set(), cuttable) == [0, 1, 2, 3, 4]
+def test_to_render_is_what_is_not_reusable():
+    assert to_render({0, 2}, 4) == [1, 3]

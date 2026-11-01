@@ -13,6 +13,7 @@ import pytest
 
 from conftest import FIXTURES, explain_build
 from explainers import build as B
+from explainers import fingerprint as F
 
 pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 
@@ -83,35 +84,39 @@ def test_an_edit_whose_effect_persists_renders_every_cell_it_reaches(softmax, tm
     assert shas == scratch
 
 
-def test_an_edit_to_a_helper_module_renders_every_cell(softmax, tmp_path):
-    line, shas, scratch = rebuild(softmax, tmp_path, "helpers.py", "import numpy as np\n",
-                                  "import numpy as np  # edited\n")
-    assert re.fullmatch(r"render: 6 cells \(1–6\) in \d chunks? · 0 reused", line), line
-    assert shas == scratch == softmax[1][1]
+def test_a_helper_edit_that_changes_no_frame_renders_no_cell(softmax, tmp_path):
+    before = json.loads((softmax[0] / "build" / "index.json").read_text())["inputs"]["bundle"]
+    b = edit(fresh(tmp_path, "softmax.explainer", softmax[0]), "helpers.py", "import numpy as np\n", "import numpy as np  # edited\n")
+    assert build(b) == ("render: 0 cells · 6 reused", softmax[1][1])
+    assert json.loads((b / "build" / "index.json").read_text())["inputs"]["bundle"] != before  # the app's stale alert still fires
 
 
 def test_fingerprints_cover_everything_after_the_frames(monkeypatch, tmp_path):
-    inputs = {"bundle": {"helpers.py": "1" * 64}, "repo": {"explainers/lesson.py": "2" * 64}}
-    base = B.fingerprints([["a"], ["b"]], inputs)
+    drawn = [["a"], ["b"]]
+    base = B.fingerprints(drawn, F.identity())
     assert len(set(base)) == 2
-    one = B.fingerprints([["a"], ["c"]], inputs)
+    one = B.fingerprints([["a"], ["c"]], F.identity())
     assert one[0] == base[0] and one[1] != base[1]
-    changed = [B.fingerprints([["a"], ["b"]], {**inputs, k: {p: "3" * 64 for p in v}}) for k, v in inputs.items()]
+    changed = []
     version = importlib.metadata.version
     for dist in ("manim", "numpy", "pycairo", "av", "pillow"):
         with monkeypatch.context() as m:
             m.setattr(importlib.metadata, "version", lambda d, dist=dist: "0" if d == dist else version(d))
-            changed.append(B.fingerprints([["a"], ["b"]], inputs))
+            changed.append(B.fingerprints(drawn, F.identity()))
+    for target, name in ((cairo, "cairo_version_string"), (F, "_pixman")):
+        with monkeypatch.context() as m:
+            m.setattr(target, name, lambda: "0")
+            changed.append(B.fingerprints(drawn, F.identity()))
     with monkeypatch.context() as m:
-        m.setattr(cairo, "cairo_version_string", lambda: "0")
-        changed.append(B.fingerprints([["a"], ["b"]], inputs))
+        m.setattr(sys, "version", "0")
+        changed.append(B.fingerprints(drawn, F.identity()))
     for name in ("fingerprint.py", "render.py", "config.py"):
         code = tmp_path / name.partition(".")[0]
-        shutil.copytree(B.PICTURE_CODE, code)
+        shutil.copytree(F.ENGINE, code)
         (code / name).write_text((code / name).read_text() + "\n")
         with monkeypatch.context() as m:
-            m.setattr(B, "PICTURE_CODE", code)
-            changed.append(B.fingerprints([["a"], ["b"]], inputs))
+            m.setattr(F, "ENGINE", code)
+            changed.append(B.fingerprints(drawn, F.identity()))
     assert all(f[0] != base[0] and f[1] != base[1] for f in changed)
 
 
@@ -145,14 +150,19 @@ def build_k(b: Path, k: int) -> dict:
     return json.loads(r.stdout)
 
 
-def test_a_rebuild_starts_its_chunks_only_where_fast_forwarding_is_exact(tmp_path):
-    b = fresh(tmp_path / "inc", "long.explainer")
-    build(b)
-    line, shas = build(long_edited(b, "(20,)"))  # after the spinner is gone: cell 21 alone changes
-    assert line == "render: 1 cell (21) in 1 chunk · 29 reused"
-    assert shas == build(long_edited(fresh(tmp_path / "scratch1", "long.explainer"), "(20,)"))[1]
-    # Cell 6 runs while the spinner turns: it changes cells 6-10, and its chunk starts at cell 1, the last cell
-    # with no live updater at its start. Cell 21 is back to its first build's frames. One worker, two ranges.
-    out = build_k(edit(b, "lesson.py", "EDITED = (20,)", "EDITED = (5,)"), 1)
-    assert out["line"] == "render: 11 cells (1–10, 21; 5 pulled in by a live updater) in 1 chunk · 19 reused"
-    assert out["shas"] == build(long_edited(fresh(tmp_path / "scratch2", "long.explainer"), "(5,)"))[1]
+def shift_edited(b: Path, cells: str) -> Path:
+    """An edit that stays inside its cell: v appears and leaves there, and no duration changes."""
+    edit(b, "lesson.py", ".shift(RIGHT * jitter[k])", ".shift(RIGHT * (jitter[k] + 0.1 * (k in EDITED)))")
+    return edit(b, "lesson.py", "N = 30\n", f"N = 30\nEDITED = {cells}\n")
+
+
+def test_an_edit_under_a_live_updater_renders_only_its_cell(tmp_path):
+    first = fresh(tmp_path / "first", "long.explainer")
+    build(first)
+    cases = [(shift_edited, "(5,)", "render: 1 cell (6) in 1 chunk · 29 reused"),
+             (shift_edited, "(5, 20)", "render: 2 cells (6, 21) in 1 chunk · 28 reused"),  # one worker, two ranges
+             (long_edited, "(5,)", "render: 5 cells (6–10) in 1 chunk · 25 reused")]  # a longer play turns the spinner further
+    for n, (edited, cells, line) in enumerate(cases):
+        out = build_k(edited(fresh(tmp_path / f"inc{n}", "long.explainer", first), cells), 1)
+        assert out["line"] == line
+        assert out["shas"] == build(edited(fresh(tmp_path / f"scratch{n}", "long.explainer"), cells))[1]

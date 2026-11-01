@@ -24,5 +24,5 @@ class Long(Lesson):
             self.wait(0.1)  # two waits per cell take the lesson past Manim's 100-file partial pruning limit
             self.wait(0.1)
             if k == 9:
-                self.play(FadeOut(spinner), run_time=0.3)  # from cell 10 on, chunks may start anywhere
+                self.play(FadeOut(spinner), run_time=0.3)
                 self.remove(spinner)

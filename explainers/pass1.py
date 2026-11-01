@@ -24,6 +24,7 @@ from typing import Any
 import explainers
 from explainers.children import watch_parent
 from explainers.config import check_render_config, render_config
+from explainers.fingerprint import Recorder
 from explainers.records import Records, dump
 
 PACKAGE = Path(explainers.__file__).resolve().parent
@@ -225,7 +226,7 @@ def main(argv: list[str]) -> int:
     guard.active = True
     try:
         module, cls = exec_lesson(snapshot, (snapshot / "lesson.py").read_bytes())
-        cls.RECORDING = True
+        cls.RECORDING, cls.RECORDER = True, Recorder
         scene = cls()
         cost = install_cost_clock(scene)
         scene.render()

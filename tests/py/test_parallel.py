@@ -22,10 +22,10 @@ def shas(bundle, k):
 
 
 def test_chunked_equals_one_chunk(tmp_path):
-    k = 4  # forced, not this machine's width; at 2 the only cut lands past the spinner, so the check below could not fail
+    k = 4  # forced, not this machine's width; at 2 the only cut lands past the spinner
     a, b = tmp_path / "a" / "long.explainer", tmp_path / "b" / "long.explainer"
     for d in (a, b):
         shutil.copytree(FIXTURES / "long.explainer", d)
     one, many = shas(a, 1), shas(b, k)
-    assert len(many["chunks"]) > 1 and all(g[0] >= 10 for g in many["chunks"][1:])  # no cut while the spinner runs
+    assert any(g[0] < 10 for g in many["chunks"][1:])  # a chunk starts while the spinner runs
     assert one["shas"] == many["shas"]

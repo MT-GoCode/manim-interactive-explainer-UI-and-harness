@@ -23,11 +23,11 @@ def bundle(tmp_path):
     return copy
 
 
-def explain_build(*args, cwd=None):
+def explain_build(*args, cwd=None, env=None):
     """Run this checkout's explain-build with TeX removed from PATH: the build must find the repo's own TeX."""
     path = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if p != TEX_BIN)
     return subprocess.run([str(REPO / "bin" / "explain-build"), *map(str, args)], capture_output=True, text=True,
-                          cwd=cwd, env={**os.environ, "PATH": path})
+                          cwd=cwd, env={**os.environ, "PATH": path, **(env or {})})
 
 
 def run_pass1(bundle, keys="[]"):
@@ -38,7 +38,7 @@ def run_pass1(bundle, keys="[]"):
     shutil.copytree(bundle, snapshot, ignore=shutil.ignore_patterns("build", "__pycache__"))
     cache.mkdir()
     out.mkdir()
-    env = {**os.environ, "EXPLAINERS_BUILD_PID": str(os.getpid()), "PATH": TEX_BIN + os.pathsep + os.environ["PATH"]}
+    env = {**os.environ, "EXPLAINERS_BUILD_PID": str(os.getpid()), "PATH": TEX_BIN + os.pathsep + os.environ["PATH"], "PYTHONHASHSEED": "0"}
     r = subprocess.run([sys.executable, "-P", "-m", "explainers.pass1", str(snapshot), str(cache), str(out), keys],
                        capture_output=True, text=True, env=env, start_new_session=True)
     return r, out, snapshot

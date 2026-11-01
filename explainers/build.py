@@ -18,7 +18,6 @@ from explainers.records import load
 from explainers.render import frames_sha, join, render, runs, to_render, width
 
 REPO = Path(__file__).resolve().parents[1]
-PICTURE_CODE = REPO / "explainers"  # repo code that can change a picture (the base class; parts.py later)
 
 
 class BuildError(Exception):
@@ -112,17 +111,34 @@ def prune_cache(shared: Path, used: list[str]) -> None:
             f.unlink()
 
 
-def fingerprints(drawn: list[list[str]], inputs: dict) -> list[str]:
-    """Per cell: its frames as pass 1 recorded them (per animation), and everything after the frames that shapes the
-    clip's bytes: the picture code and bundle files it ran with, how frames are digested (fingerprint.py), how they
-    are encoded (config.py) and joined (render.py), and the drawing and encoding libraries."""
-    import cairo
-    after = json.dumps({"inputs": inputs,
-                        "code": {n: sha256((PICTURE_CODE / n).read_bytes()) for n in ("fingerprint.py", "render.py",
-                                                                                     "config.py")},
-                        "versions": {d: importlib.metadata.version(d) for d in ("manim", "numpy", "pycairo", "av", "pillow")}
-                        | {"cairo": cairo.cairo_version_string()}}, sort_keys=True)
-    return [sha256(json.dumps([after, d]).encode()) for d in drawn]
+def fingerprints(drawn: list[list[str]], identity: dict) -> list[str]:
+    """Per cell: its frames as pass 1 recorded them (per animation), and everything after the frames that shapes the clip's
+    bytes. Bundle files and other engine code stay out: equal digests draw equal pixels."""
+    return [sha256(json.dumps([identity, d], sort_keys=True).encode()) for d in drawn]
+
+
+def verify(cells, groups: list[list[int]], reports: list[dict]) -> tuple[dict[int, Path], list, dict[int, float]]:
+    """The one place a worker's result is judged: it ran exactly the plays pass 1 ran for its cells, and each drew the
+    digest pass 1 recorded. The plays come from the cells, not from the ranges the worker was given. Returns ({play: partial
+    file}, [[first play of a range, seconds forwarding to it], ...], {play: seconds}), from which the build records times."""
+    cell_of = lambda n: next(c for c in reversed(cells) if c.first_anim <= n)
+    drawn = [d for c in cells for d in c.drawn]
+    nondeterministic = "the lesson is nondeterministic. No clock reads, no sets of mobjects, no random draws outside construct."
+    parts, forward, times = {}, [], {}
+    for group, report in zip(groups, reports):
+        want = {cells[n].first_anim + i for n in group for i in range(len(cells[n].run_times))}
+        got = {p["anim"]: p for r in report["ranges"] for p in r["plays"]}
+        if differ := want ^ got.keys():
+            n = min(differ)
+            c = cell_of(n)
+            raise BuildError(1, [f"lesson.py:{c.line} cell {c.slug}: animation {n} ran in only one of pass 1 and its worker: {nondeterministic}"])
+        for n in sorted(got):
+            if got[n]["digest"] != drawn[n]:
+                c = cell_of(n)
+                raise BuildError(1, [f"lesson.py:{c.line} cell {c.slug}: animation {n} drew different frames in its worker than in pass 1: {nondeterministic}"])
+            parts[n], times[n] = Path(got[n]["partial"]), got[n]["render_s"]
+        forward += [[r["first"], r["fast_forward_s"]] for r in report["ranges"]]
+    return parts, forward, times
 
 
 def failed(what: str, e: ChildFailed) -> BuildError:
@@ -157,12 +173,13 @@ def check(snap: Path, shared: Path) -> dict:
         raise BuildError(1, errs + recs.ref_errors)
     if errs := geometry(recs.cells, *recs.frame, WIDTH):
         raise BuildError(1, errs)
+    from explainers.fingerprint import identity
     # lesson.py stays out: lesson_sha covers it, and per-cell digests decide what re-renders
     inputs = {"bundle": {p: sha256((snap / p).read_bytes()) for p in recs.inputs
                          if not p.endswith("/") and p != "lesson.py" and (snap / p).is_file()},
               "repo": {p: sha256((REPO / p).read_bytes()) for p in recs.repo}}
     return {"lesson_sha": sha256((snap / "lesson.py").read_bytes()), "cells": recs.cells, "refs": recs.refs, "inputs": inputs,
-            "fingerprints": fingerprints([c.drawn for c in recs.cells], inputs),
+            "fingerprints": fingerprints([c.drawn for c in recs.cells], identity()),
             "manim_version": importlib.metadata.version("manim"), "repo_root": str(REPO),
             "cache_entries": recs.cache_entries}
 
@@ -200,6 +217,7 @@ def commit(bundle: Path, rec: dict, parts: dict[int, Path], reused: dict[int, di
     last and atomically: a reader always sees a whole old build or a whole new one. Clips of neither the new nor the
     previous build are deleted."""
     import jsonschema
+    from explainers.fingerprint import stream_check
     build = bundle / "build"
     clips = build / "clips"
     clips.mkdir(exist_ok=True)
@@ -209,19 +227,26 @@ def commit(bundle: Path, rec: dict, parts: dict[int, Path], reused: dict[int, di
         if n in reused:
             old = reused[n]
             cells.append({"slug": c.slug, "clip": old["clip"], "frames_sha": old["frames_sha"], "frames": old["frames"],
-                          "fingerprint": fingerprint})
+                          "fingerprint": fingerprint, "render_s": old["render_s"]})
             continue
         tmp = clips / f".tmp-{n}.mp4"
-        frames = join([parts[i] for i in range(c.first_anim, c.first_anim + len(c.run_times))], tmp)
+        plays = range(c.first_anim, c.first_anim + len(c.run_times))
+        frames, total = join([parts[i] for i in plays], tmp), sum(c.frames)
+        if frames != total:
+            raise BuildError(1, [f"lesson.py:{c.line} cell {c.slug}: joined {frames} frames, pass 1 wrote {total}"])
+        if errs := stream_check(tmp):
+            raise BuildError(1, [f"lesson.py:{c.line} cell {c.slug}: stream check failed: {'; '.join(errs)}"])
         sha = frames_sha(tmp)
         os.replace(tmp, clips / f"{sha}.mp4")
         cells.append({"slug": c.slug, "clip": f"clips/{sha}.mp4", "frames_sha": sha, "frames": frames,
-                      "fingerprint": fingerprint})
+                      "fingerprint": fingerprint, "render_s": [rec["render_s"][i] for i in plays]})
     index = {"format": "explainer", "version": 1, "lesson_sha": rec["lesson_sha"], "inputs": rec["inputs"],
              "repo_root": rec["repo_root"], "manim_version": rec["manim_version"], "fps": FPS, "refs": rec["refs"],
              "cells": cells}
     if peak := rec["worker_peak"] or previous.get("worker_peak"):  # a build that rendered nothing keeps the last one
         index["worker_peak"] = peak
+    if forward := rec["fast_forward"] or previous.get("fast_forward_s"):
+        index["fast_forward_s"] = forward
     jsonschema.validate(index, json.loads((REPO / "schema" / "index.schema.json").read_text()))
     tmp = build / "index.json.tmp"
     tmp.write_text(json.dumps(index, indent=1) + "\n")
@@ -249,14 +274,13 @@ def build(bundle: Path, k: int | None = None) -> tuple[dict, Path]:
         t.append(time.monotonic())
         previous = previous_index(bundle)
         reused = reusable(bundle, rec["fingerprints"], previous)
-        todo = to_render(set(reused), [c.cuttable for c in rec["cells"]])
-        rec["pulled_in"] = sum(n in reused for n in todo)
-        reused = {n: c for n, c in reused.items() if n not in todo}
+        todo = to_render(set(reused), len(rec["cells"]))
         k = k or width(os.cpu_count(), _ram(), len(todo))
         try:
-            parts, rec["chunks"], done = render(snap, shared, rec["cells"], todo, k) if todo else ({}, [], [])
+            reports, rec["chunks"], done = render(snap, shared, rec["cells"], todo, k) if todo else ([], [], [])
         except ChildFailed as e:
             raise failed("render", e)
+        parts, rec["fast_forward"], rec["render_s"] = verify(rec["cells"], rec["chunks"], reports)
         rec["worker_peak"] = {"rss": max(d.rss for d in done), "cores": max(d.cores for d in done)} if done else None
         rec["rendered"] = todo
         t.append(time.monotonic())
@@ -274,14 +298,12 @@ def _ram() -> int:
 
 
 def render_line(rec: dict) -> str:
-    """e.g. "render: 3 cells (4–5, 9) in 2 chunks · 27 reused", or "render: 10 cells (1–10; 9 pulled in by a live
-    updater) in 1 chunk · 20 reused"; cells numbered from 1."""
-    todo, k, pulled = rec["rendered"], len(rec["chunks"]), rec["pulled_in"]
+    """e.g. "render: 3 cells (4–5, 9) in 2 chunks · 27 reused"; cells numbered from 1."""
+    todo, k = rec["rendered"], len(rec["chunks"])
     reused = f" · {len(rec['cells']) - len(todo)} reused"
     if not todo:
         return "render: 0 cells" + reused
     spans = ", ".join(f"{r[0] + 1}–{r[-1] + 1}" if len(r) > 1 else f"{r[0] + 1}" for r in runs(todo))
-    spans += f"; {pulled} pulled in by a live updater" * (pulled > 0)
     return f"render: {len(todo)} cell{'s' * (len(todo) != 1)} ({spans}) in {k} chunk{'s' * (k != 1)}" + reused
 
 

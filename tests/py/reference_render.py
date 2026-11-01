@@ -13,6 +13,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(bundle))
 import types  # noqa: E402
 module = types.ModuleType("lesson")
+module.__file__ = str(bundle / "lesson.py")
 exec(compile((bundle / "lesson.py").read_bytes(), str(bundle / "lesson.py"), "exec"), module.__dict__)
 from explainers import Lesson  # noqa: E402
 cls = next(v for v in vars(module).values() if isinstance(v, type) and issubclass(v, Lesson) and v is not Lesson)

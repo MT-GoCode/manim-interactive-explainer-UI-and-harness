@@ -39,8 +39,7 @@ def ok(built):
     return b, json.loads((b / "build" / "index.json").read_text())
 
 
-def test_clips_equal_a_one_pass_render_cut_at_cells(built, tmp_path):
-    b, index = ok(built)
+def clips_equal_a_one_pass_render(b, index, tmp_path):
     ref = subprocess.run([sys.executable, str(REFERENCE), str(b), str(tmp_path)], capture_output=True, text=True)
     assert ref.returncode == 0, ref.stderr
     parts = sorted(tmp_path.rglob("uncached_*.mp4"))
@@ -50,6 +49,16 @@ def test_clips_equal_a_one_pass_render_cut_at_cells(built, tmp_path):
         got = frames(b / "build" / c["clip"])
         assert len(got) == len(want) == c["frames"]
         assert all((g == w).all() for g, w in zip(got, want)), c["slug"]
+
+
+def test_clips_equal_a_one_pass_render_cut_at_cells(built, tmp_path):
+    clips_equal_a_one_pass_render(*ok(built), tmp_path)
+
+
+def test_images_and_point_clouds_reach_the_clips(bundle, tmp_path):
+    """A digest cannot see a tee that records a call and does not draw it: only a stock render can."""
+    b = bundle("frames.explainer")
+    clips_equal_a_one_pass_render(b, built_ok(b), tmp_path)
 
 
 def test_every_clip_is_single_threaded_keyint_6_crf_18(built):
@@ -419,6 +428,231 @@ def test_a_config_a_lesson_sets_ends_with_its_range(bundle):
         return {int(f.name[9:14]): f.read_bytes() for f in w.rglob("uncached_*.mp4")}
 
     assert partials("both", "0-0", "2-2")[2] == partials("alone", "2-2")[2]
+
+
+def line_of(b, text):
+    source = (b / "lesson.py").read_text()
+    return source[:source.index(text)].count("\n") + 1
+
+
+def worker_direct(snapshot, cache, out, *ranges):
+    """{play: (digest, partial bytes)} of a real worker run on its own."""
+    r = subprocess.run([sys.executable, "-P", "-m", "explainers.render", str(snapshot), str(cache), str(out), *ranges], capture_output=True,
+                       text=True, env={**os.environ, "EXPLAINERS_BUILD_PID": str(os.getpid()), "PYTHONHASHSEED": "0"}, start_new_session=True)
+    assert r.returncode == 0, r.stderr
+    plays = [p for x in json.loads((out / "report.json").read_text())["ranges"] for p in x["plays"]]
+    return {p["anim"]: (p["digest"], Path(p["partial"]).read_bytes()) for p in plays}
+
+
+def late_start_equals_one_chunk(b, first, last):
+    r, out, snapshot = run_pass1(b)
+    assert r.returncode == 0, r.stderr
+    cache, work = out.parent / "cache", out.parent
+    drawn = [d for c in json.loads((out / "records.json").read_text())["cells"] for d in c["drawn"]]
+    late, whole = worker_direct(snapshot, cache, work / "late", f"{first}-{last}"), worker_direct(snapshot, cache, work / "whole", f"0-{last}")
+    assert sorted(late) == list(range(first, last + 1))
+    for n, (digest, partial) in late.items():
+        assert digest == drawn[n] and (digest, partial) == whole[n], n
+
+
+def test_a_chunk_starting_under_a_live_updater_equals_one_chunk(bundle):
+    b = bundle("long.explainer")
+    r, out, _ = run_pass1(b)
+    assert r.returncode == 0, r.stderr
+    cell = json.loads((out / "records.json").read_text())["cells"][5]  # the spinner turns from cell 0 to cell 9
+    late_start_equals_one_chunk(b, cell["first_anim"], cell["first_anim"] + len(cell["run_times"]) - 1)
+
+
+PROJECTED = """import numpy as np
+from manim import *
+
+from explainers import Lesson3D
+
+
+class Projected(Lesson3D):
+    def construct(self):
+        self.set_camera_orientation(phi=60 * DEGREES, theta=30 * DEGREES)
+        self.cell("one")
+        self.play(FadeIn(Dot3D(RIGHT)), run_time=0.1)
+        self.cell("two")
+        label = Dot(self.camera.project_point(np.array([1.0, 1.0, 1.0])), color=RED)
+        self.add_fixed_in_frame_mobjects(label)
+        self.play(FadeIn(label), run_time=0.1)
+"""
+
+
+def test_a_chunk_in_a_3d_lesson_equals_one_chunk_with_a_live_updater(bundle):
+    b = edit(bundle("geometry3d.explainer"), "lesson.py", '        self.cell("apart-in-the-world")\n',
+             '        self.cell("apart-in-the-world")\n        self.add(Dot(RIGHT * -3).add_updater(lambda m, dt: m.shift(RIGHT * dt)))\n')
+    late_start_equals_one_chunk(edit(b, "lesson.py", "        self.clear()\n", ""), 1, 1)
+
+
+def test_a_chunk_in_a_3d_lesson_equals_one_chunk_reading_the_projection(bundle):
+    b = bundle("geometry3d.explainer")
+    (b / "lesson.py").write_text(PROJECTED)
+    late_start_equals_one_chunk(b, 1, 1)
+
+
+def nondeterministic(b, r, cell, anim, what):
+    return r.returncode == 1 and r.stderr.strip() == (f"error: lesson.py:{line_of(b, cell)} cell {cell.split(chr(34))[1]}: animation {anim} {what}: "
+                                                      "the lesson is nondeterministic. No clock reads, no sets of mobjects, no random draws outside construct.")
+
+
+def test_a_clock_read_fails_as_nondeterministic(bundle):
+    b = edit(bundle(), "lesson.py", '        self.cell("exp")\n',
+             '        self.cell("exp")\n        self.add(Dot().to_corner(DL).shift(RIGHT * (__import__("time").time() % 1)))\n')
+    r = explain_build(b)
+    assert nondeterministic(b, r, 'self.cell("exp")', 1, "drew different frames in its worker than in pass 1"), r.stderr
+
+
+@pytest.mark.parametrize("old, new, cell, anim", [
+    ("        self.wait(0.1234)\n", "        self.wait(0.1234)\n        if self.RECORDING:\n            self.wait(0.1)\n", 'self.cell("top")', 8),
+    ("    def construct(self):\n", '    def construct(self):\n        if not self.RECORDING:\n            __import__("sys").exit(0)\n', 'self.cell("scores")', 0),
+], ids=["fewer-plays", "no-report"])
+def test_a_lesson_running_differently_in_its_worker_fails_naming_the_cell(bundle, old, new, cell, anim):
+    b = edit(bundle(), "lesson.py", old, new)
+    r = explain_build(b)
+    assert nondeterministic(b, r, cell, anim, "ran in only one of pass 1 and its worker"), r.stderr
+
+
+def engine_copy(tmp_path, *edits):
+    """This engine in another folder, with (file, old text, new text) applied. PYTHONPATH reaches it through the build's
+    fixed environment. cells.py finds its reader from its own file, so tools comes too."""
+    copy = tmp_path / "engine"
+    shutil.copytree(REPO / "explainers", copy / "explainers", ignore=shutil.ignore_patterns("__pycache__"))
+    for name in (".tinytex", "schema", "tools"):
+        (copy / name).symlink_to(REPO / name)
+    for name, old, new in edits:
+        edit(copy / "explainers", name, old, new)
+    return {"PYTHONPATH": str(copy)}
+
+
+def test_a_changed_encoder_setting_renders_every_cell(bundle, tmp_path):
+    b = bundle()
+    built_ok(b)
+    r = explain_build(b, env=engine_copy(tmp_path, ("config.py", '"crf": "18"', '"crf": "20"')))
+    assert r.returncode == 0, r.stderr
+    assert re.search(r"render: 6 cells \(1–6\) in \d chunks? · 0 reused", r.stdout), r.stdout
+
+
+WRONG_RATE = """            from fractions import Fraction
+            from dataclasses import replace
+            from manim.scene.video_segment_encoder import VideoSegmentEncoder
+            writer = scene.renderer.file_writer
+            writer._create_segment_encoder = lambda target: VideoSegmentEncoder(target=target, spec=replace(writer.video_encoder, frame_rate=Fraction(10)))
+            scene.render()
+"""
+
+
+@pytest.mark.parametrize("edits, error", [
+    ([("render.py", "            scene = cls()\n", '            config.pixel_format = "yuv444p"\n            scene = cls()\n'),
+      ("render.py", "            check_render_config()\n", "")], "pix_fmt yuv444p ≠ yuv420p"),
+    ([("render.py", "            scene.render()\n", WRONG_RATE)], "fps 10/1 ≠ 30"),
+], ids=["pix-fmt", "wrong-rate"])
+def test_a_clip_whose_stream_does_not_match_fails(bundle, tmp_path, edits, error):
+    b = bundle()
+    r = explain_build(b, env=engine_copy(tmp_path, *edits))
+    assert r.returncode == 1 and f"""lesson.py:{line_of(b, 'self.cell("scores")')} cell scores: stream check failed: {error}""" in r.stderr, r.stderr
+
+
+def test_a_short_play_before_another_passes_the_stream_check(bundle):
+    """0.45 s then a second play: a join starts the second partial a few ticks early, so the average rate reads 81920/2729."""
+    b = bundle()
+    (b / "cells.md").write_text("## one\n\nText.\n")
+    (b / "lesson.py").write_text("""from manim import *
+
+from explainers import Lesson
+
+
+class Short(Lesson):
+    def construct(self):
+        self.cell("one")
+        s = Square(1.0)
+        self.add(s)
+        self.play(Transform(s, Circle(1.2).set_fill(BLUE, 0.7).shift(LEFT)), run_time=0.45)
+        self.wait(0.5)
+""")
+    built_ok(b)
+
+
+def test_a_join_that_loses_a_frame_fails_naming_the_cell(bundle, tmp_path):
+    b = bundle()
+    # the demuxer ends with an empty flush packet, so the last frame is second from the end
+    r = explain_build(b, env=engine_copy(tmp_path, ("render.py", "for packet in src.demux(src.streams.video[0]):",
+                                                    "for packet in list(src.demux(src.streams.video[0]))[:-2]:")))
+    m = re.search(r"lesson\.py:\d+ cell scores: joined (\d+) frames, pass 1 wrote (\d+)", r.stderr)
+    assert r.returncode == 1 and m and int(m[2]) - int(m[1]) == 1, r.stderr
+
+
+@pytest.mark.parametrize("fixture", ["softmax", "frames", "long"])
+def test_a_tee_on_every_fixture_matches_pass_1(bundle, fixture):
+    r = subprocess.run([sys.executable, str(Path(__file__).parent / "build_with_width.py"), str(bundle(f"{fixture}.explainer")), "2"],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr  # every digest is compared, so exit 0 is the proof
+
+
+FADE_OUT, FIRST_WAIT = "self.play(FadeOut(v), run_time=0.3)\n", "self.wait(0.1)  # two waits per cell take the lesson past Manim's 100-file partial pruning limit\n"
+LAST_WAIT = FIRST_WAIT + "            self.wait(0.1)\n"
+
+
+def moved(field, value):
+    return ((FADE_OUT, f"{FADE_OUT}            if k == 0:\n                saved = self.camera.{field}\n                self.camera.{field} = {value}\n"),
+            (FIRST_WAIT, f"{FIRST_WAIT}            if k == 0:\n                self.camera.{field} = saved\n"))
+
+
+INSIDE_A_PLAY = ((FADE_OUT, f'{FADE_OUT}            if k == 0:\n                saved = self.camera.frame_center\n                d = Dot().add_updater(lambda m, dt: setattr(self.camera, "frame_center", np.array([1.0, 0.0, 0.0])))\n                self.add(d)\n'),
+                 (FIRST_WAIT, f"{FIRST_WAIT}            if k == 0:\n                self.remove(d)\n                self.camera.frame_center = saved\n"))
+AFTER_THE_LAST_PLAY = ((LAST_WAIT, f"{LAST_WAIT}            if k == N - 1:\n                self.camera.frame_center = np.array([1.0, 0.0, 0.0])\n"),)
+
+
+@pytest.mark.parametrize("edits, cell", [
+    (moved("frame_center", "np.array([1.0, 0.0, 0.0])"), "step-00"), (moved("frame_width", "15.0"), "step-00"), (moved("frame_height", "7.0"), "step-00"),
+    (moved("pixel_width", "1080"), "step-00"), (moved("pixel_height", "540"), "step-00"), (INSIDE_A_PLAY, "step-00"), (AFTER_THE_LAST_PLAY, "step-29"),
+], ids=["frame_center", "frame_width", "frame_height", "pixel_width", "pixel_height", "inside-a-play", "after-the-last-play"])
+def test_a_camera_moved_inside_a_cell_is_an_error(bundle, edits, cell):
+    b = bundle("long.explainer")
+    for old, new in edits:
+        edit(b, "lesson.py", old, new)
+    r = explain_build(b)
+    line = line_of(b, 'self.cell(f"step-')
+    assert r.returncode == 1 and r.stderr.strip() == f'error: the camera moved in cell "{cell}" (lesson.py:{line}); the camera is static: set it before the first self.cell()', r.stderr
+
+
+def test_a_lesson_reading_the_cameras_pixels_is_an_error(bundle):
+    line = "self.camera.get_image()\n"
+    b = edit(bundle(), "lesson.py", "        self.play(Write(z), run_time=1.0)\n", f"        self.play(Write(z), run_time=1.0)\n        {line}")
+    r = explain_build(b)
+    assert r.returncode == 1 and r.stderr.strip() == f"error: a lesson may not read the camera's pixels (lesson.py:{line_of(b, line)})", r.stderr
+
+
+def test_measured_times_are_recorded_and_kept(bundle):
+    b = edit(bundle("long.explainer"), "lesson.py", "                self.play(FadeIn(row), FadeIn(spinner), run_time=1.0)\n",
+             "                self.play(FadeIn(row), FadeIn(spinner), run_time=1.0)\n"
+             '                __import__("time").sleep(2)\n'
+             '                known = Dot().add_updater(lambda m, dt: __import__("time").sleep(0.05))\n'
+             "                self.add(known)\n"
+             "                self.wait(1.0)  # 30 frames at 0.05 s each\n"
+             "                self.remove(known)\n")
+    width = str(Path(__file__).parent / "build_with_width.py")
+    started = time.monotonic()
+    r = subprocess.run([sys.executable, width, str(b), "2"], capture_output=True, text=True)
+    wall = time.monotonic() - started
+    assert r.returncode == 0, r.stderr
+    index = index_of(b)
+    (_, first), (_, later) = sorted(index["fast_forward_s"])
+    assert first < 2 <= later
+    times = [c["render_s"] for c in index["cells"]]
+    assert [len(t) for t in times] == [6] + [4] * 8 + [5] + [4] * 20
+    assert times[0][1] >= 1.5 and sum(map(sum, times)) <= 2 * wall
+    edit(b, "lesson.py", ".shift(RIGHT * jitter[k])", ".shift(RIGHT * (jitter[k] + 0.1 * (k == 20)))")
+    r = subprocess.run([sys.executable, width, str(b), "1"], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    edited = index_of(b)
+    assert [c["render_s"] for n, c in enumerate(edited["cells"]) if n != 20] == times[:20] + times[21:]
+    assert edited["cells"][20]["render_s"] != times[20]
+    before = (b / "build" / "index.json").read_text()
+    built_ok(b)
+    assert (b / "build" / "index.json").read_text() == before
 
 
 def test_a_second_build_is_refused_while_a_killed_builds_worker_lives(bundle):

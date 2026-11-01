@@ -26,10 +26,9 @@ class CellRec:
     slug: str
     line: int | None
     first_anim: int
-    cuttable: bool = True  # nothing on screen at this cell's start has a time-based updater, so a render chunk may
-    #                        start here (fast-forwarding runs such updaters once with dt = run_time, not per frame)
     run_times: list[float] = field(default_factory=list)
     drawn: list[str] = field(default_factory=list)  # per animation: the digest of the frames it writes (fingerprint.py)
+    frames: list[int] = field(default_factory=list)  # per animation: how many frames it writes
     end: list[Unit] | None = None
 
 
