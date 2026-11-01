@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 import jsonschema
+import psutil
 import pytest
 
 from conftest import FIXTURES, REPO, explain_build
@@ -103,11 +104,10 @@ def test_killed_build_keeps_the_previous_build_and_leaves_no_worker(bundle):
     assert time.time() < deadline, "no partial appeared"
     workers = subprocess.run(["pgrep", "-f", f"explainers.render {b}"], capture_output=True, text=True).stdout.split()
     assert workers
-    # Kill the build itself (the Python under uv's shim), not the shim: uv runs Python as a child, not via exec.
-    build = subprocess.run(["pgrep", "-f", f"bin/explain-build {b}"], capture_output=True, text=True).stdout.split()
-    builds = [pid for pid in build if "python" in subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True).stdout]
+    # Kill the build itself, the workers' parent (uv's shim runs it as a child, not via exec).
+    builds = {psutil.Process(int(w)).ppid() for w in workers}
     assert len(builds) == 1, builds
-    os.kill(int(builds[0]), signal.SIGKILL)
+    os.kill(builds.pop(), signal.SIGKILL)
     for _ in range(30):  # each worker notices its parent is gone within a second
         if not subprocess.run(["pgrep", "-f", f"explainers.render {b}"], capture_output=True).stdout:
             break
