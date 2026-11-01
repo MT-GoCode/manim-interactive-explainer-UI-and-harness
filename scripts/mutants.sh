@@ -43,18 +43,15 @@ copy keeps original line%explainers/lesson.py%s/        for x in c.get_family\(\
 run time from the clock%explainers/lesson.py%s/        super\(\).play\(\*args, \*\*kwargs\)\n        cell = self._cells\[-1\]\n        cell.run_times.append\(float\(self.duration\)\)/        t0 = self.renderer.time\n        super().play(*args, **kwargs)\n        cell = self._cells[-1]\n        cell.run_times.append(self.renderer.time - t0)/%tests/py/test_pass1.py::test_cells_and_exact_run_times
 outermost lesson frame%explainers/lesson.py%s/while f is not None and f.f_code.co_filename != source:\n        f = f.f_back\n    return f.f_lineno if f is not None else None/hit = None\n    while f is not None:\n        hit = f if f.f_code.co_filename == source else hit\n        f = f.f_back\n    return hit.f_lineno if hit is not None else None/%tests/py/test_pass1.py::test_end_state_kinds_and_creation_lines
 partials pruned past 100%explainers/config.py%s/"max_files_cached": -1,/"max_files_cached": 100,/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
-chunk renders one animation too many%explainers/render.py%s/starts\[r\[-1\] \+ 1\] - 1\) for r in runs/starts[r[-1] + 1]) for r in runs/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
+chunk renders one animation too many%explainers/render.py%s/f"\{a\}-\{b\}"\], media/f"{a}-{b + 1}"], media/%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 join drops a cell's first partial%explainers/build.py%s/join\(\[parts\[i\] for i in plays\]/join([parts[i] for i in plays[1:]]/%tests/py/test_render.py::test_clips_equal_a_one_pass_render_cut_at_cells
 previous build's clips deleted%explainers/build.py%s/keep = \{c\["clip"\] for c in cells \+ previous\["cells"\]\}/keep = {c["clip"] for c in cells}/%tests/py/test_render.py::test_an_edit_inside_one_cell_changes_only_that_cells_clip_and_old_clips_last_one_rebuild
-width ignores cores%explainers/render.py%s/return max\(1, min\(floor\(0.5 \* cores \/ WORKER_CORES\), /return max(1, min(/%tests/py/test_schedule.py::test_width_is_bound_by_cpu_ram_and_cells
 seed not fixed%explainers/config.py%s/"seed": SEED, //%tests/py/test_parallel.py::test_chunked_equals_one_chunk
 encoder threads not pinned%explainers/config.py%s/ENCODER = \{"threads": "1", /ENCODER = {"threads": "0", /%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
 keyframe interval changed%explainers/config.py%s/"g": "6"/"g": "12"/%tests/py/test_render.py::test_every_clip_is_single_threaded_keyint_6_crf_18
 stale media not cleared%explainers/build.py%s/    shutil.rmtree\(media, ignore_errors=True\)\n    shutil.copytree/    shutil.copytree/%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
 worker outlives the build%explainers/render.py%s/    watch_parent\(\)  # before the import: a build killed during it still ends this worker\n//%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
 no-animation cell accepted%explainers/build.py%s/errs = \[f'cell "\{c.slug\}" has no animation \(lesson.py:\{c.line\}\)' for c in recs.cells if not c.run_times\]/errs = []/%tests/py/test_render.py::test_a_cell_with_no_animation_is_an_error
-chunk starts under a live updater%explainers/render.py%s/allowed = \[i for i in range\(len\(sums\) - 1\) if cuttable\[i \+ 1\]\]/allowed = list(range(len(sums) - 1))/%tests/py/test_schedule.py::test_chunks_never_start_where_a_time_based_updater_is_live
-chunk cut not nearest%explainers/render.py%s/i = min\(allowed, key=lambda i: \(abs\(sums\[i\] - target\), i\)\)/i = max(i for i in allowed if sums[i] <= target) if any(sums[i] <= target for i in allowed) else allowed[0]/%tests/py/test_schedule.py::test_chunks_golden
 clip named by something else%explainers/render.py%s/return hashlib.sha256\(path.read_bytes\(\)\).hexdigest\(\)/return hashlib.sha256(str(path).encode()).hexdigest()/%tests/py/test_render.py::test_index_validates_and_clips_are_named_by_content
 frame stretched to the pixels%explainers/config.py%s/"frame_width": 8.0 \* WIDTH \/ HEIGHT, //%tests/py/test_render.py::test_clips_equal_a_one_pass_render_cut_at_cells
 font size from constructor%explainers/lesson.py%s/return float\(m.font_size\), None/return float(m._font_size), None/%tests/py/test_pass1.py::test_font_sizes_follow_scale_and_class_for_text_latex_and_text_inside_containers
@@ -185,7 +182,7 @@ render not at the fixed rate%explainers/config.py%s/\n          "frame_rate": FP
 world-to-pixel matrix not recorded%explainers/fingerprint.py%s/self._ops.append\(\("matrix", /(lambda *_: None)(("matrix", /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[centre]
 world-to-pixel scale not recorded%explainers/fingerprint.py%s/float\(sx\), float\(-sy\), /0.0, 0.0, /%tests/py/test_frames.py::test_where_the_camera_looks_is_in_every_frame[width]
 recording context answers any query%explainers/fingerprint.py%s/if name not in DRAWING:\n            raise AttributeError\(f\"the recorder/if False:\n            raise AttributeError(f\"the recorder/%tests/py/test_frames.py::test_the_recording_context_refuses_what_it_cannot_answer
-animations hashed%explainers/config.py%s/"disable_caching": True, //%tests/py/test_render.py::test_a_config_a_lesson_sets_ends_with_its_range
+animations hashed%explainers/config.py%s/"disable_caching": True, //%tests/py/test_render.py::test_killed_build_keeps_the_previous_build_and_leaves_no_worker
 numpy version not fingerprinted%explainers/fingerprint.py%s/"av", "numpy", /"av", /%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
 encoder code not fingerprinted%explainers/fingerprint.py%s/\{"code": \{n: hashlib.*?\},\n\s+"python"/{"python"/s%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
 one fingerprint for the whole lesson%explainers/build.py%s/json.dumps\(\[identity, d\], /json.dumps([identity, drawn], /%tests/py/test_incremental.py::test_an_edit_inside_one_cell_renders_that_cell
@@ -207,16 +204,16 @@ caller's environment reaches a worker%explainers/children.py%s/\*\*\{k: os.envir
 caller's environment reaches pass 1%explainers/children.py%s/\*\*\{k: os.environ\[k\] for k in CHILD_ENV if k in os.environ\}/**os.environ/%tests/py/test_render.py::test_no_variable_of_the_callers_environment_reaches_pass_1
 defaults not reset%explainers/config.py%s/    config.update\(ManimConfig\(\).digest_parser\(parser\)\)\n//%tests/py/test_render.py::test_a_manim_cfg_in_the_bundle_does_not_change_the_clips
 peak not measured%explainers/build.py%s/max\(d.rss for d in done\)/0/%tests/py/test_render.py::test_worker_peak_is_measured_and_kept
-worker keeps a manim.cfg%explainers/render.py%s/    render_config\(\)\n/    from explainers.config import RENDER\n    config.update(RENDER)\n/; s/^ {12}check_render_config\(\)\n//m%tests/py/test_render.py::test_a_manim_cfg_in_the_bundle_does_not_change_the_clips
-cwd manim.cfg reaches a worker%explainers/render.py%s/if __name__ == "__main__":\n    os.chdir\(sys.argv\[1\]\)\n//; s/    render_config\(\)\n/    from explainers.config import RENDER\n    config.update(RENDER)\n/; s/^ {12}check_render_config\(\)\n//m%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
+worker keeps a manim.cfg%explainers/render.py%s/    render_config\(\)\n/    from explainers.config import RENDER\n    config.update(RENDER)\n/; s/^ {4}check_render_config\(\)\n//m%tests/py/test_render.py::test_a_manim_cfg_in_the_bundle_does_not_change_the_clips
+cwd manim.cfg reaches a worker%explainers/render.py%s/if __name__ == "__main__":\n    os.chdir\(sys.argv\[1\]\)\n//; s/    render_config\(\)\n/    from explainers.config import RENDER\n    config.update(RENDER)\n/; s/^ {4}check_render_config\(\)\n//m%tests/py/test_render.py::test_a_manim_cfg_where_the_build_runs_does_not_change_the_clips
 pass 1 keeps a manim.cfg%explainers/pass1.py%s/    render_config\(\)\n//; s/    check_render_config\(\)\n//%tests/py/test_render.py::test_a_manim_cfg_in_the_bundle_does_not_change_the_clips
-worker config not checked%explainers/render.py%s/^ {12}check_render_config\(\)\n//m%tests/py/test_render.py::test_a_render_config_change_fails_the_build[worker]
+worker config not checked%explainers/render.py%s/^ {4}check_render_config\(\)\n//m%tests/py/test_render.py::test_a_render_config_change_fails_the_build[worker]
 pass 1 config not checked%explainers/pass1.py%s/    check_render_config\(\)\n//%tests/py/test_render.py::test_a_render_config_change_fails_the_build[pass-1]
 package imports manim%explainers/__init__.py%s/^/from explainers.lesson import Lesson\n/%tests/py/test_render.py::test_importing_the_build_does_not_import_manim
 broken cwd manim.cfg read%explainers/__init__.py%s/^/from explainers.lesson import Lesson\n/%tests/py/test_render.py::test_a_broken_manim_cfg_where_the_build_runs_is_never_read
 children import from the cwd%explainers/children.py%s/"-P", //%tests/py/test_render.py::test_a_module_in_the_callers_cwd_is_never_imported
 hash seed not fixed%explainers/children.py%s/, "PYTHONHASHSEED": "0"//%tests/py/test_render.py::test_the_hash_seed_is_fixed
-worker imports the lesson outside its cache%explainers/render.py%s/    config.update\(\{"tex_dir": str\(out \/ "tex"\), "text_dir": str\(out \/ "text"\)\}\)\n//; s/"media_dir": str\(out \/ f"range-\{j\}"\)\}/"media_dir": str(out \/ f"range-{j}"), "tex_dir": str(out \/ "tex"), "text_dir": str(out \/ "text")}/%tests/py/test_render.py::test_a_tex_object_made_at_import_time_builds
+worker imports the lesson outside its cache%explainers/render.py%s/config.update\(\{"tex_dir": str\(out \/ "tex"\), "text_dir": str\(out \/ "text"\), "from/config.update({"from/; s/    cls.RECORDER = Tee\n/    config.update({"tex_dir": str(out \/ "tex"), "text_dir": str(out \/ "text")})\n    cls.RECORDER = Tee\n/%tests/py/test_render.py::test_a_tex_object_made_at_import_time_builds
 pass 1 starts cold%explainers/build.py%s/shutil.copytree\(shared, private\)/private.mkdir(parents=True)/%tests/py/test_render.py::test_a_second_build_starts_pass_1_with_the_cache_warm
 cache id ignores TeX%explainers/build.py%s/,\n             sha256\(\(REPO \/ ".tinytex" \/ "TinyTeX" \/ "tlpkg" \/ "texlive.tlpdb"\).read_bytes\(\)\)\]/]/%tests/py/test_incremental.py::test_the_cache_id_covers_the_tools_that_fill_it
 old caches kept%explainers/build.py%s/            if other != shared:\n                shutil.rmtree\(other\) if other.is_dir\(\) else other.unlink\(\)/            if False:\n                pass/%tests/py/test_render.py::test_a_changed_cache_id_starts_a_fresh_cache
@@ -247,7 +244,6 @@ stray file in the cache stops the build%explainers/build.py%s/shutil.rmtree\(oth
 exit code dropped%explainers/build.py%s/failed: exit code \{e.code\}"/failed:"/%tests/py/test_render.py::test_a_child_killed_by_a_signal_names_its_exit_code[worker]
 watcher leaves the group alive%explainers/children.py%s/os.killpg\(0, signal.SIGKILL\)/os._exit(1)/%tests/py/test_render.py::test_a_killed_build_takes_a_workers_own_children_with_it
 width not kept%explainers/children.py%s/while pending and len\(alive\) < width:/while pending:/%tests/py/test_render.py::test_run_all_keeps_to_its_width
-range config leaks%explainers/render.py%s/with tempconfig\(\{/with __import__("contextlib").nullcontext(config.update({/; s/"range-\{j\}"\)\}\):  #/"range-{j}")})):  #/%tests/py/test_render.py::test_a_config_a_lesson_sets_ends_with_its_range
 exit routes before a violation%explainers/pass1.py%s/except \(Exception, SystemExit\) as e:/except Exception as e:/%tests/py/test_guard.py::test_a_violation_routes_before_a_lesson_exit
 bare listing not guarded%explainers/pass1.py%s/path = "." if args\[0\] is None else args\[0\]/path = args[0]/%tests/py/test_guard.py::test_a_refusal_names_its_lesson_line[bare-listing]
 stat not noted%explainers/pass1.py%s/os.stat, os.lstat, os.access = guard.stat\(os.stat\), /os.stat, os.lstat, os.access = os.stat, /%tests/py/test_guard.py::test_a_stat_and_a_listing_are_inputs
@@ -270,11 +266,11 @@ written file noted as an input%explainers/pass1.py%s/        if event == "open":
 write beside a bundle file refused%explainers/pass1.py%s/        if event == "open":\n            if p.startswith\(self.cache/        if event == "open" and args[2] \& os.O_WRONLY and p.startswith(self.snapshot + os.sep):\n            raise PermissionError(p)\n        if event == "open":\n            if p.startswith(self.cache/%tests/py/test_guard.py::test_an_svg_in_the_bundle_passes_the_guard
 dangling link stops the build%explainers/build.py%s/\n        or not os.path.exists\(os.path.join\(d, n\)\)\]\)/])/%tests/py/test_render.py::test_a_dangling_link_in_the_bundle_does_not_stop_the_build
 valid link dropped%explainers/build.py%s/\n        or not os.path.exists\(os.path.join\(d, n\)\)\]\)/], ignore_dangling_symlinks=True)/%tests/py/test_render.py::test_a_relative_link_in_the_bundle_is_in_the_snapshot
-fast-forward not exact%explainers/render.py%s/            hooks.exact_fast_forward\(scene\)\n//%tests/py/test_render.py::test_a_chunk_starting_under_a_live_updater_equals_one_chunk
-3D fast-forward not exact%explainers/render.py%s/            hooks.exact_fast_forward\(scene\)\n//%tests/py/test_render.py::test_a_chunk_in_a_3d_lesson_equals_one_chunk_with_a_live_updater
+fast-forward not exact%explainers/render.py%s/^    hooks.exact_fast_forward\(scene\)\n//m%tests/py/test_render.py::test_a_chunk_starting_under_a_live_updater_equals_one_chunk
+3D fast-forward not exact%explainers/render.py%s/^    hooks.exact_fast_forward\(scene\)\n//m%tests/py/test_render.py::test_a_chunk_in_a_3d_lesson_equals_one_chunk_with_a_live_updater
 digest not compared%explainers/build.py%s/if got\[n\]\["digest"\] != drawn\[n\]:/if False:/%tests/py/test_render.py::test_a_clock_read_fails_as_nondeterministic
-plays not compared%explainers/build.py%s/if differ := want \^ got.keys\(\):/if differ := ():/%tests/py/test_render.py::test_a_lesson_running_differently_in_its_worker_fails_naming_the_cell[fewer-plays]
-missing report not routed%explainers/render.py%s/json.loads\(p.read_text\(\)\) if p.exists\(\) else \{"ranges": \[\]\} for p/json.loads(p.read_text()) for p/%tests/py/test_render.py::test_a_lesson_running_differently_in_its_worker_fails_naming_the_cell[no-report]
+plays not compared%explainers/build.py%s/if differ := set\(range\(first, last \+ 1\)\) \^ got.keys\(\):/if differ := ():/%tests/py/test_render.py::test_a_lesson_running_differently_in_its_worker_fails_naming_the_cell[fewer-plays]
+missing report not routed%explainers/render.py%s/json.loads\(p.read_text\(\)\) if p.exists\(\) else \{"plays": \[\]\} for p/json.loads(p.read_text()) for p/%tests/py/test_render.py::test_a_lesson_running_differently_in_its_worker_fails_naming_the_cell[no-report]
 tee draws without digesting%explainers/fingerprint.py%s/def tee\(\*args: Any\) -> Any:\n            self._ops.append\(_op\(name, args\)\)\n/def tee(*args: Any) -> Any:\n/%tests/py/test_render.py::test_a_tee_on_every_fixture_matches_pass_1[softmax]
 frame count not checked%explainers/build.py%s/if frames != total:/if False:/%tests/py/test_render.py::test_a_join_that_loses_a_frame_fails_naming_the_cell
 stream not checked%explainers/build.py%s/if errs := stream_check\(tmp\):/if errs := []:/%tests/py/test_render.py::test_a_clip_whose_stream_does_not_match_fails[pix-fmt]
@@ -283,7 +279,6 @@ fingerprint keeps bundle inputs%explainers/build.py%s/fingerprints\(\[c.drawn fo
 pixman not in the identity%explainers/fingerprint.py%s/, "pixman": _pixman\(\)//%tests/py/test_incremental.py::test_fingerprints_cover_everything_after_the_frames
 frames not recorded%explainers/lesson.py%s/            cell.frames.append\(frames\)\n//%tests/py/test_render.py::test_a_join_that_loses_a_frame_fails_naming_the_cell
 fast-forward stamped at the scene's start%explainers/render.py%s/if n == first:/if n == 0:/%tests/py/test_render.py::test_measured_times_are_recorded_and_kept
-report keeps only the last range%explainers/render.py%s/json.dumps\(\{"ranges": report\}\)/json.dumps({"ranges": report[-1:]})/%tests/py/test_incremental.py::test_an_edit_under_a_live_updater_renders_only_its_cell
 render time is the clock, not the elapsed time%explainers/render.py%s/times\[n\] = time.monotonic\(\) - t/times[n] = t/%tests/py/test_render.py::test_measured_times_are_recorded_and_kept
 camera checked only at cell ends%explainers/lesson.py%s/            if self._cells:\n                self._check_camera\(\)\n//%tests/py/test_render.py::test_a_camera_moved_inside_a_cell_is_an_error[frame_center]
 camera not checked at a cell's end%explainers/lesson.py%s/            return\n        self._check_camera\(\)\n/            return\n/%tests/py/test_render.py::test_a_camera_moved_inside_a_cell_is_an_error[after-the-last-play]
@@ -301,6 +296,23 @@ reused cell loses its times%explainers/build.py%s/"fingerprint": fingerprint, "r
 no-render build drops fast-forward times%explainers/build.py%s/rec\["fast_forward"\] or previous.get\("fast_forward_s"\)/rec["fast_forward"]/%tests/py/test_render.py::test_measured_times_are_recorded_and_kept
 tee does not draw images%explainers/fingerprint.py%s/        return self._orig\["display_image_mobject"\]\(image_mobject, pixel_array\)\n//%tests/py/test_render.py::test_images_and_point_clouds_reach_the_clips
 tee does not draw point clouds%explainers/fingerprint.py%s/        return self._orig\["display_point_cloud"\]\(pmobject, points, rgbas, thickness, pixel_array\)\n//%tests/py/test_render.py::test_images_and_point_clouds_reach_the_clips
+fast-forward ignored in a cut%explainers/schedule.py%s/start, cost = run\[i\], forward\[run\[i\]\] \+ work\[run\[i\]\]/start, cost = run[i], work[run[i]]/%tests/py/test_schedule.py::test_cut_gives_a_late_chunk_less_work
+chunk spans a gap%explainers/schedule.py%s/    rs = runs\(plays\)\n/    rs = [plays]\n/%tests/py/test_schedule.py::test_cut_keeps_runs_apart
+start cost ignored%explainers/schedule.py%s/<= best \+ start_cost/<= best/%tests/py/test_schedule.py::test_a_split_that_saves_less_than_a_start_is_not_made
+wider than asked%explainers/schedule.py%s/limit = max\(width, len\(rs\)\)/limit = sum(map(len, rs))/%tests/py/test_schedule.py::test_cut_balances_forward_and_work
+a sample on a no-render rebuild%explainers/build.py%s/        if todo:\n            from explainers import headroom/        if True:\n            from explainers import headroom\n            headroom.choose(\"render\", workers, 2, 1.0, 1, print)\n        if todo:\n            from explainers import headroom/%tests/py/test_render.py::test_a_rebuild_with_nothing_to_render_samples_nothing
+--workers ignored%explainers/build.py%s/rec, index = build\(bundle, args.workers\)/rec, index = build(bundle)/%tests/py/test_render.py::test_workers_overrides_the_width
+old times ignored%explainers/build.py%s/old = \{c\["slug"\]: c.get\("render_s", \[\]\) for c in previous\["cells"\]\}/old = {}/%tests/py/test_render.py::test_times_from_the_previous_build_shape_the_cuts
+ratio ignored%explainers/build.py%s/t \* ratio \* schedule.FORWARD_WEIGHT/t * schedule.FORWARD_WEIGHT/%tests/py/test_render.py::test_times_from_the_previous_build_shape_the_cuts
+progress not printed%explainers/render.py%s/                print\(f"render: \{seen\}\/\{total\} animations", flush=True\)\n/                pass\n/%tests/py/test_render.py::test_progress_lines_are_monotonic
+peak RSS not measured%explainers/children.py%s/Done\(usage.ru_maxrss, /Done(1, /%tests/py/test_render.py::test_run_all_measures_a_jobs_peaks
+peak cores not measured%explainers/children.py%s/\(usage.ru_utime \+ usage.ru_stime\) \/ max\(time.monotonic\(\) - started, 1e-6\)/1.0/%tests/py/test_render.py::test_run_all_measures_a_jobs_peaks
+fraction changed%explainers/headroom.py%s/FRACTION = 0.75/FRACTION = 3.0/%tests/py/test_headroom.py::test_width
+previous peak ignored%explainers/build.py%s/size = previous.get\("worker_peak"\) or \{/size = {/%tests/py/test_render.py::test_a_worker_too_big_for_the_machine_is_refused_and_workers_overrides_it
+refusal not routed%explainers/build.py%s/            except headroom.TooBig as e:\n                raise BuildError\(1, \[str\(e\)\]\)\n/            except ZeroDivisionError:\n                pass\n/%tests/py/test_render.py::test_a_worker_too_big_for_the_machine_is_refused_and_workers_overrides_it
+forward not weighted%explainers/schedule.py%s/FORWARD_WEIGHT = 0.5/FORWARD_WEIGHT = 1.0/%tests/py/test_render.py::test_times_from_the_previous_build_shape_the_cuts
+jobs from cells%explainers/build.py%s/len\(plays\), size/len(todo), size/%tests/py/test_render.py::test_a_rebuild_with_nothing_to_render_samples_nothing
+render wider than the width%explainers/build.py%s/rec\["chunks"\], width\)/rec["chunks"], len(rec["chunks"]))/%tests/py/test_render.py::test_more_runs_than_the_width_still_run_one_at_a_time
 EOF
 )
 

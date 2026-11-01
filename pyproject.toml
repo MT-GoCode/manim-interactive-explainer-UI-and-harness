@@ -8,6 +8,7 @@ dependencies = [
     "numpy",
     "jsonschema",
     "tokenizers",
+    "psutil",
 ]
 
 [project.scripts]
@@ -16,7 +17,7 @@ fetch-comments = "explainers.comments:main"
 cells-tokens = "explainers.tokens:main"
 
 [dependency-groups]
-dev = ["pytest", "pytest-xdist", "psutil"]
+dev = ["pytest", "pytest-xdist"]
 
 [build-system]
 requires = ["hatchling"]

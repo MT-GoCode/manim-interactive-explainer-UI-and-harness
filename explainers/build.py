@@ -1,5 +1,6 @@
 """explain-build <bundle>: lock, snapshot, pass 1 in its own process, checks, render the cells whose fingerprints changed,
 commit. This process never imports manim."""
+import argparse
 import fcntl
 import hashlib
 import importlib.metadata
@@ -15,7 +16,8 @@ from explainers.children import ChildFailed, Job, child_env, run_all
 from explainers.config import FPS, WIDTH
 from explainers.geometry import check as geometry
 from explainers.records import load
-from explainers.render import frames_sha, join, render, runs, to_render, width
+from explainers import schedule
+from explainers.render import WORKER_CORES, WORKER_RAM, frames_sha, join, render, to_render
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -117,18 +119,17 @@ def fingerprints(drawn: list[list[str]], identity: dict) -> list[str]:
     return [sha256(json.dumps([identity, d], sort_keys=True).encode()) for d in drawn]
 
 
-def verify(cells, groups: list[list[int]], reports: list[dict]) -> tuple[dict[int, Path], list, dict[int, float]]:
-    """The one place a worker's result is judged: it ran exactly the plays pass 1 ran for its cells, and each drew the
-    digest pass 1 recorded. The plays come from the cells, not from the ranges the worker was given. Returns ({play: partial
-    file}, [[first play of a range, seconds forwarding to it], ...], {play: seconds}), from which the build records times."""
+def verify(cells, chunks: list[tuple[int, int]], reports: list[dict]) -> tuple[dict[int, Path], list, dict[int, float]]:
+    """The one place a worker's result is judged: it ran exactly the plays of its chunk, and each drew the digest pass 1 recorded.
+    Returns ({play: partial file}, [[a chunk's first play, seconds forwarding to it], ...], {play: seconds}), from which the build
+    records times."""
     cell_of = lambda n: next(c for c in reversed(cells) if c.first_anim <= n)
     drawn = [d for c in cells for d in c.drawn]
     nondeterministic = "the lesson is nondeterministic. No clock reads, no sets of mobjects, no random draws outside construct."
     parts, forward, times = {}, [], {}
-    for group, report in zip(groups, reports):
-        want = {cells[n].first_anim + i for n in group for i in range(len(cells[n].run_times))}
-        got = {p["anim"]: p for r in report["ranges"] for p in r["plays"]}
-        if differ := want ^ got.keys():
+    for (first, last), report in zip(chunks, reports):
+        got = {p["anim"]: p for p in report["plays"]}
+        if differ := set(range(first, last + 1)) ^ got.keys():
             n = min(differ)
             c = cell_of(n)
             raise BuildError(1, [f"lesson.py:{c.line} cell {c.slug}: animation {n} ran in only one of pass 1 and its worker: {nondeterministic}"])
@@ -137,8 +138,24 @@ def verify(cells, groups: list[list[int]], reports: list[dict]) -> tuple[dict[in
                 c = cell_of(n)
                 raise BuildError(1, [f"lesson.py:{c.line} cell {c.slug}: animation {n} drew different frames in its worker than in pass 1: {nondeterministic}"])
             parts[n], times[n] = Path(got[n]["partial"]), got[n]["render_s"]
-        forward += [[r["first"], r["fast_forward_s"]] for r in report["ranges"]]
+        forward.append([first, report["fast_forward_s"]])
     return parts, forward, times
+
+
+def costs(rec: dict, previous: dict) -> tuple[dict[int, float], dict[int, float]]:
+    """({play: a chunk's forward charge to start there}, {play: seconds to draw it}). Forward: pass 1's table, scaled by what the
+    previous build's workers measured against it, at the schedule's weight. Draw: the previous cell of that slug and play count; it usually costs about what it cost."""
+    table = rec["cost"]
+    seen = [(f, s) for f, s in previous.get("fast_forward_s", []) if f < len(table) and table[f] > 0]
+    expected = sum(table[f] for f, _ in seen)
+    ratio = sum(s for _, s in seen) / expected if expected else 1.0
+    old = {c["slug"]: c.get("render_s", []) for c in previous["cells"]}
+    work = {}
+    for c in rec["cells"]:
+        times = old.get(c.slug, [])
+        for i, t in enumerate(times if len(times) == len(c.run_times) else [schedule.SEED_S_PER_VIDEO_S * r for r in c.run_times]):
+            work[c.first_anim + i] = t
+    return {n: t * ratio * schedule.FORWARD_WEIGHT for n, t in enumerate(table)}, work
 
 
 def failed(what: str, e: ChildFailed) -> BuildError:
@@ -181,7 +198,7 @@ def check(snap: Path, shared: Path) -> dict:
     return {"lesson_sha": sha256((snap / "lesson.py").read_bytes()), "cells": recs.cells, "refs": recs.refs, "inputs": inputs,
             "fingerprints": fingerprints([c.drawn for c in recs.cells], identity()),
             "manim_version": importlib.metadata.version("manim"), "repo_root": str(REPO),
-            "cache_entries": recs.cache_entries}
+            "cache_entries": recs.cache_entries, "cost": recs.cost}
 
 
 def report(bundle: Path, rec: dict) -> str:
@@ -258,8 +275,8 @@ def commit(bundle: Path, rec: dict, parts: dict[int, Path], reused: dict[int, di
     return index_path
 
 
-def build(bundle: Path, k: int | None = None) -> tuple[dict, Path]:
-    """Check, render the cells whose fingerprints changed in k chunks (default: as many as half the machine holds), commit.
+def build(bundle: Path, workers: int | None = None) -> tuple[dict, Path]:
+    """Check, render the cells whose fingerprints changed at `workers` wide (default: 75% of the machine's headroom), commit.
     The lock comes first and outside the try: a refused second build cannot delete the running build's snapshot."""
     lock = acquire(bundle)
     t = [time.monotonic()]
@@ -275,11 +292,21 @@ def build(bundle: Path, k: int | None = None) -> tuple[dict, Path]:
         previous = previous_index(bundle)
         reused = reusable(bundle, rec["fingerprints"], previous)
         todo = to_render(set(reused), len(rec["cells"]))
-        k = k or width(os.cpu_count(), _ram(), len(todo))
-        try:
-            reports, rec["chunks"], done = render(snap, shared, rec["cells"], todo, k) if todo else ([], [], [])
-        except ChildFailed as e:
-            raise failed("render", e)
+        rec["chunks"], reports, done = [], [], []
+        if todo:
+            from explainers import headroom  # imports psutil: a rebuild with nothing to render needs neither it nor a sample
+            cells = rec["cells"]
+            plays = [cells[n].first_anim + i for n in todo for i in range(len(cells[n].run_times))]
+            size = previous.get("worker_peak") or {"rss": WORKER_RAM, "cores": WORKER_CORES}
+            try:
+                width, _ = headroom.choose("render", workers, len(plays), size["cores"], size["rss"], lambda l: print(l, flush=True))
+            except headroom.TooBig as e:
+                raise BuildError(1, [str(e)])
+            rec["chunks"] = schedule.cut(plays, *costs(rec, previous), width)
+            try:
+                reports, done = render(snap, shared, rec["chunks"], width)
+            except ChildFailed as e:
+                raise failed("render", e)
         parts, rec["fast_forward"], rec["render_s"] = verify(rec["cells"], rec["chunks"], reports)
         rec["worker_peak"] = {"rss": max(d.rss for d in done), "cores": max(d.cores for d in done)} if done else None
         rec["rendered"] = todo
@@ -293,28 +320,30 @@ def build(bundle: Path, k: int | None = None) -> tuple[dict, Path]:
         shutil.rmtree(bundle / "build" / ".media", ignore_errors=True)
 
 
-def _ram() -> int:
-    return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
-
-
 def render_line(rec: dict) -> str:
     """e.g. "render: 3 cells (4–5, 9) in 2 chunks · 27 reused"; cells numbered from 1."""
     todo, k = rec["rendered"], len(rec["chunks"])
     reused = f" · {len(rec['cells']) - len(todo)} reused"
     if not todo:
         return "render: 0 cells" + reused
-    spans = ", ".join(f"{r[0] + 1}–{r[-1] + 1}" if len(r) > 1 else f"{r[0] + 1}" for r in runs(todo))
+    spans = ", ".join(f"{r[0] + 1}–{r[-1] + 1}" if len(r) > 1 else f"{r[0] + 1}" for r in schedule.runs(todo))
     return f"render: {len(todo)} cell{'s' * (len(todo) != 1)} ({spans}) in {k} chunk{'s' * (k != 1)}" + reused
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = sys.argv[1:] if argv is None else argv
-    if len(args) != 1:
-        print("usage: explain-build <bundle>", file=sys.stderr)
-        return 2
-    bundle = Path(args[0]).expanduser().resolve()
+    def positive(text: str) -> int:
+        n = int(text)
+        if n < 1:
+            raise argparse.ArgumentTypeError("must be at least 1")
+        return n
+
+    parser = argparse.ArgumentParser(prog="explain-build")
+    parser.add_argument("bundle", type=Path)
+    parser.add_argument("--workers", type=positive, help="exactly this many at once (default: 75%% of the machine's headroom)")
+    args = parser.parse_args(argv)
+    bundle = args.bundle.expanduser().resolve()
     try:
-        rec, index = build(bundle)
+        rec, index = build(bundle, args.workers)
     except BuildError as e:
         print("\n".join(f"error: {l}" for l in e.lines), file=sys.stderr)
         return e.code

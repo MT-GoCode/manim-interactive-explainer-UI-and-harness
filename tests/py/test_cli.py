@@ -1,5 +1,6 @@
 """explain-build as a person runs it: this checkout's command, from any directory, with TeX not on PATH."""
 import hashlib
+import re
 import subprocess
 import sys
 
@@ -18,7 +19,7 @@ def test_report_from_outside_the_repo_without_tex_on_path(bundle, tmp_path):
     assert r.returncode == 0, r.stderr
     assert list(cwd.iterdir()) == []  # a build writes nowhere but the bundle's build/
     sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()[:12]
-    lines = r.stdout.splitlines()
+    lines = [l for l in r.stdout.splitlines() if not re.match(r"render: \d+/\d+ animations|render width:|machine:", l)]
     assert lines[0] == f"softmax.explainer · 6 cells · lesson {sha(b / 'lesson.py')}"
     assert lines[2] == "   2  exp     2 animations   0.75 s   (lesson.py:19)"
     assert lines[7:9] == ["refs:   n_tokens = 6", "refs:   p_top:.4f = 0.5456"]

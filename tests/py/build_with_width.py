@@ -1,5 +1,5 @@
-"""Build a bundle with a forced render width (k), for the tests; prints the cells' frames_sha, the chunks, the cells
-rendered and the report's render line, as JSON."""
+"""Build a bundle at a forced width, for the tests; prints, as its last line of JSON, the cells' frames_sha, the chunks, the
+cells rendered and the report's render line."""
 import json
 import sys
 from pathlib import Path

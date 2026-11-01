@@ -22,7 +22,7 @@ def build(b: Path) -> tuple[str, list[str]]:
     """(the report's render line, frames_sha per cell)."""
     r = explain_build(b)
     assert r.returncode == 0, r.stderr
-    line = next(l for l in r.stdout.splitlines() if l.startswith("render:"))
+    line = [l for l in r.stdout.splitlines() if l.startswith("render:")][-1]  # progress lines come first
     return line, [c["frames_sha"] for c in json.loads((b / "build" / "index.json").read_text())["cells"]]
 
 
@@ -147,7 +147,7 @@ def build_k(b: Path, k: int) -> dict:
     r = subprocess.run([sys.executable, str(Path(__file__).parent / "build_with_width.py"), str(b), str(k)],
                        capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
-    return json.loads(r.stdout)
+    return json.loads(r.stdout.splitlines()[-1])
 
 
 def shift_edited(b: Path, cells: str) -> Path:
@@ -160,7 +160,7 @@ def test_an_edit_under_a_live_updater_renders_only_its_cell(tmp_path):
     first = fresh(tmp_path / "first", "long.explainer")
     build(first)
     cases = [(shift_edited, "(5,)", "render: 1 cell (6) in 1 chunk · 29 reused"),
-             (shift_edited, "(5, 20)", "render: 2 cells (6, 21) in 1 chunk · 28 reused"),  # one worker, two ranges
+             (shift_edited, "(5, 20)", "render: 2 cells (6, 21) in 2 chunks · 28 reused"),  # a chunk never spans a gap
              (long_edited, "(5,)", "render: 5 cells (6–10) in 1 chunk · 25 reused")]  # a longer play turns the spinner further
     for n, (edited, cells, line) in enumerate(cases):
         out = build_k(edited(fresh(tmp_path / f"inc{n}", "long.explainer", first), cells), 1)

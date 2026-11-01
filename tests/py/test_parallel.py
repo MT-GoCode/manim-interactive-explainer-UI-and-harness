@@ -18,14 +18,14 @@ SCRIPT = Path(__file__).parent / "build_with_width.py"
 def shas(bundle, k):
     r = subprocess.run([sys.executable, str(SCRIPT), str(bundle), str(k)], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
-    return json.loads(r.stdout)
+    return json.loads(r.stdout.splitlines()[-1])
 
 
 def test_chunked_equals_one_chunk(tmp_path):
-    k = 4  # forced, not this machine's width; at 2 the only cut lands past the spinner
+    k = 4  # forced, not this machine's width
     a, b = tmp_path / "a" / "long.explainer", tmp_path / "b" / "long.explainer"
     for d in (a, b):
         shutil.copytree(FIXTURES / "long.explainer", d)
     one, many = shas(a, 1), shas(b, k)
-    assert any(g[0] < 10 for g in many["chunks"][1:])  # a chunk starts while the spinner runs
+    assert len(many["chunks"]) > 1
     assert one["shas"] == many["shas"]

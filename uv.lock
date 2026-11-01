@@ -122,12 +122,12 @@ dependencies = [
     { name = "manim" },
     { name = "numpy" },
     { name = "pillow" },
+    { name = "psutil" },
     { name = "tokenizers" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "psutil" },
     { name = "pytest" },
     { name = "pytest-xdist" },
 ]
@@ -138,12 +138,12 @@ requires-dist = [
     { name = "manim", specifier = "==0.22.0" },
     { name = "numpy" },
     { name = "pillow", specifier = "<13" },
+    { name = "psutil" },
     { name = "tokenizers" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "psutil" },
     { name = "pytest" },
     { name = "pytest-xdist" },
 ]

@@ -9,12 +9,15 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import jsonschema
 import psutil
 import pytest
 
 from conftest import FIXTURES, REPO, explain_build, run_pass1
+from explainers.build import costs
+from explainers.schedule import SEED_S_PER_VIDEO_S
 
 pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 
@@ -160,8 +163,8 @@ def index_of(b):
     return json.loads((b / "build" / "index.json").read_text())
 
 
-def built_ok(b, **kwargs):
-    r = explain_build(b, **kwargs)
+def built_ok(b, args=(), **kwargs):
+    r = explain_build(b, *args, **kwargs)
     assert r.returncode == 0, r.stderr
     return index_of(b)
 
@@ -344,6 +347,7 @@ def test_a_killed_build_during_pass_1_leaves_no_pass_1(bundle, tmp_path):
 def test_a_failed_worker_kills_its_siblings(bundle):
     """The first chunk sleeps until killed, and only the build's killpg can end it: its parent stays alive."""
     b = bundle().resolve()
+    edit(b, "lesson.py", "self.play(Write(z), run_time=1.0)", "self.play(Write(z), run_time=60)")  # so k=2 cuts after it
     edit(b, "lesson.py", "    def construct(self):\n", "    def construct(self):\n"
          '        if not self.RECORDING:\n'
          '            raise RuntimeError("late chunk fails") if config.from_animation_number > 0 else __import__("time").sleep(3600)\n')
@@ -413,34 +417,17 @@ def test_run_all_keeps_to_its_width(tmp_path):
     assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:])), spans
 
 
-def test_a_config_a_lesson_sets_ends_with_its_range(bundle):
-    """A later scene's camera reads the config when it is made, so a leak shows in the next range's pixels."""
-    b = edit(bundle(), "lesson.py", "    def construct(self):\n", '    def construct(self):\n        config.background_color = "#123456"\n')
-    r, out, snapshot = run_pass1(b)
-    assert r.returncode == 0, r.stderr
-
-    def partials(name, *ranges):
-        w = out.parent / name
-        r = subprocess.run([sys.executable, "-P", "-m", "explainers.render", str(snapshot), str(out.parent / "cache"), str(w), *ranges],
-                           capture_output=True, text=True, env={**os.environ, "EXPLAINERS_BUILD_PID": str(os.getpid())},
-                           start_new_session=True)
-        assert r.returncode == 0, r.stderr
-        return {int(f.name[9:14]): f.read_bytes() for f in w.rglob("uncached_*.mp4")}
-
-    assert partials("both", "0-0", "2-2")[2] == partials("alone", "2-2")[2]
-
-
 def line_of(b, text):
     source = (b / "lesson.py").read_text()
     return source[:source.index(text)].count("\n") + 1
 
 
-def worker_direct(snapshot, cache, out, *ranges):
+def worker_direct(snapshot, cache, out, chunk):
     """{play: (digest, partial bytes)} of a real worker run on its own."""
-    r = subprocess.run([sys.executable, "-P", "-m", "explainers.render", str(snapshot), str(cache), str(out), *ranges], capture_output=True,
+    r = subprocess.run([sys.executable, "-P", "-m", "explainers.render", str(snapshot), str(cache), str(out), chunk], capture_output=True,
                        text=True, env={**os.environ, "EXPLAINERS_BUILD_PID": str(os.getpid()), "PYTHONHASHSEED": "0"}, start_new_session=True)
     assert r.returncode == 0, r.stderr
-    plays = [p for x in json.loads((out / "report.json").read_text())["ranges"] for p in x["plays"]]
+    plays = json.loads((out / "report.json").read_text())["plays"]
     return {p["anim"]: (p["digest"], Path(p["partial"]).read_bytes()) for p in plays}
 
 
@@ -535,19 +522,19 @@ def test_a_changed_encoder_setting_renders_every_cell(bundle, tmp_path):
     assert re.search(r"render: 6 cells \(1–6\) in \d chunks? · 0 reused", r.stdout), r.stdout
 
 
-WRONG_RATE = """            from fractions import Fraction
-            from dataclasses import replace
-            from manim.scene.video_segment_encoder import VideoSegmentEncoder
-            writer = scene.renderer.file_writer
-            writer._create_segment_encoder = lambda target: VideoSegmentEncoder(target=target, spec=replace(writer.video_encoder, frame_rate=Fraction(10)))
-            scene.render()
+WRONG_RATE = """    from fractions import Fraction
+    from dataclasses import replace
+    from manim.scene.video_segment_encoder import VideoSegmentEncoder
+    writer = scene.renderer.file_writer
+    writer._create_segment_encoder = lambda target: VideoSegmentEncoder(target=target, spec=replace(writer.video_encoder, frame_rate=Fraction(10)))
+    scene.render()
 """
 
 
 @pytest.mark.parametrize("edits, error", [
-    ([("render.py", "            scene = cls()\n", '            config.pixel_format = "yuv444p"\n            scene = cls()\n'),
-      ("render.py", "            check_render_config()\n", "")], "pix_fmt yuv444p ≠ yuv420p"),
-    ([("render.py", "            scene.render()\n", WRONG_RATE)], "fps 10/1 ≠ 30"),
+    ([("render.py", "    scene = cls()\n", '    config.pixel_format = "yuv444p"\n    scene = cls()\n'),
+      ("render.py", "    check_render_config()\n", "")], "pix_fmt yuv444p ≠ yuv420p"),
+    ([("render.py", "    scene.render()\n", WRONG_RATE)], "fps 10/1 ≠ 30"),
 ], ids=["pix-fmt", "wrong-rate"])
 def test_a_clip_whose_stream_does_not_match_fails(bundle, tmp_path, edits, error):
     b = bundle()
@@ -653,6 +640,113 @@ def test_measured_times_are_recorded_and_kept(bundle):
     before = (b / "build" / "index.json").read_text()
     built_ok(b)
     assert (b / "build" / "index.json").read_text() == before
+
+
+def test_a_rebuild_with_nothing_to_render_samples_nothing(bundle):
+    b = bundle()
+    first = explain_build(b)
+    assert first.returncode == 0 and "machine: phase=render" in first.stdout, first.stderr
+    assert re.search(r"^machine: .* jobs=8$", first.stdout, re.M), first.stdout  # softmax: 8 plays in 6 cells
+    again = explain_build(b)
+    assert again.returncode == 0 and "machine:" not in again.stdout and "render width:" not in again.stdout, again.stdout
+
+
+def test_workers_overrides_the_width(bundle):
+    b = bundle()
+    r = explain_build(b, "--workers", "1")
+    assert r.returncode == 0 and "render width: 1 (--workers)" in r.stdout and "in 1 chunk ·" in r.stdout, r.stdout + r.stderr
+    assert explain_build(b, "--workers", "0").returncode == 2
+
+
+def test_more_runs_than_the_width_still_run_one_at_a_time(bundle, tmp_path):
+    b = bundle()
+    built_ok(b)
+    stamps = tmp_path / "stamps"
+    edit(b, "lesson.py", "self.play(FadeIn(title), run_time=0.5)", "self.play(FadeIn(title), run_time=0.6)")  # cell 2
+    edit(b, "lesson.py", "self.play(FadeOut(title), run_time=0.5)", "self.play(FadeOut(title), run_time=0.7)")  # cell 5
+    edit(b, "lesson.py", "    def construct(self):\n", "    def construct(self):\n        if not self.RECORDING:\n"
+         f'            start = __import__("time").time()\n            __import__("time").sleep(2)\n'
+         f'            open({str(stamps)!r}, "a").write(f"{{start}} {{__import__(\'time\').time()}}\\n")\n')
+    r = explain_build(b, "--workers", "1")
+    assert r.returncode == 0 and "in 2 chunks" in r.stdout, r.stdout + r.stderr
+    spans = sorted(tuple(map(float, l.split())) for l in stamps.read_text().splitlines())
+    assert len(spans) == 2 and spans[0][1] <= spans[1][0], spans
+
+
+def test_one_long_cell_runs_as_several_chunks(tmp_path):
+    def one_cell(name):
+        d = tmp_path / name
+        shutil.copytree(FIXTURES / "long.explainer", d, ignore=shutil.ignore_patterns("build"))
+        edit(d, "lesson.py", '            self.cell(f"step-{k:02d}")\n', '            if k == 0:\n                self.cell("all")\n')
+        (d / "cells.md").write_text("## all\n\nText.\n")
+        return d
+
+    width = str(Path(__file__).parent / "build_with_width.py")
+    outs = [subprocess.run([sys.executable, width, str(one_cell(f"w{w}")), str(w)], capture_output=True, text=True) for w in (1, 4)]
+    assert all(r.returncode == 0 for r in outs), outs[0].stderr + outs[1].stderr
+    one, many = (json.loads(r.stdout.splitlines()[-1]) for r in outs)
+    assert len(one["chunks"]) == 1 and len(many["chunks"]) > 1
+    assert one["shas"] == many["shas"]
+
+
+def test_an_edit_to_two_distant_cells_gives_the_clips_of_a_cold_build(bundle, tmp_path):
+    def edited(b):
+        return edit(b, "lesson.py", ".shift(RIGHT * jitter[k])", ".shift(RIGHT * (jitter[k] + 0.1 * (k in (5, 20))))")
+
+    b = bundle("long.explainer")
+    built_ok(b)
+    shas = [c["frames_sha"] for c in built_ok(edited(b))["cells"]]
+    cold = tmp_path / "cold.explainer"
+    shutil.copytree(FIXTURES / "long.explainer", cold, ignore=shutil.ignore_patterns("build"))
+    assert shas == [c["frames_sha"] for c in built_ok(edited(cold))["cells"]]
+
+
+def test_progress_lines_are_monotonic(bundle):
+    r = explain_build(bundle("long.explainer"), "--workers", "2")
+    assert r.returncode == 0, r.stderr
+    seen = [(int(a), int(b)) for a, b in re.findall(r"^render: (\d+)/(\d+) animations$", r.stdout, re.M)]
+    assert seen and all(total == 122 and n <= total for n, total in seen)
+    assert all(a[0] < b[0] for a, b in zip(seen, seen[1:]))
+
+
+def test_a_worker_too_big_for_the_machine_is_refused_and_workers_overrides_it(bundle):
+    b = bundle()
+    built_ok(b)
+    index = index_of(b)
+    index["worker_peak"]["rss"] = 2**60
+    (b / "build" / "index.json").write_text(json.dumps(index, indent=1) + "\n")
+    edit(b, "lesson.py", "self.play(FadeOut(title), run_time=0.5)", "self.play(FadeOut(title), run_time=0.7)")
+    r = explain_build(b)
+    assert r.returncode == 1 and r.stderr.strip().splitlines()[-1].startswith("error: one render job needs"), r.stderr
+    assert "pass --workers 1" in r.stderr
+    built_ok(b, args=("--workers", "1"))
+
+
+def test_run_all_measures_a_jobs_peaks(tmp_path):
+    (tmp_path / "heavy.py").write_text("import time\nblock = bytearray(200 * 2**20)\nfor i in range(0, len(block), 4096):\n    block[i] = 1\n"
+                                       "end = time.time() + 1\nwhile time.time() < end:\n    pass\n")
+    (tmp_path / "idle.py").write_text("import time\ntime.sleep(1)\n")
+    # in its own process: run_all waits for any child, and a pytest worker may have others
+    r = subprocess.run([sys.executable, "-c", "from pathlib import Path\nfrom explainers.children import Job, run_all\n"
+                        f"t = Path({str(tmp_path)!r})\n"
+                        "for m in ('heavy', 'idle'):\n"
+                        "    d = run_all([Job(m, [], t / (m + '.out'))], 1, {'PATH': '/usr/bin', 'PYTHONPATH': str(t)})[0]\n"
+                        "    print(m, d.rss, d.cores)\n"], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    peaks = {m: (int(rss), float(cores)) for m, rss, cores in (l.split() for l in r.stdout.splitlines())}
+    assert peaks["heavy"][0] >= 200 * 2**20 and peaks["heavy"][1] >= 0.5
+    assert peaks["idle"][0] < 200 * 2**20 and peaks["idle"][1] < 0.5
+
+
+def test_times_from_the_previous_build_shape_the_cuts():
+    cell = lambda slug, first, runs: SimpleNamespace(slug=slug, first_anim=first, run_times=runs)
+    rec = {"cost": [0.0, 1.0, 2.0, 3.0], "cells": [cell("kept", 0, [1.0, 1.0]), cell("changed", 2, [2.0, 1.0])]}
+    previous = {"fast_forward_s": [[0, 0.5], [2, 4.0], [99, 7.0]],  # play 0 costs nothing in the table; play 99 is gone
+                "cells": [{"slug": "kept", "render_s": [5.0, 6.0]}, {"slug": "changed", "render_s": [9.0]}]}
+    forward, work = costs(rec, previous)
+    assert forward == {0: 0.0, 1: 1.0, 2: 2.0, 3: 3.0}  # the table's 2.0 took 4.0, so the ratio is 2; charged at half weight
+    assert work == {0: 5.0, 1: 6.0, 2: 2 * SEED_S_PER_VIDEO_S, 3: SEED_S_PER_VIDEO_S}
+    assert costs(rec, {"cells": []})[0] == {0: 0.0, 1: 0.5, 2: 1.0, 3: 1.5}  # a first build: the table, at half weight
 
 
 def test_a_second_build_is_refused_while_a_killed_builds_worker_lives(bundle):

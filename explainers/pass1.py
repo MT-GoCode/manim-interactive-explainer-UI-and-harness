@@ -173,9 +173,10 @@ def format_refs(refs: list[dict], namespace: dict) -> tuple[dict[str, str], list
     return values, errs
 
 
-def install_cost_clock(scene: Any, clock: Any = time.monotonic) -> list[float]:
-    """Per play, the seconds since the scene began minus the time in exactly the calls exact fast-forward suppresses: the
-    build's estimate of what a fast-forward to that play costs (1.18-1.22x the real one, probes/p6.out)."""
+def install_cost_clock(scene: Any, clock: Any = time.monotonic, tex: Any = None) -> list[float]:
+    """Per play, the seconds since the scene began minus the time in exactly the calls exact fast-forward suppresses, and in TeX,
+    which a worker never pays because it reads the warm cache: the build's estimate of what a fast-forward to that play costs
+    (1.18-1.22x the real one, probes/p6.out)."""
     suppressed, cost = [0.0], []
 
     def timed(f: Any) -> Any:
@@ -191,6 +192,8 @@ def install_cost_clock(scene: Any, clock: Any = time.monotonic) -> list[float]:
     cam.capture_mobjects, cam.reset = timed(cam.capture_mobjects), timed(cam.reset)
     cam.set_frame_to_background = timed(cam.set_frame_to_background)
     renderer.get_frame, renderer.file_writer.write_frame = timed(renderer.get_frame), timed(renderer.file_writer.write_frame)
+    if tex:
+        tex.compile_tex, tex.convert_to_svg = timed(tex.compile_tex), timed(tex.convert_to_svg)
     play, start = scene.play, clock()
 
     def timed_play(*a: Any, **k: Any) -> Any:
@@ -210,6 +213,7 @@ def main(argv: list[str]) -> int:
     snapshot, cache, out, keys = Path(argv[0]), Path(argv[1]), Path(argv[2]), json.loads(argv[3])
     watch_parent()  # before the import: a build killed during it still ends this process
     from manim import config
+    from manim.utils import tex_file_writing
 
     from explainers.lesson import LessonError, _lesson_line, exec_lesson, record_creation_lines
 
@@ -228,7 +232,7 @@ def main(argv: list[str]) -> int:
         module, cls = exec_lesson(snapshot, (snapshot / "lesson.py").read_bytes())
         cls.RECORDING, cls.RECORDER = True, Recorder
         scene = cls()
-        cost = install_cost_clock(scene)
+        cost = install_cost_clock(scene, tex=tex_file_writing)
         scene.render()
         refs, ref_errors = format_refs(keys, vars(module))  # under the guard: a __format__ may read
     except (Exception, SystemExit) as e:  # routed below: the guard's own mark first, then an authoring error, then a real crash

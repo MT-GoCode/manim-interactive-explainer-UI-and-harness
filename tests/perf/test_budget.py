@@ -1,5 +1,5 @@
-"""The build stays within half the machine: the worker tree, sampled every second, never uses more than 50% of the
-cores. Runs alone and last (./test perf), so nothing else competes for the CPU it measures."""
+"""The build stays within 75% of what was idle when it started: the worker tree, sampled every second, against the idle cores
+sampled first. Runs alone and last (./test perf), so nothing else competes for the CPU it measures."""
 import os
 import shutil
 import subprocess
@@ -9,10 +9,13 @@ from pathlib import Path
 
 import psutil
 
+from explainers import headroom
+
 REPO = Path(__file__).resolve().parents[2]
 
 
-def test_long_lesson_build_uses_at_most_half_the_cores(tmp_path):
+def test_long_lesson_build_uses_at_most_75_percent_of_the_idle_cores(tmp_path):
+    idle = headroom.sample(1.0).idle_cores
     b = tmp_path / "long.explainer"
     shutil.copytree(REPO / "tests" / "fixtures" / "long.explainer", b)
     p = psutil.Popen([str(REPO / "bin" / "explain-build"), str(b)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -38,5 +41,5 @@ def test_long_lesson_build_uses_at_most_half_the_cores(tmp_path):
         samples.append(used / 100)
     out, err = p.communicate()
     assert p.returncode == 0, err
-    print(*out.splitlines()[-3:-1], f"peak {max(samples):.1f} cores of {os.cpu_count()}", sep="\n")
-    assert max(samples) <= 0.5 * os.cpu_count()
+    print(*out.splitlines()[-3:-1], f"peak {max(samples):.1f} cores, {idle:.1f} idle at the start, of {os.cpu_count()}", sep="\n")
+    assert max(samples) <= 0.75 * idle
