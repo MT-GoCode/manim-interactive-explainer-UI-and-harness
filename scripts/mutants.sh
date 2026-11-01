@@ -313,6 +313,21 @@ refusal not routed%explainers/build.py%s/            except headroom.TooBig as e
 forward not weighted%explainers/schedule.py%s/FORWARD_WEIGHT = 0.5/FORWARD_WEIGHT = 1.0/%tests/py/test_render.py::test_times_from_the_previous_build_shape_the_cuts
 jobs from cells%explainers/build.py%s/len\(plays\), size/len(todo), size/%tests/py/test_render.py::test_a_rebuild_with_nothing_to_render_samples_nothing
 render wider than the width%explainers/build.py%s/rec\["chunks"\], width\)/rec["chunks"], len(rec["chunks"]))/%tests/py/test_render.py::test_more_runs_than_the_width_still_run_one_at_a_time
+reuse never taken%explainers/build.py%s/return recs if \(store \/ "key"\).read_text\(\) == pass1_key\(base, snap, recs.inputs\) else None/return None/%tests/py/test_pass1_reuse.py::test_a_rebuild_runs_no_pass_1
+inputs not in the key%explainers/build.py%s/    for rel in inputs:\n/    for rel in []:\n/%tests/py/test_pass1_reuse.py::test_a_file_it_read_runs_pass_1[scores.csv]
+a file's mtime not in the key%explainers/build.py%s/ \{s.st_mode\} \{s.st_mtime_ns\}"/"/%tests/py/test_pass1_reuse.py::test_an_input_moves_the_key_by_its_content_and_its_existence
+listing not in the key%explainers/build.py%s/digest = json.dumps\(sorted\(os.listdir\(p\)\)\) if p.is_dir\(\) else "absent"/digest = "listed"/%tests/py/test_pass1_reuse.py::test_a_new_file_in_a_listed_folder_runs_pass_1
+engine not in the key%explainers/build.py%s/return \[engine_code\(\), library_code\(\), identity\(\)\]/return [library_code(), identity()]/%tests/py/test_pass1_reuse.py::test_an_engine_edit_runs_pass_1
+library not in the key%explainers/build.py%s/return \[engine_code\(\), library_code\(\), identity\(\)\]/return [engine_code(), identity()]/%tests/py/test_pass1_reuse.py::test_a_library_change_runs_pass_1
+a library's RECORD ignored%explainers/build.py%s/ \+ record.encode\(\)\)/)/%tests/py/test_pass1_reuse.py::test_a_library_change_runs_pass_1
+cache names not in the key%explainers/build.py%s/\[code, shared.name, env, ref_keys, names\]/[code, shared.name, env, ref_keys]/%tests/py/test_pass1_reuse.py::test_a_removed_cache_runs_pass_1
+ref keys not in the key%explainers/build.py%s/\[code, shared.name, env, ref_keys, names\]/[code, shared.name, env, names]/%tests/py/test_pass1_reuse.py::test_a_new_ref_key_runs_pass_1
+ref lines in the key%explainers/build.py%s/ref_keys = sorted\(\{r\["key"\] for r in cells.refs\}\)/ref_keys = sorted(str(r["line"]) + r["key"] for r in cells.refs)/%tests/py/test_pass1_reuse.py::test_a_prose_edit_runs_no_pass_1
+records read before the base%explainers/build.py%s/    if not \(store \/ "base"\).exists\(\) or \(store \/ "base"\).read_text\(\) != base:\n/    if (store \/ "records.json").exists():\n        load(store \/ "records.json")\n    if not (store \/ "base").exists() or (store \/ "base").read_text() != base:\n/%tests/py/test_pass1_reuse.py::test_a_store_from_another_engine_is_not_read
+stored before the commit%explainers/build.py%s/        index = commit\(bundle, rec, parts, reused, previous\)\n/        store_pass1(bundle \/ "build" \/ "pass1", rec, snap, shared)\n        index = commit(bundle, rec, parts, reused, previous)\n/%tests/py/test_pass1_reuse.py::test_a_build_that_fails_at_commit_stores_nothing
+pairing skipped on a reuse%explainers/build.py%s/    errs \+= pairing\(cells.sections, recs.cells\)\n/    errs += pairing(cells.sections, recs.cells) if ran else []\n/%tests/py/test_pass1_reuse.py::test_a_heading_edit_is_paired_fresh
+code read again at the store%explainers/build.py%s/pass1_base\(rec\["code"\], rec\["ref_keys"\]/pass1_base(pass1_code(), rec["ref_keys"]/%tests/py/test_pass1_reuse.py::test_an_engine_edit_during_a_build_is_not_stored_as_the_new_engine
+identity not in the key%explainers/build.py%s/return \[engine_code\(\), library_code\(\), identity\(\)\]/return [engine_code(), library_code()]/%tests/py/test_pass1_reuse.py::test_each_part_moves_the_code
 EOF
 )
 

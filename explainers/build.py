@@ -163,32 +163,110 @@ def failed(what: str, e: ChildFailed) -> BuildError:
     return BuildError(1, [f"{what} failed: exit code {e.code}"] + [stderr] * bool(stderr))
 
 
+def engine_code() -> str:
+    """Every engine module: pass 1's output depends on how the engine records a lesson."""
+    h = hashlib.sha256()
+    for p in sorted(Path(__file__).parent.glob("*.py")):
+        h.update(p.name.encode() + b"\0" + p.read_bytes())
+    return h.hexdigest()
+
+
+def library_code() -> str:
+    """Every installed distribution, by the file hashes its installer recorded: any library pass 1 can import, and a reinstall at
+    the same version too. An edit made in place is not caught."""
+    h = hashlib.sha256()
+    for d in sorted(importlib.metadata.distributions(), key=lambda d: d.metadata["Name"]):
+        record = d.read_text("RECORD")
+        assert record is not None, f"{d.metadata['Name']} has no RECORD: reinstall the environment (uv sync)"
+        h.update(d.metadata["Name"].encode() + b"\0" + record.encode())
+    return h.hexdigest()
+
+
+def pass1_code() -> list:
+    """The code pass 1 runs. Read once, before it starts: the engine and the libraries can change while a build runs, and a store must
+    name the code that wrote it."""
+    from explainers.fingerprint import identity
+    return [engine_code(), library_code(), identity()]
+
+
+def pass1_base(code: list, ref_keys: list[str], shared: Path, env: dict[str, str]) -> str:
+    """Everything pass 1 depends on besides the bundle files it reads. The cache's names hold its identity and its contents: a
+    reused pass 1 fills no cache, so a cache that lost an entry must run it. config.py's hash covers the render settings."""
+    names = sorted(f.name for f in shared.rglob("*") if f.is_file())
+    return sha256(json.dumps([code, shared.name, env, ref_keys, names], sort_keys=True).encode())
+
+
+def pass1_key(base: str, snap: Path, inputs: list[str]) -> str:
+    """`base` and the current digest of each snapshot path pass 1 depended on: a file's sha256 with its mode and mtime (what a stat
+    shows; the snapshot keeps both), "dir" for a stat'ed folder, a listed folder's ("dir/") sorted names, or "absent" once gone."""
+    h = hashlib.sha256(base.encode())
+    for rel in inputs:
+        p = snap / rel.rstrip("/")
+        if rel.endswith("/"):
+            digest = json.dumps(sorted(os.listdir(p))) if p.is_dir() else "absent"
+        else:
+            s = p.stat() if p.exists() else None
+            # A folder's mode and mtime are the snapshot's own (made anew each build): a folder keys on existing.
+            digest = f"{sha256(p.read_bytes())} {s.st_mode} {s.st_mtime_ns}" if p.is_file() else "dir" if p.is_dir() else "absent"
+        h.update(f"{rel}\0{digest}\0".encode())
+    return h.hexdigest()
+
+
+def stored_records(store: Path, snap: Path, base: str):
+    """The stored records if nothing pass 1 read changed. `base` is compared first: the same engine wrote a file that passes it,
+    so it loads."""
+    if not (store / "base").exists() or (store / "base").read_text() != base:
+        return None
+    recs = load(store / "records.json")
+    return recs if (store / "key").read_text() == pass1_key(base, snap, recs.inputs) else None
+
+
+def store_pass1(store: Path, rec: dict, snap: Path, shared: Path) -> None:
+    """After the commit and the prune, so the store describes a build that passed, and the cache's names are the next build's."""
+    tmp = store.with_name(".pass1-tmp")
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir()
+    shutil.copy2(snap.parent / "pass1" / "records.json", tmp / "records.json")
+    base = pass1_base(rec["code"], rec["ref_keys"], shared, rec["env"])
+    (tmp / "base").write_text(base)
+    (tmp / "key").write_text(pass1_key(base, snap, load(tmp / "records.json").inputs))
+    shutil.rmtree(store, ignore_errors=True)
+    os.replace(tmp, store)
+
+
 def check(snap: Path, shared: Path) -> dict:
-    """Pass 1 and every check that needs no frames. Returns what the render pass and the report use."""
+    """Pass 1, or its stored records if nothing it read changed, and every check that needs no frames. Geometry is skipped on a reuse:
+    its inputs and its code are in the key, and a store exists only because they passed. Pairing reads cells.md fresh. Returns what
+    the render pass and the report use."""
     cells = read_cells(snap / "cells.md")
     if cells.errors:  # known before the scene runs: fail fast
         raise BuildError(1, cells.errors)
-    pass1 = snap.parent / "pass1"
-    private = pass1 / "cache"
-    shutil.copytree(shared, private)
     keys = [{"key": r["key"], "line": r["line"]} for r in cells.refs]
+    ref_keys = sorted({r["key"] for r in cells.refs})  # the set: a ref's line moves with any prose above it
     tex = (REPO / ".tinytex" / "bin-path").read_text().strip()
-    try:
-        run_all([Job("explainers.pass1", [str(snap), str(private), str(pass1), json.dumps(keys)], pass1)], 1,
-                child_env(tex + os.pathsep + os.environ["PATH"]))
-    except ChildFailed as e:
-        if (pass1 / "errors.json").exists():  # marked by pass 1: what the author must see, and nothing else
-            raise BuildError(1, json.loads((pass1 / "errors.json").read_text()))
-        raise failed("pass 1", e)
-    if not (pass1 / "records.json").exists():
-        raise BuildError(1, ["pass 1 exited with no result: a lesson must not end its own process"])
-    recs = load(pass1 / "records.json")
-    merge_cache(private, shared)
+    env = child_env(tex + os.pathsep + os.environ["PATH"])
+    code = pass1_code()
+    recs = stored_records(snap.parents[1] / "pass1", snap, pass1_base(code, ref_keys, shared, env))
+    ran = recs is None
+    if ran:
+        pass1 = snap.parent / "pass1"
+        private = pass1 / "cache"
+        shutil.copytree(shared, private)
+        try:
+            run_all([Job("explainers.pass1", [str(snap), str(private), str(pass1), json.dumps(keys)], pass1)], 1, env)
+        except ChildFailed as e:
+            if (pass1 / "errors.json").exists():  # marked by pass 1: what the author must see, and nothing else
+                raise BuildError(1, json.loads((pass1 / "errors.json").read_text()))
+            raise failed("pass 1", e)
+        if not (pass1 / "records.json").exists():
+            raise BuildError(1, ["pass 1 exited with no result: a lesson must not end its own process"])
+        recs = load(pass1 / "records.json")
+        merge_cache(private, shared)
     errs = [f'cell "{c.slug}" has no animation (lesson.py:{c.line})' for c in recs.cells if not c.run_times]
     errs += pairing(cells.sections, recs.cells)
     if errs + recs.ref_errors:
         raise BuildError(1, errs + recs.ref_errors)
-    if errs := geometry(recs.cells, *recs.frame, WIDTH):
+    if ran and (errs := geometry(recs.cells, *recs.frame, WIDTH)):
         raise BuildError(1, errs)
     from explainers.fingerprint import identity
     # lesson.py stays out: lesson_sha covers it, and per-cell digests decide what re-renders
@@ -198,7 +276,7 @@ def check(snap: Path, shared: Path) -> dict:
     return {"lesson_sha": sha256((snap / "lesson.py").read_bytes()), "cells": recs.cells, "refs": recs.refs, "inputs": inputs,
             "fingerprints": fingerprints([c.drawn for c in recs.cells], identity()),
             "manim_version": importlib.metadata.version("manim"), "repo_root": str(REPO),
-            "cache_entries": recs.cache_entries, "cost": recs.cost}
+            "cache_entries": recs.cache_entries, "cost": recs.cost, "pass1_ran": ran, "code": code, "ref_keys": ref_keys, "env": env}
 
 
 def report(bundle: Path, rec: dict) -> str:
@@ -313,6 +391,8 @@ def build(bundle: Path, workers: int | None = None) -> tuple[dict, Path]:
         t.append(time.monotonic())
         index = commit(bundle, rec, parts, reused, previous)
         prune_cache(shared, rec["cache_entries"])
+        if rec["pass1_ran"]:
+            store_pass1(bundle / "build" / "pass1", rec, snap, shared)
         t.append(time.monotonic())
         rec["timing"] = [b - a for a, b in zip(t, t[1:])]
         return rec, index
@@ -348,6 +428,7 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(f"error: {l}" for l in e.lines), file=sys.stderr)
         return e.code
     print(report(bundle, rec))
+    print(f"pass 1: {'ran' if rec['pass1_ran'] else 'reused'}")
     print(render_line(rec))
     print("timing: check {:.2f} s · render {:.2f} s · commit {:.2f} s".format(*rec["timing"]))
     print(f"built  {index}")

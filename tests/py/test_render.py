@@ -15,7 +15,7 @@ import jsonschema
 import psutil
 import pytest
 
-from conftest import FIXTURES, REPO, explain_build, run_pass1
+from conftest import FIXTURES, REPO, engine_copy, explain_build, run_pass1
 from explainers.build import costs
 from explainers.schedule import SEED_S_PER_VIDEO_S
 
@@ -297,6 +297,7 @@ def test_a_second_build_starts_pass_1_with_the_cache_warm(bundle):
              'n_tokens = len(Z)\nwarm = len(list(__import__("pathlib").Path(config.tex_dir).glob("*.svg")))\n')
     (b / "cells.md").write_text((b / "cells.md").read_text() + "\nWarm {warm}.\n")
     assert built_ok(b)["refs"]["warm"] == "0"
+    (b / "lesson.py").write_text((b / "lesson.py").read_text() + "\n# so pass 1 runs\n")
     assert int(built_ok(b)["refs"]["warm"]) > 0
 
 
@@ -500,18 +501,6 @@ def test_a_lesson_running_differently_in_its_worker_fails_naming_the_cell(bundle
     b = edit(bundle(), "lesson.py", old, new)
     r = explain_build(b)
     assert nondeterministic(b, r, cell, anim, "ran in only one of pass 1 and its worker"), r.stderr
-
-
-def engine_copy(tmp_path, *edits):
-    """This engine in another folder, with (file, old text, new text) applied. PYTHONPATH reaches it through the build's
-    fixed environment. cells.py finds its reader from its own file, so tools comes too."""
-    copy = tmp_path / "engine"
-    shutil.copytree(REPO / "explainers", copy / "explainers", ignore=shutil.ignore_patterns("__pycache__"))
-    for name in (".tinytex", "schema", "tools"):
-        (copy / name).symlink_to(REPO / name)
-    for name, old, new in edits:
-        edit(copy / "explainers", name, old, new)
-    return {"PYTHONPATH": str(copy)}
 
 
 def test_a_changed_encoder_setting_renders_every_cell(bundle, tmp_path):

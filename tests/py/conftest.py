@@ -48,3 +48,17 @@ def records(bundle) -> dict:
     r, out, _ = run_pass1(bundle)
     assert r.returncode == 0, r.stderr
     return json.loads((out / "records.json").read_text())
+
+
+def engine_copy(tmp_path, *edits):
+    """This engine in another folder, with (file, old text, new text) applied. PYTHONPATH reaches it through the build's
+    fixed environment. cells.py finds its reader from its own file, so tools comes too."""
+    copy = tmp_path / "engine"
+    shutil.copytree(REPO / "explainers", copy / "explainers", ignore=shutil.ignore_patterns("__pycache__"))
+    for name in (".tinytex", "schema", "tools"):
+        (copy / name).symlink_to(REPO / name)
+    for name, old, new in edits:
+        f = copy / "explainers" / name
+        assert old in f.read_text()
+        f.write_text(f.read_text().replace(old, new))
+    return {"PYTHONPATH": str(copy)}
