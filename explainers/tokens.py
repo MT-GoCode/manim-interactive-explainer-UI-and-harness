@@ -15,8 +15,11 @@ def main() -> int:
     tok = Tokenizer.from_pretrained("deepseek-ai/DeepSeek-V4-Pro", revision=REVISION)
     limit, over = int(sys.argv[1]), 0
     for f in (Path(p) if p.endswith(".md") else Path(p) / "cells.md" for p in sys.argv[2:]):
-        text = f.read_text().encode("utf-16-le")  # cells.md's one reader gives offsets in UTF-16 code units
-        for s in read_cells(f).sections:
+        cells = read_cells(f)
+        if cells.errors:  # what explain-build refuses is never counted
+            sys.exit(f"{f}:\n" + "\n".join(cells.errors))
+        text = f.read_bytes().decode().encode("utf-16-le")  # the reader's offsets are UTF-16 code units of the raw text
+        for s in cells.sections:
             body = text[2 * s["start"]:2 * s["end"]].decode("utf-16-le").split("\n", 1)[-1]  # minus its heading
             if (n := len(tok.encode(body, add_special_tokens=False).ids)) > limit:
                 over += 1

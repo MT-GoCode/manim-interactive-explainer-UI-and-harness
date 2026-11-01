@@ -7,8 +7,11 @@ set -uo pipefail
 cd "$(dirname "$0")"
 # Lowest priority and macOS background QoS, so the person using this machine never waits on the tests.
 [ -z "${EXPLAINERS_NICE:-}" ] && EXPLAINERS_NICE=1 exec nice -n 19 taskpolicy -b "$0" "$@"
-rm -rf test-results && mkdir -p test-results
 want=${1:-all}; [ $# -gt 0 ] && shift
+for c in ${want//,/ }; do  # a mistyped category must not pass as "nothing failed"
+  case $c in all|py|unit|e2e|perf|packaged) ;; *) echo "test: unknown category $c" >&2; exit 2 ;; esac
+done
+rm -rf test-results && mkdir -p test-results
 status=0
 summary() { echo "$1" >> test-results/summary.txt; }
 tally() {  # category: counts summed over every <testsuite> of its junit file (pytest and Playwright alike);
@@ -24,9 +27,6 @@ sys.exit(n['tests'] == n['skipped'])
   summary "$1 $counts"
 }
 run() { [ "$want" = all ] || [[ ",$want," == *",$1,"* ]]; }
-for c in ${want//,/ }; do  # a mistyped category must not pass as "nothing failed"
-  case $c in all|py|unit|e2e|perf|packaged) ;; *) echo "test: unknown category $c" >&2; exit 2 ;; esac
-done
 playwright() {  # project [args]: the app's Playwright project, against out/ or EX_EXECUTABLE; results under
   # test-results/$EX_PROJECT (default: the project's name)
   EX_PROJECT=${EX_PROJECT:-$1} npx playwright test --project "$1" --workers "${JOBS:-2}" "${@:2}"
