@@ -11,6 +11,7 @@ READER = Path(__file__).resolve().parents[1] / "tools" / "cells-cli.mjs"
 class Cells:
     sections: list[dict]  # {slug, start, end, line}; offsets in UTF-16 code units
     refs: list[dict]      # {key, name, line}; key = the exact text between the braces
+    code_refs: list[dict] # {key, line}; what looks like a ref inside code, which is shown raw
     links: list[dict]     # {slug, cell, line}
     errors: list[str]
 

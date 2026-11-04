@@ -72,6 +72,12 @@ def test_a_new_ref_key_runs_pass_1(b):
     assert pass1(b) == "pass 1: ran"
 
 
+def test_a_reused_pass_1_cannot_hide_a_lesson_name_inside_code(b):
+    append(b, "cells.md", "\nAlso `{n_tokens}`.\n")
+    r = explain_build(b)
+    assert r.returncode == 1 and "ref {n_tokens} inside code is not filled" in r.stderr, r.stdout + r.stderr
+
+
 def test_a_new_file_in_a_listed_folder_runs_pass_1(b):
     """Importing a bundle helper lists the bundle's folder: a new module there can change what an import resolves to."""
     (b / "extra.py").write_text("X = 1\n")

@@ -1,18 +1,18 @@
 // The one reader of cells.md, used by explain-build (through tools/cells-cli.mjs) and by the app.
 // remark decides what is text, code and math, so the build and the renderer cannot disagree.
-// Offsets are UTF-16 code units (JS string indices). Output: {sections, refs, links, errors}.
+// Offsets are UTF-16 code units (JS string indices). Output: {sections, refs, code_refs, links, errors}.
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
-import { LINK, refsIn, textsIn } from './grammar.mjs'
+import { codeRefsIn, LINK, refsIn, textsIn } from './grammar.mjs'
 
 export function readCells(text) {
   const errors = []
   if (text.charCodeAt(0) === 0xfeff)
     errors.push('cells.md starts with a byte-order mark; save it as plain UTF-8')
   if (text.includes('\r')) errors.push('cells.md has CR line endings; save it with LF only')
-  if (errors.length) return { sections: [], refs: [], links: [], errors }
+  if (errors.length) return { sections: [], refs: [], code_refs: [], links: [], errors }
   const lineAt = (offset) => text.slice(0, offset).split('\n').length
   const lineStart = (offset) => text.lastIndexOf('\n', offset - 1) + 1
   const tree = unified().use(remarkParse).use(remarkGfm).use(remarkMath).parse(text)
@@ -59,5 +59,5 @@ export function readCells(text) {
   const links = textsIn(tree, text).flatMap(({ start, src }) =>
     [...src.matchAll(LINK)].map((m) => ({ slug: m[1], cell: m[2], line: lineAt(start + m.index) }))
   )
-  return { sections, refs, links, errors }
+  return { sections, refs, code_refs: codeRefsIn(tree), links, errors }
 }

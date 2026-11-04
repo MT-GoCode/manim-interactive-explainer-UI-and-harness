@@ -163,6 +163,11 @@ def format_refs(refs: list[dict], namespace: dict) -> tuple[dict[str, str], list
     values, errs = {}, []
     for r in refs:
         name, _, fmt = r["key"].partition(":")
+        if r.get("in_code"):
+            # Code shows its raw value, so a lesson's own name there would reach the reader as literal braces.
+            if name in namespace:
+                errs.append(f"ref {{{r['key']}}} inside code is not filled; move it out of the backticks (cells.md:{r['line']})")
+            continue
         if name not in namespace:
             errs.append(f"unknown ref {{{r['key']}}} (cells.md:{r['line']})")
             continue

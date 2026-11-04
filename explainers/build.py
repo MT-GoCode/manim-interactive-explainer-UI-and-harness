@@ -243,7 +243,9 @@ def check(snap: Path, shared: Path) -> dict:
     if cells.errors:  # known before the scene runs: fail fast
         raise BuildError(1, cells.errors)
     keys = [{"key": r["key"], "line": r["line"]} for r in cells.refs]
-    ref_keys = sorted({r["key"] for r in cells.refs})  # the set: a ref's line moves with any prose above it
+    keys += [{"key": r["key"], "line": r["line"], "in_code": True} for r in cells.code_refs]
+    # The set: a ref's line moves with any prose above it. Backticks mark a code ref, so a new one runs pass 1.
+    ref_keys = sorted({r["key"] for r in cells.refs} | {f"`{r['key']}`" for r in cells.code_refs})
     tex = (REPO / ".tinytex" / "bin-path").read_text().strip()
     env = child_env(tex + os.pathsep + os.environ["PATH"])
     code = pass1_code()

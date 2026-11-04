@@ -47,6 +47,16 @@ def test_unknown_ref_counts_but_a_ref_in_code_does_not(bundle):
     assert r.returncode == 1 and r.stderr.splitlines() == ["error: unknown ref {nope} (cells.md:18)"]
 
 
+def test_a_lesson_name_inside_code_is_refused(bundle):
+    b = bundle()
+    md = b / "cells.md"
+    md.write_text(md.read_text() + 'Also `{n_tokens}`, not `{also_nope}`.\n\n```\nf"{p_top:.4f}"\n```\n')
+    r = explain_build(b)
+    assert r.returncode == 1 and r.stderr.splitlines() == [
+        "error: ref {n_tokens} inside code is not filled; move it out of the backticks (cells.md:18)",
+        "error: ref {p_top:.4f} inside code is not filled; move it out of the backticks (cells.md:21)"]
+
+
 def test_bad_format(bundle):
     b = bundle()
     md = b / "cells.md"

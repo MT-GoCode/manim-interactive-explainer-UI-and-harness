@@ -63,3 +63,18 @@ export function matchesIn(tree, source, re) {
 // Every value reference: matchesIn(REF) with its key ("p_top:.4f").
 export const refsIn = (tree, source) =>
   matchesIn(tree, source, REF).map((h) => ({ ...h, key: h.match[1] }))
+
+// What looks like a value reference inside code: [{ key, line }]. Code shows its raw value, so it is never filled.
+export function codeRefsIn(tree) {
+  const out = []
+  visitParents(tree, ['inlineCode', 'code'], (node) => {
+    for (const m of node.value.matchAll(REF)) {
+      const before = node.value.slice(0, m.index).split('\n').length - 1
+      out.push({
+        key: m[1],
+        line: node.position.start.line + before + (node.type === 'code' ? 1 : 0)
+      })
+    }
+  })
+  return out
+}
