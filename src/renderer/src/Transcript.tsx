@@ -23,6 +23,7 @@ const Cell = memo(function Cell(props: {
   slug: string
   md: string
   current: boolean
+  understood: boolean
   plugins: Plugins
   editor: ReactNode | null
   built: boolean
@@ -31,8 +32,20 @@ const Cell = memo(function Cell(props: {
   startEdit: (slug: string, md: string) => void
   commentCell: (slug: string, md: string) => void
 }) {
-  const { n, slug, md, current, plugins, editor, built, comments, select, startEdit, commentCell } =
-    props
+  const {
+    n,
+    slug,
+    md,
+    current,
+    understood,
+    plugins,
+    editor,
+    built,
+    comments,
+    select,
+    startEdit,
+    commentCell
+  } = props
   const el = useRef<HTMLElement>(null)
   useEffect(() => {
     if (current) void el.current!.scrollIntoView({ block: 'nearest' }) // a Promise here: never an effect cleanup
@@ -40,7 +53,7 @@ const Cell = memo(function Cell(props: {
   return (
     <section
       ref={el}
-      className={'cell' + (current ? ' current' : '')}
+      className={'cell' + (current ? ' current' : '') + (understood ? ' understood' : '')}
       data-slug={slug}
       onClick={(e) => {
         const link = (e.target as Element).closest('[data-link]')
@@ -50,7 +63,17 @@ const Cell = memo(function Cell(props: {
         window.api.openLink(lesson, cell)
       }}
     >
-      <span className="n">{n}</span>
+      <div className="gutter">
+        <span className="n">{n}</span>
+        <input
+          type="checkbox"
+          className="understood-box"
+          title="I understand up to here"
+          checked={understood}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => window.api.understood(slug, e.target.checked)}
+        />
+      </div>
       {editor ?? (
         <div
           className="md"
@@ -123,6 +146,7 @@ export function Transcript(props: {
           slug={c.slug}
           md={c.md}
           current={i === cur}
+          understood={c.understood}
           plugins={plugins}
           editor={c.slug === editing ? editor : null}
           built={c.clip !== null}

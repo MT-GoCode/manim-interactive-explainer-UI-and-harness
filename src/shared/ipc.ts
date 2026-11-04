@@ -7,6 +7,7 @@ export const CH = {
   openLink: 'ex:openLink',
   comment: 'ex:comment',
   resolve: 'ex:resolve',
+  understood: 'ex:understood',
   ping: 'ex:ping',
   command: 'ex:command'
 } as const
@@ -41,6 +42,7 @@ export interface Api {
     text: string
   ): Promise<Commented>
   resolve(id: string): void
+  understood(slug: string, on: boolean): void
   ping(command: string): void // runs command in the user's login shell, EXPLAINER = the lesson's folder
   onCommand(fn: (c: Command) => void): void
 }

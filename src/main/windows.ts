@@ -13,7 +13,15 @@ import { homedir, userInfo } from 'os'
 import { basename, dirname, join, resolve } from 'path'
 import { CH, type Command, type Commented } from '../shared/ipc'
 import type { Lesson } from '../shared/lesson'
-import { addComment, load, LoadError, resolveComment, saveSection, writeComments } from './bundle'
+import {
+  addComment,
+  load,
+  LoadError,
+  resolveComment,
+  saveSection,
+  setUnderstood,
+  writeComments
+} from './bundle'
 import { readSession, writeSession, type Entry } from './session'
 
 // Main is the single owner of window state and of everything read from disk.
@@ -119,6 +127,9 @@ ipcMain.handle(
 )
 ipcMain.on(CH.resolve, (e, id: string) =>
   writing('Cannot resolve the comment', (w) => resolveComment(w.dir, id))(e)
+)
+ipcMain.on(CH.understood, (e, slug: string, on: boolean) =>
+  writing('Cannot save the checkmark', (w) => setUnderstood(w.dir, slug, on))(e)
 )
 // Ping runs the user's command once per press, in their login shell (an app opened from Finder has a bare PATH), in
 // the lesson's folder with EXPLAINER set to it. A command that fails says so.

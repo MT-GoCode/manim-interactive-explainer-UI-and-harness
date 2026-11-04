@@ -22,7 +22,8 @@ import {
   load,
   LoadError,
   resolveComment,
-  saveSection
+  saveSection,
+  setUnderstood
 } from '../../src/main/bundle'
 import { fixture, ROOT } from '../e2e/app'
 
@@ -93,6 +94,7 @@ test('a heading with no clip has a null clip', async ({}, info) => {
     slug: 'extra',
     head: '## extra',
     md: 'More.\n',
+    understood: false,
     clip: null
   })
   expect(lesson.alerts.map((a) => a.t)).toEqual(['order'])
@@ -337,4 +339,33 @@ test('addComment refuses a span measured on older prose', async ({}, info) => {
     'This cell changed while you were commenting'
   )
   expect(existsSync(join(b, 'comments.json'))).toBe(false)
+})
+
+test('checkmarks: stored in cell order, kept through a prose edit, dropped with their cell', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  const understood = () =>
+    load(b)
+      .lesson.cells.filter((c) => c.understood)
+      .map((c) => c.slug)
+  const file = () => JSON.parse(readFileSync(join(b, 'understood.json'), 'utf8')).cells
+  const [first, second, third] = load(b).lesson.cells.map((c) => c.slug)
+  expect(understood()).toEqual([])
+  setUnderstood(b, third, true)
+  setUnderstood(b, first, true)
+  expect(file()).toEqual([first, third])
+  setUnderstood(b, first, false)
+  expect(understood()).toEqual([third])
+  edit(join(b, 'cells.md'), (s) => s.replace(`## ${third}\n`, `## ${third}\nA new first line.\n`))
+  expect(understood()).toEqual([third])
+  edit(join(b, 'cells.md'), (s) => s.replace(`## ${third}\n`, '## renamed\n'))
+  expect(understood()).toEqual([])
+  setUnderstood(b, second, true)
+  expect(file()).toEqual([second])
+  expect(() => setUnderstood(b, 'no-such-cell', true)).toThrow('No cell "no-such-cell"')
+})
+
+test('a broken understood.json is a load error', async ({}, info) => {
+  const b = fixture(info.outputDir)
+  writeFileSync(join(b, 'understood.json'), '{"cells": 1}')
+  expect(() => load(b)).toThrow(LoadError)
 })

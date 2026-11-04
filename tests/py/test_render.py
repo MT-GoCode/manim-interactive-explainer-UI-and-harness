@@ -791,9 +791,10 @@ def test_a_stale_build_is_not_in_the_snapshot(bundle):
     b = edit(bundle(), "lesson.py", "n_tokens = len(Z)\n", 'n_tokens = len(Z)\nnames = sorted(__import__("os").listdir("."))\n')
     (b / "cells.md").write_text((b / "cells.md").read_text() + "\nNames {names}.\n")
     (b / "comments.json").write_text("{}")
+    (b / "understood.json").write_text("{}")
     built_ok(b)
     names = built_ok(b)["refs"]["names"]
-    assert "helpers.py" in names and "build" not in names and "comments.json" not in names
+    assert "helpers.py" in names and "build" not in names and "comments.json" not in names and "understood.json" not in names
 
 
 def test_worker_peak_is_measured_and_kept(bundle):

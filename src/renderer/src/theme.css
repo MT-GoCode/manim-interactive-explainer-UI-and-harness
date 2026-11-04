@@ -77,12 +77,25 @@ body {
   color: #ddd;
   border-left-color: #0078d4;
 }
-.cell .n {
+.cell.understood {
+  background: rgba(46, 160, 67, 0.3);
+}
+.cell .gutter {
   flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   width: 2.5ch;
-  text-align: right;
-  color: #5a5a5a;
   user-select: none;
+}
+.cell .n {
+  color: #5a5a5a;
+}
+.cell .understood-box {
+  margin: 0;
+  accent-color: #2ea043;
+  cursor: pointer;
 }
 .cell .md {
   flex: 1;

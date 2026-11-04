@@ -8,6 +8,7 @@ const api: Api = {
   openLink: (slug, cell) => ipcRenderer.send(CH.openLink, slug, cell),
   comment: (cell, base, span, text) => ipcRenderer.invoke(CH.comment, cell, base, span, text),
   resolve: (id) => ipcRenderer.send(CH.resolve, id),
+  understood: (slug, on) => ipcRenderer.send(CH.understood, slug, on),
   ping: (command) => ipcRenderer.send(CH.ping, command),
   onCommand: (fn) => ipcRenderer.on(CH.command, (_e, c: Command) => fn(c))
 }

@@ -8,6 +8,7 @@ import addFormats from 'ajv-formats'
 import { readCells } from '../../tools/cells.mjs'
 import schema from '../../schema/index.schema.json'
 import commentsSchema from '../../schema/comments.schema.json'
+import understoodSchema from '../../schema/understood.schema.json'
 import type { Saved } from '../shared/ipc'
 import type { Alert, Cell, Comment, Lesson } from '../shared/lesson'
 import { atomicWrite } from './atomic'
@@ -36,6 +37,7 @@ type Stored = {
 const ajv = addFormats(new Ajv2020({ allErrors: true }), ['date-time'])
 const validate = ajv.compile<Index>(schema)
 const validateComments = ajv.compile<{ comments: Stored[] }>(commentsSchema)
+const validateUnderstood = ajv.compile<{ cells: string[] }>(understoodSchema)
 const schemaError = (path: string, errors: typeof validate.errors) =>
   new LoadError(
     `${path}: ` + errors!.map((e) => `${e.instancePath || '/'} ${e.message}`).join('; ')
@@ -162,6 +164,7 @@ export function load(dir: string): {
   if (index !== null && !validate(index)) throw schemaError(indexPath, validate.errors)
   const build = index as Index | null
   const clips = new Map(build?.cells.map((c) => [c.slug, c]))
+  const understood = new Set(readUnderstood(dir))
   const cells = found.sections.map((s) => {
     const c = clips.get(s.slug)
     const { head, md } = parts(text.slice(s.start, s.end))
@@ -169,6 +172,7 @@ export function load(dir: string): {
       slug: s.slug,
       head,
       md,
+      understood: understood.has(s.slug),
       clip: c
         ? {
             url: clipUrl(join(dir, 'build', c.clip)),
@@ -284,6 +288,27 @@ export function addComment(
     fingerprint: fingerprint(cell)
   }
   writeComments(dir, [...comments.kept, fresh])
+}
+
+function readUnderstood(dir: string): string[] {
+  const path = join(dir, 'understood.json')
+  if (!existsSync(path)) return []
+  const file = read(path, (t) => JSON.parse(t) as unknown)
+  if (!validateUnderstood(file)) throw schemaError(path, validateUnderstood.errors)
+  return file.cells
+}
+
+// Keyed by slug, so a checkmark survives prose edits and rebuilds. Each write keeps only cells that still exist.
+export function setUnderstood(dir: string, slug: string, on: boolean): void {
+  const { lesson } = load(dir)
+  if (!lesson.cells.some((c) => c.slug === slug)) throw new Error(`No cell "${slug}"`)
+  const cells = lesson.cells
+    .filter((c) => (c.slug === slug ? on : c.understood))
+    .map((c) => c.slug)
+  atomicWrite(
+    join(dir, 'understood.json'),
+    JSON.stringify({ format: 'explainer-understood', version: 1, cells }, null, 1) + '\n'
+  )
 }
 
 export function resolveComment(dir: string, id: string): void {

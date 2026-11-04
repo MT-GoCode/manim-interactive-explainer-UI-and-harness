@@ -1,7 +1,7 @@
 # Instructions
    
 Each lesson is a folder `~/Documents/explainers/<slug>.explainer/`: `cells.md` (the transcript), `lesson.py` (the
-   Manim scene) and any helper scripts or data. Never touch `build/` or `comments.json`.
+   Manim scene) and any helper scripts or data. Never touch `build/`, `comments.json` or `understood.json`.
 
 If the lesson needs numbers or samples, write `generate.py`: run it once; it does all computation (use the GPU if
    that is faster) and saves an artifact (any format) that `lesson.py` loads. Never import `generate.py`; `lesson.py`

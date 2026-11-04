@@ -79,7 +79,7 @@ def snapshot(bundle: Path) -> Path:
     media = bundle / "build" / ".media"
     shutil.rmtree(media, ignore_errors=True)
     shutil.copytree(bundle, media / "src", ignore=lambda d, names: [
-        n for n in names if n == "__pycache__" or (d == str(bundle) and n in ("build", "comments.json"))
+        n for n in names if n == "__pycache__" or (d == str(bundle) and n in ("build", "comments.json", "understood.json"))
         or not os.path.exists(os.path.join(d, n))])
     return media / "src"
 

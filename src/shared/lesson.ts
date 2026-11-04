@@ -5,7 +5,13 @@ export type Alert =
   | { t: 'invalid'; message: string } // a reload failed: the last good lesson stays on screen
 export type Clip = { url: string; frames: number; fps: number; frames_sha: string }
 // md: the section without its heading line; head: that line verbatim (the source between cells is head + "\n")
-export type Cell = { slug: string; head: string; md: string; clip: Clip | null }
+export type Cell = {
+  slug: string
+  head: string
+  md: string
+  understood: boolean
+  clip: Clip | null
+}
 export type Build = { refs: Record<string, string> }
 // A comment as the reader sees it, marked once in main: on a span of its cell's prose (with that quote), on the
 // whole cell, or on a cell that is gone (Minh's to resolve).

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "explainer/understood",
+  "title": "understood.json — written only by the app: the cells Minh checked as understood",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "cells"],
+  "properties": {
+    "format": { "const": "explainer-understood" },
+    "version": { "const": 1 },
+    "cells": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9-]+$" }
+    }
+  }
+}
