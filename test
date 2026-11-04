@@ -5,8 +5,8 @@
 # Categories run in this order: py, unit, e2e, perf (alone: it measures the machine), packaged.
 set -uo pipefail
 cd "$(dirname "$0")"
-# Lowest priority and macOS background QoS, so the person using this machine never waits on the tests.
-[ -z "${EXPLAINERS_NICE:-}" ] && EXPLAINERS_NICE=1 exec nice -n 19 taskpolicy -b "$0" "$@"
+# 6: the full suite passed at this width on an M4 Max with other work running. Set JOBS for another machine.
+JOBS=${JOBS:-6}
 want=${1:-all}; [ $# -gt 0 ] && shift
 [[ $want =~ ^(all|(py|unit|e2e|perf|packaged)(,(py|unit|e2e|perf|packaged))*)$ ]] || { echo "test: unknown category $want" >&2; exit 2; }
 rm -rf test-results && mkdir -p test-results
@@ -27,11 +27,11 @@ sys.exit(n['tests'] == n['skipped'])
 run() { [ "$want" = all ] || [[ ",$want," == *",$1,"* ]]; }
 playwright() {  # project [args]: the app's Playwright project, against out/ or EX_EXECUTABLE; results under
   # test-results/$EX_PROJECT (default: the project's name)
-  EX_PROJECT=${EX_PROJECT:-$1} npx playwright test --project "$1" --workers "${JOBS:-2}" "${@:2}"
+  EX_PROJECT=${EX_PROJECT:-$1} npx playwright test --project "$1" --workers "$JOBS" "${@:2}"
 }
 summary "commit $(git rev-parse --short HEAD)$([ -z "$(git status --porcelain -- . ':!JOURNEY-explainers')" ] || echo '+dirty')"
 if run py; then
-  uv run -q pytest tests/py -n "${JOBS:-2}" --dist loadgroup -q --junitxml=test-results/py/junit.xml "$@" || status=1
+  uv run -q pytest tests/py -n "$JOBS" --dist loadgroup -q --junitxml=test-results/py/junit.xml "$@" || status=1
   tally py
 fi
 if run unit || run e2e; then npx electron-vite build >/dev/null || status=1; fi

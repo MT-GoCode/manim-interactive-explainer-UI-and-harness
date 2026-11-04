@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 30  # the first run took 9m47s with a cold cache
     env:
       PYTHONUNBUFFERED: "1"
-      EXPLAINERS_NICE: "1"  # ./test otherwise re-runs itself at background priority, for a laptop in use
+      JOBS: "2"  # a hosted macOS runner is much smaller than the laptop ./test's default width was measured on
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
