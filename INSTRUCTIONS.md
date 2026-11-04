@@ -1,22 +1,39 @@
 # Instructions
-
-Read this before making or editing a lesson.
-
-1. Each lesson is a folder `~/Documents/explainers/<slug>.explainer/`: `cells.md` (the transcript), `lesson.py` (the
+   
+Each lesson is a folder `~/Documents/explainers/<slug>.explainer/`: `cells.md` (the transcript), `lesson.py` (the
    Manim scene) and any helper scripts or data. Never touch `build/` or `comments.json`.
-2. If the lesson needs numbers, write a script that computes them (e.g. `helpers.py`, imported by `lesson.py`). Prose
+
+If the lesson needs numbers or samples, write `generate.py`: run it once; it does all computation (use the GPU if
+   that is faster) and saves an artifact (any format) that `lesson.py` loads. Never import `generate.py`; `lesson.py`
+   does no computation. `helpers.py` holds Manim components written once and reuse if you need; `lesson.py` imports it. Prose
    never types a number: it writes `{name}` or `{name:.3f}`, filled in from `lesson.py` at build time.
-3. Meanwhile, write `cells.md` and `lesson.py` in parallel: one `## slug` section per `self.cell("slug")`, same order.
-4. Build with `explain-build <bundle>`; it renders the cells whose frames changed, in parallel. Fix each error at the `lesson.py` line it
-   names, and rebuild until it prints `built`.
-   When Minh gives a length limit, run `cells-tokens <limit> <bundle>`: it lists each cell over that many tokens
-   (the whole cell: prose, math and code as written). Shorten each cell it lists.
-5. Minh opens the lesson in the Explainers app, comments, and presses Ping, which sends you a message. Then run
-   `fetch-comments <bundle>`: it prints each open comment. Answer them directly, and do not edit cells and lessons -- unless asked to in comments or explicitly messaged to.
-6. When the user asks for a link between lessons, write `[[lesson#cell]]` in cells.md: `lesson` is the lesson's folder
+   Write these outside backticks and `$...$`: code and math show their raw text. The build refuses a `lesson.py` name inside code.
+
+`cells.md` and `lesson.py` contain one `## slug` section per `self.cell("slug")`, same order.
+
+Build with `explain-build <bundle>`; it renders the cells whose frames changed, in parallel. Fix each error at the `lesson.py` line it names, and rebuild until it prints `built`.
+When Minh gives a length limit, run `cells-tokens <limit> <bundle>`: it lists each cell over that many tokens (the whole cell: prose, math and code as written). Shorten each cell it lists.
+
+In order, what you should do is write a scratch storyboard.md in /tmp/ that walks through how you'll structure the lesson to follow the lesson heuristics below to the T. 
+1. Then write `generate.py`. While it runs, 
+2. Write `lesson.py` and `cells.md` in parallel
+3. Ask a FRESH subagent to read this instruction file, your lesson.py, your cells.md, and critique how closely you follow the heuristics by looking at your lesson plan and prose. NOT to debug your code. Have it separate concerns into INACCURACIES (anything false: a fact the source contradicts, or a picture or explanation that teaches a false model) to PEDAGOGY VIOLATION (a heuristic clearly broken, sloppy phrasing included) to PEDAGOGY SMOOTHING (all else). Only INACCURACIES need fixing. Repeat (with fresh agent!) until there are no INACCURACIES.
+4. Build & debug
+
+The phases are GENERATION, CONSTRUCTION, CRITIQUE, and BUILD. Announce which one you are in, and move as fast as possible because the user wants to learn fast. Do not try to debug the internals of explainer. If there seems to be something wrong with the app's core, message user and stop.
+
+SUBAGENTS
+Reduce the amount of work the subagent needs to do. Run a command that concatenates and titles lesson.py, cells.py, instructions.md section after lesson heuristics (below) and wraps it in a prompt when spinning up paseo agent with haiku 5.5 with empty system prompt and prompt: You are a subagent. Do not spin up your own subagents. Do not debug my code. Please critique lessons.py and cells.md based on the lesson heuristics attached, and sort it into INACCURACIES (anything false) to PEDAGOGY VIOLATION (a heuristic clearly broken) to PEDAGOGY SMOOTHING (all else). Do not run any code or try to explore the surrounding system. 
+
+VIEWING THE LESSON
+Minh opens the lesson in the Explainers app. He can make comments in there and press a button which sends you a message to check comments. Then run
+   `fetch-comments <bundle>`: it prints each open comment. Answer them directly in chat, and do not edit cells and lessons -- unless asked to in comments or explicitly messaged to.
+
+When the user asks for a link between lessons, write `[[lesson#cell]]` in cells.md: `lesson` is the lesson's folder
    name in `~/Documents/explainers` without `.explainer`, `cell` is one of its `## slug` headings (both required, e.g.
    `[[postmortem#bf16]]`). In the app, clicking it opens that lesson at that cell.
-7. Follow the heuristics below.
+
+Follow the heuristics below.
 
 # What `explain-build` prints
 
@@ -39,7 +56,7 @@ Each error names what to fix:
 
 A lesson does not write into its own folder: the workers would see that file, and you would not.
 
-# Minh's lesson heuristics (binding for every lesson)
+# LESSON HEURISTICS
 
 ## Pedagogy
 
@@ -49,19 +66,15 @@ A lesson does not write into its own folder: the workers would see that file, an
 
 **Few things at once (cognitive load).** Every element on screen costs the viewer attention. Show only what the current step uses, and fade out what is finished. Change one thing at a time, so the eye always knows where to look: at what just appeared or moved.
 
-**Writing** In Cells.md, excessively contextualize and give deep information to a point that is reasonable enough the user has a full picture of the system. Start from where the user is. The user is someone who always asks "Why?" Every single cell must flow from one to the next. NEVER edit cells in isolation -- if you edit one, you must read the one above to the one below and make sure it flows together. Write only in ASD-STE100 style. 
+**Writing** In Cells.md, excessively contextualize and give deep information to a point that is reasonable enough the user has a full picture of the system. Start from where the user is. The user is someone who always asks "Why?" Every single cell must flow from one to the next. NEVER edit cells in isolation -- if you edit one, you must read the one above to the one below and make sure it flows together. 
 
+**No dumbing it down.** I fucking hate abstractions or any explanation that doesn't just show me the damn bites, bytes, numbers moving around. Don't handwave. analogies that are entirely accurate, accompanying the content, and directly contribute to wisdom because they are these high-density insights. Don't just show me the simple case of systems. You can do that first, but always show me the full, real, actual thing. The full model, spelled out. The full block chain with what data might look like inside.
 
+**WRITING STYLE** YOU MUST WRITE IN ASD-STE100! The single most high-value thing you can do is to assume the POV and style of a personal tutor who is trying to tell a fully connected narrative.
 
-**Primary style.** The single most high-value thing you can do is to assume the POV and style of a personal tutor who is trying to tell a narrative through explanations, bulletpoints, paragraphs, whatever.
+**NO CONFUSING OR INCORRECT OR SLOPPY PHRASING** Have absolutely unambiguous phrasing. Don't make comparisons, causal statements, or anything else of that nature that can be misinterpreted. 
 
 **Signal.** You're trying to maximize highest learning value with lowest amount of content generated. Be as perfectly targeted, high-signal as possible.
-
-**Prose rules.**
-- No limit to bulletpointed lists, but I do hate a list that is too long and flat. If it is long, it must be because it is going step by step, inter-referencing, doing CASEWORK and possibly SUBCASEWORK, exploring multiple subconclusions, etc.
-- Whenever possible, prefer short verbal explanations over walkthroughs! Only use walkthroughs when short verbal explanations are not possible.
-- For every sentence in a verbal explanation and every single bulletpoint in a walkthrough, limit to 20 words.
-- For both verbal explanations and single bulletpoints within walkthroughs, use insanely high-signal sentences and compact explanations that deliver true clarity via insight at the end of it instead of droning on and on or giving me a wall of text.
 
 **Visual grounding.** Adding in non-english sections can genuinely improve the understanding by adding conceptual or visual-based grounding. You can also use tables to organize ideas to create summaries and unifying mental models. But only if they map exactly onto the truth. Don't draw tables that over-simplify the underlying truth.
 
@@ -226,3 +239,44 @@ with an even gap, never pinned to the edges, and no large band of the frame stay
     replace it. If one step is genuinely out of scope (e.g. elliptic-curve math), mark that boundary explicitly and say a
     separate lesson covers it — do not fake it or skip it silently.
 
+# Manim code landmines to avoid
+
+Each of these has cost a build minutes of runtime or broken a picture.
+
+1. **`Transform` and `TransformFromCopy` reshape an object in place, for good.** Manim pads the smaller object's tree
+   of parts with copies until both trees match, and the padding stays after the animation ends. `Transform(a, b)`
+   leaves `a` on screen in `b`'s shape (`b` itself is never added). `TransformFromCopy(src, dst)` leaves `dst` on
+   screen, padded to `src`'s shape. So:
+   - Transform only between objects with the same parts: one label to one label, a row of n to a row of n.
+   - Never use a transform's result as the source of a later transform. Padding compounds: 10 → 80 → 2,046 → 8,058
+     drawn paths in three steps, and every later frame draws all of them. For many-into-one, highlight the inputs and
+     `FadeIn` the result, or transform a throwaway `.copy()`, then `self.remove` it and `self.add` a fresh object.
+   - Use `ReplacementTransform` when later code refers to the destination variable.
+2. **`import *` overwrites names silently.** A module-level name in your own code or loaded data (`LEFT`, `UP`, `T`,
+   `Line`, `Text`, ...) replaces Manim's, and the error shows up far away (a broadcast error inside `next_to`). Never
+   reuse a Manim name; assert that no loaded data key collides with an existing global.
+3. **Color by TeX parts, never by glyph index.** `MathTex(a, b, c)` gives one part per argument; color `part[i]`.
+   Slicing glyphs (`tex[0][7:10]`) breaks silently when the string changes. `substrings_to_isolate` and `{{ }}`
+   cannot split inside `\frac`, `\sqrt` or a script group, so write the expression with each color-coded term as its
+   own top-level argument.
+4. **Size text at creation.** A `Text` or `MathTex` font size is derived from its height, so `.scale()`,
+   `.set_width()` and `scale_to_fit_*` change it and can drop it under the build's minimum. Create text at its final
+   size and never scale it. Do not pad the size to slip past the check.
+5. **f-strings and TeX braces collide.** `{` in an f-string is a placeholder. Build TeX by concatenating raw strings
+   (`r"\frac{" + value + "}{2}"`), not by doubling braces.
+6. **Never build `Text` or `MathTex` per frame.** Each one runs Pango or LaTeX. A number that changes during an
+   animation is a `DecimalNumber` or `Variable`, not a new text in an updater. Remove every updater before the cell
+   ends.
+7. **Copies are deep.** `.copy()` copies the whole family. Copy the smallest part you need, especially inside loops
+   and `LaggedStart`.
+8. **`self.mobjects` is what is on screen, not your variables.** A variable can name an object that is not on screen
+   (a `Transform`'s destination), and an object can be on screen with no variable (what a `TransformFromCopy`
+   leaves). Fade out what a step is finished with, and clear by `self.mobjects`.
+9. **Text is written, not created.** `Create` on text traces glyph outlines; use `Write` or `FadeIn`.
+   `TransformMatchingShapes` matches glyphs by shape and moves letters unpredictably; use it only between strings with
+   the same letters.
+10. **Images go in `Group`, not `VGroup`.** `VGroup` takes only vector objects.
+11. **Leave `config` and the camera alone.** The build owns frame size, frame rate and seed.
+12. **Test on the bundle with `explain-build`.** Bare `python` lacks the build's TeX path and settings. When a cell is
+    slow, count what it draws (the sum of `len(m.get_family())` over `self.mobjects`) before suspecting Manim or the
+    app.
