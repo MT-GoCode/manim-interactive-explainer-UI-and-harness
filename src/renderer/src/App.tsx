@@ -30,7 +30,7 @@ const banner = (lesson: Lesson): string[] => [
 ]
 
 // The video's height as a share of its full-width 2:1 height, set by dragging the bar under the player. One store
-// (localStorage) for every window, like the Ping command.
+// (localStorage) for every window, unlike the Ping command, which is per lesson.
 const SCALE = 'videoScale'
 const clamp = (x: number): number => Math.min(1, Math.max(0, x))
 
@@ -233,7 +233,7 @@ export function App() {
         </button>
       )}
       {draft && <CommentBox draft={draft} close={() => setDraft(null)} />}
-      <PingButton />
+      <PingButton dir={lesson.dir} />
       {finding > 0 && (
         <Find ask={finding} lesson={lesson} setCur={setCur} close={() => setFinding(0)} />
       )}

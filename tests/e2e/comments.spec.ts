@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process'
 import { createHash } from 'crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { ElectronApplication, Page } from '@playwright/test'
 import { current, expect, firstLesson, fixture, ROOT, test } from './app'
@@ -215,6 +215,31 @@ test('Ping with no command shows the template', async ({ launch }, info) => {
   await expect(page.locator('.ping textarea')).toHaveValue(
     'paseo send --no-wait <agent-id> "Check my comments: fetch-comments $EXPLAINER"'
   )
+})
+
+test('each lesson keeps its own Ping command, and a new lesson starts at the template', async ({
+  launch
+}, info) => {
+  const a = fixture(join(info.outputDir, 'a'))
+  const b = fixture(join(info.outputDir, 'b'))
+  const userData = info.outputPath('shared-userdata')
+  const shown = async (dir: string, set?: string) => {
+    rmSync(join(userData, 'session.json'), { force: true }) // or the last lesson reopens first
+    const app = await launch([dir], userData)
+    const page = await firstLesson(app)
+    if (set) await setPing(page, set)
+    await page.locator('.ping .settings').click({ force: true })
+    const value = await page.locator('.ping textarea').inputValue()
+    await app.close()
+    return value
+  }
+  const template = await shown(a)
+  expect(template).toContain('<agent-id>')
+  await shown(a, 'echo lesson a')
+  expect(await shown(b)).toBe(template)
+  await shown(b, 'echo lesson b')
+  expect(await shown(a)).toBe('echo lesson a')
+  expect(await shown(b)).toBe('echo lesson b')
 })
 
 test("each Ping runs the command once, in the lesson's folder", async ({ launch }, info) => {

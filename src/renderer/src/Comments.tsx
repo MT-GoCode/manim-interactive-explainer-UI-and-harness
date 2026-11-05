@@ -74,14 +74,15 @@ export function Orphans({ comments }: { comments: Comment[] }) {
   )
 }
 
-const KEY = 'pingCommand'
 const TEMPLATE = 'paseo send --no-wait <agent-id> "Check my comments: fetch-comments $EXPLAINER"'
 
-// The command lives in localStorage, one store for every window, read at each press. Unset, Ping shows the template.
-export function PingButton() {
+// One command per lesson folder, in the app's localStorage and not in the bundle: a lesson someone shares must not
+// carry a command this button runs. Read at each press. Unset, Ping shows the template.
+export function PingButton({ dir }: { dir: string }) {
+  const key = `pingCommand:${dir}`
   const [open, setOpen] = useState(false)
   const ping = () => {
-    const command = localStorage.getItem(KEY)
+    const command = localStorage.getItem(key)
     if (command) window.api.ping(command)
     else setOpen(true)
   }
@@ -91,8 +92,8 @@ export function PingButton() {
         <textarea
           autoFocus
           spellCheck={false}
-          defaultValue={localStorage.getItem(KEY) ?? TEMPLATE}
-          onChange={(e) => localStorage.setItem(KEY, e.target.value)}
+          defaultValue={localStorage.getItem(key) ?? TEMPLATE}
+          onChange={(e) => localStorage.setItem(key, e.target.value)}
         />
       )}
       <button className="send" onClick={ping}>
