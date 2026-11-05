@@ -10,7 +10,6 @@ import pytest
 
 from conftest import FIXTURES
 
-pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 
 SCRIPT = Path(__file__).parent / "build_with_width.py"
 

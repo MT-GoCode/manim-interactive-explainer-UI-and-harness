@@ -19,7 +19,6 @@ from conftest import FIXTURES, REPO, engine_copy, explain_build, run_pass1
 from explainers.build import costs
 from explainers.schedule import SEED_S_PER_VIDEO_S
 
-pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 
 REFERENCE = Path(__file__).parent / "reference_render.py"
 
@@ -633,10 +632,10 @@ def test_measured_times_are_recorded_and_kept(bundle):
 
 def test_a_rebuild_with_nothing_to_render_samples_nothing(bundle):
     b = bundle()
-    first = explain_build(b)
+    first = explain_build(b, own_width=True)
     assert first.returncode == 0 and "machine: phase=render" in first.stdout, first.stderr
     assert re.search(r"^machine: .* jobs=8$", first.stdout, re.M), first.stdout  # softmax: 8 plays in 6 cells
-    again = explain_build(b)
+    again = explain_build(b, own_width=True)
     assert again.returncode == 0 and "machine:" not in again.stdout and "render width:" not in again.stdout, again.stdout
 
 
@@ -705,7 +704,7 @@ def test_a_worker_too_big_for_the_machine_is_refused_and_workers_overrides_it(bu
     index["worker_peak"]["rss"] = 2**60
     (b / "build" / "index.json").write_text(json.dumps(index, indent=1) + "\n")
     edit(b, "lesson.py", "self.play(FadeOut(title), run_time=0.5)", "self.play(FadeOut(title), run_time=0.7)")
-    r = explain_build(b)
+    r = explain_build(b, own_width=True)
     assert r.returncode == 1 and r.stderr.strip().splitlines()[-1].startswith("error: one render job needs"), r.stderr
     assert "pass --workers 1" in r.stderr
     built_ok(b, args=("--workers", "1"))

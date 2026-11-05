@@ -15,7 +15,6 @@ from conftest import FIXTURES, explain_build
 from explainers import build as B
 from explainers import fingerprint as F
 
-pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 
 
 def build(b: Path) -> tuple[str, list[str]]:

@@ -9,7 +9,6 @@ jobs:
     timeout-minutes: 30  # the first run took 9m47s with a cold cache
     env:
       PYTHONUNBUFFERED: "1"
-      JOBS: "2"  # a hosted macOS runner is much smaller than the laptop ./test's default width was measured on
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -29,7 +28,7 @@ jobs:
       - run: ./setup.sh --no-links
       # e2e, perf and packaged run locally (the pre-push hook): the runner's 1024x768 screen is smaller than the
       # windows the e2e tests restore, perf measures the machine it runs on, packaged registers an app.
-      - run: ./test py,unit
+      - run: ./test --jobs 2 py,unit  # a hosted macOS runner is much smaller than a laptop
       - uses: actions/upload-artifact@v4
         if: always()
         with:

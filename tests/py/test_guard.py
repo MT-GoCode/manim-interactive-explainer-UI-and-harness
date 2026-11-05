@@ -10,7 +10,6 @@ import pytest
 from conftest import REPO, explain_build, records, run_pass1
 from explainers.pass1 import install_cost_clock
 
-pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 ANCHOR = '        self.cell("scores")\n'
 OUTSIDE = "read {}, outside the bundle; copy it into the bundle and read it from there"
 NO_PROGRAM = "started {}; a lesson may not start other programs"

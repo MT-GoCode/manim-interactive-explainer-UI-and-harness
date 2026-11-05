@@ -2,11 +2,15 @@
 # The one entry point: every test category, results in test-results/<category>/, counts in test-results/summary.txt.
 #   ./test            everything        ./test py -k grammar     one category, extra args passed through
 #   ./test py,unit       several categories (CI)
+#   ./test --jobs 2 py   exactly this many workers
 # Categories run in this order: py, unit, e2e, perf (alone: it measures the machine), packaged.
 set -uo pipefail
 cd "$(dirname "$0")"
-# 6: the full suite passed at this width on an M4 Max with other work running. Set JOBS for another machine.
-JOBS=${JOBS:-6}
+# How many test workers run at once: --jobs N, or headroom.py's rule for jobs of a build worker's size, over all cores.
+# Not idle cores: a one-second sample of other work would set the width of a long run.
+if [ "${1:-}" = --jobs ]; then JOBS=$2; shift 2
+else JOBS=$(uv run -q python -c 'import os, psutil; from explainers import headroom as h; print(h.width(h.Headroom(os.cpu_count(), psutil.virtual_memory().available), 1.1, 2**29, 10**6).n)'); fi
+echo "test: $JOBS workers"
 want=${1:-all}; [ $# -gt 0 ] && shift
 [[ $want =~ ^(all|(py|unit|e2e|perf|packaged)(,(py|unit|e2e|perf|packaged))*)$ ]] || { echo "test: unknown category $want" >&2; exit 2; }
 rm -rf test-results && mkdir -p test-results

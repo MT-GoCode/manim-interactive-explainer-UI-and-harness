@@ -23,10 +23,12 @@ def bundle(tmp_path):
     return copy
 
 
-def explain_build(*args, cwd=None, env=None):
-    """Run this checkout's explain-build with TeX removed from PATH: the build must find the repo's own TeX."""
+def explain_build(*args, cwd=None, env=None, own_width=False):
+    """Run this checkout's explain-build with TeX removed from PATH: the build must find the repo's own TeX. One render
+    worker per test, so ./test --jobs N means N workers in all; own_width lets the build choose, for tests of that choice."""
     path = os.pathsep.join(p for p in os.environ["PATH"].split(os.pathsep) if p != TEX_BIN)
-    return subprocess.run([str(REPO / "bin" / "explain-build"), *map(str, args)], capture_output=True, text=True,
+    width = [] if own_width or "--workers" in args or "-h" in args else ["--workers", "1"]
+    return subprocess.run([str(REPO / "bin" / "explain-build"), *map(str, args), *width], capture_output=True, text=True,
                           cwd=cwd, env={**os.environ, "PATH": path, **(env or {})})
 
 

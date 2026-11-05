@@ -76,7 +76,6 @@ def test_faded_out_object_is_gone_at_cell_end(built):
     assert all(u["line"] != LINE["label-helper"] for u in rec["cells"][4]["end"])
 
 
-@pytest.mark.xdist_group("render")  # a full build
 def test_inputs_are_the_files_the_lesson_used(bundle):
     rec = built_index(bundle())
     b = FIXTURES / "softmax.explainer"
@@ -86,14 +85,12 @@ def test_inputs_are_the_files_the_lesson_used(bundle):
     assert rec["repo_root"] == str(REPO)
 
 
-@pytest.mark.xdist_group("render")  # a full build
 def test_nothing_written_into_the_bundle_but_build(bundle):
     b = bundle()
     built_index(b)
     assert sorted(p.name for p in b.iterdir()) == ["build", "cells.md", "helpers.py", "lesson.py", "scores.csv"]
 
 
-@pytest.mark.xdist_group("render")  # a full build
 def test_stale_bytecode_in_the_bundle_is_not_an_input(bundle):
     b = bundle()
     subprocess.run([sys.executable, "-c", "import helpers"], cwd=b, check=True)  # leaves __pycache__/helpers.*.pyc

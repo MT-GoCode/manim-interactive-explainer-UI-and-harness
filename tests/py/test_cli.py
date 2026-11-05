@@ -8,7 +8,6 @@ import pytest
 
 from conftest import REPO, explain_build
 
-pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 
 
 def test_report_from_outside_the_repo_without_tex_on_path(bundle, tmp_path):

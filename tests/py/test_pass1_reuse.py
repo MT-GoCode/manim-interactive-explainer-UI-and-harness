@@ -10,7 +10,6 @@ from conftest import FIXTURES, engine_copy, explain_build
 from explainers import build as B
 from explainers import fingerprint as F
 
-pytestmark = pytest.mark.xdist_group("render")  # builds that render run one at a time
 
 
 @pytest.fixture(scope="module")
