@@ -32,7 +32,10 @@ async function send(page: Page, text: string) {
   await expect(page.locator('.comment-box')).toHaveCount(0)
 }
 async function commentCell(page: Page, i: number, text: string) {
-  await page.locator('.cell').nth(i).locator('.add-comment').click({ force: true })
+  const button = page.locator('.cell').nth(i).locator('.add-comment')
+  // Ping floats over the transcript's bottom right, and force clicks whatever is at the button's position.
+  await button.evaluate((e) => e.scrollIntoView({ block: 'center' }))
+  await button.click({ force: true })
   await send(page, text)
 }
 
